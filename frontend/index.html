@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- Hace que el diseño sea responsivo en móviles -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Sistema Avícola</title>
+
+  <!-- Enlace a los estilos -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- Contenedor principal -->
+<div class="container">
+
+  <!-- MENÚ LATERAL -->
+  <aside class="sidebar" id="sidebar">
+    <h2>Menú</h2>
+
+    <ul class="menu">
+
+      <!-- MÓDULO ADMINISTRATIVO -->
+      <li class="menu-item">
+        Administrativo
+        <ul>
+          <!-- Cada opción llama a loadView() -->
+          <li onclick="loadView('usuarios')">Usuarios</li>
+          <li onclick="loadView('lotes')">Lotes</li>
+          <li onclick="loadView('inventario')">Inventario</li>
+          <li onclick="loadView('bodegas')">Bodegas</li>
+          <li onclick="loadView('clientes')">Clientes</li>
+          <li onclick="loadView('reportes-admin')">Reportes</li>
+        </ul>
+      </li>
+
+      <!-- MÓDULO GRANJA -->
+      <li class="menu-item">
+        Granja Reproductora
+        <ul>
+          <li onclick="loadView('movimientos-granja')">Movimientos</li>
+          <li onclick="loadView('controles-granja')">Controles</li>
+          <li onclick="loadView('reportes-granja')">Reportes</li>
+        </ul>
+      </li>
+
+      <!-- MÓDULO INCUBADORA -->
+      <li class="menu-item">
+        Incubadora
+        <ul>
+          <li onclick="loadView('movimientos-incubadora')">Movimientos</li>
+          <li onclick="loadView('controles-incubadora')">Controles</li>
+          <li onclick="loadView('reportes-incubadora')">Reportes</li>
+        </ul>
+      </li>
+
+      <!-- DASHBOARDS -->
+      <li class="menu-item">
+        Dashboards
+        <ul>
+          <li onclick="loadView('dashboard-granja')">Granja</li>
+          <li onclick="loadView('dashboard-incubadora')">Incubadora</li>
+        </ul>
+      </li>
+
+    </ul>
+  </aside>
+
+  <!-- CONTENIDO DINÁMICO -->
+  <main id="content">
+    <!-- Aquí se cargan las vistas dinámicamente -->
+    <h1>Bienvenido</h1>
+  </main>
+
+</div>
+
+<!-- Script principal -->
+<script src="js/app.js"></script>
+
+</body>
+</html>
