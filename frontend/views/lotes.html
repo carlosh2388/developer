@@ -1,0 +1,216 @@
+<!-- =========================
+     VISTA: REGISTRO DE LOTES
+     Esta vista se carga dinámicamente con loadView('lotes')
+========================= -->
+
+<h2>Registro de Lote</h2>
+
+<form id="formLote" class="form-container">
+
+  <!-- =========================
+       IDENTIFICADOR DEL LOTE
+       Se genera automáticamente
+  ========================= -->
+  <label># Lote</label>
+  <input type="text" id="lote" class="full" readonly>
+
+  <!-- =========================
+       FECHA AUTOMÁTICA
+  ========================= -->
+  <label>Fecha</label>
+  <input type="date" id="fecha" class="full">
+
+  <!-- =========================
+       VARIEDAD (DINÁMICA)
+       Permite seleccionar o agregar nueva
+  ========================= -->
+  <label>Variedad</label>
+  <div class="row">
+    <select id="variedad">
+      <option value="">Seleccione</option>
+    </select>
+
+    <!-- Input para nueva variedad -->
+    <input type="text" id="nuevaVariedad" placeholder="Nueva variedad">
+
+    <!-- Botón agrega opción al select -->
+    <button type="button" onclick="agregarOpcion('variedad','nuevaVariedad')">+</button>
+  </div>
+
+  <!-- =========================
+       GALERA (MISMA LÓGICA)
+  ========================= -->
+  <label>Galera</label>
+  <div class="row">
+    <select id="galera">
+      <option value="">Seleccione</option>
+    </select>
+
+    <input type="text" id="nuevaGalera" placeholder="Nueva galera">
+
+    <button type="button" onclick="agregarOpcion('galera','nuevaGalera')">+</button>
+  </div>
+
+  <!-- =========================
+       CANTIDADES
+  ========================= -->
+  <label>Cantidad Hembras</label>
+  <input type="number" id="hembras" class="full" min="0">
+
+  <label>Cantidad Machos</label>
+  <input type="number" id="machos" class="full" min="0">
+
+  <!-- =========================
+       TOTAL CALCULADO
+  ========================= -->
+  <label>Cantidad Importada (Total)</label>
+  <input type="number" id="cantidadImportada" class="full" readonly>
+
+  <!-- =========================
+       COSTOS
+  ========================= -->
+  <label>Costo (Q)</label>
+  <input type="number" id="costo" class="full" step="0.01">
+
+  <label>Costo Unitario (Q)</label>
+  <input type="number" id="costoUnitario" class="full" step="0.01" readonly>
+
+  <!-- =========================
+       ESTADO DEL LOTE
+  ========================= -->
+  <label>Estado</label>
+  <select id="estado" class="full">
+    <option value="Activo">Activo</option>
+    <option value="Inactivo">Inactivo</option>
+  </select>
+
+  <!-- =========================
+       BOTÓN GUARDAR
+  ========================= -->
+  <button type="submit" class="full">Guardar</button>
+
+</form>
+
+<script>
+/* =====================================================
+   GENERAR CÓDIGO DE LOTE
+   Formato: REP-YYMMDD-HHMM
+===================================================== */
+function generarLote() {
+  const now = new Date();
+
+  const year = now.getFullYear().toString().slice(-2);
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+
+  return `REP-${year}${month}${day}-${hours}${minutes}`;
+}
+
+/* =====================================================
+   COLOCAR FECHA ACTUAL EN EL INPUT
+===================================================== */
+function setFechaActual() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById("fecha").value = today;
+}
+
+/* =====================================================
+   AGREGAR OPCIONES DINÁMICAS A SELECT
+   Ejemplo: nueva variedad o galera
+===================================================== */
+function agregarOpcion(selectId, inputId) {
+
+  const select = document.getElementById(selectId);
+  const input = document.getElementById(inputId);
+
+  // Validar que no esté vacío
+  if (input.value.trim() !== "") {
+
+    const option = document.createElement("option");
+
+    option.text = input.value;
+    option.value = input.value;
+
+    // Añadir al select
+    select.add(option);
+
+    // Limpiar input
+    input.value = "";
+  }
+}
+
+/* =====================================================
+   CALCULAR:
+   - Total de aves
+   - Costo unitario
+===================================================== */
+function calcularTotales() {
+
+  const hembras = parseInt(document.getElementById("hembras").value) || 0;
+  const machos = parseInt(document.getElementById("machos").value) || 0;
+  const costo = parseFloat(document.getElementById("costo").value) || 0;
+
+  // Total aves
+  const total = hembras + machos;
+
+  document.getElementById("cantidadImportada").value = total;
+
+  // Evitar división por 0
+  if (total > 0) {
+    document.getElementById("costoUnitario").value = (costo / total).toFixed(2);
+  } else {
+    document.getElementById("costoUnitario").value = 0;
+  }
+}
+
+/* =====================================================
+   INICIALIZACIÓN DE LA VISTA
+   IMPORTANTE: esto se ejecuta cada vez que cargas la vista
+===================================================== */
+(function initLotes(){
+
+  // Generar lote automático
+  document.getElementById("lote").value = generarLote();
+
+  // Fecha actual
+  setFechaActual();
+
+  // Eventos para recalcular
+  document.getElementById("hembras").addEventListener("input", calcularTotales);
+  document.getElementById("machos").addEventListener("input", calcularTotales);
+  document.getElementById("costo").addEventListener("input", calcularTotales);
+
+})();
+
+/* =====================================================
+   EVENTO SUBMIT
+   Aquí luego conectarás con el backend (POST /api/lotes)
+===================================================== */
+document.getElementById("formLote").addEventListener("submit", async function(e){
+
+  e.preventDefault(); // evitar recarga
+
+  // Construir objeto
+  const data = {
+    lote: document.getElementById("lote").value,
+    fecha: document.getElementById("fecha").value,
+    variedad: document.getElementById("variedad").value,
+    galera: document.getElementById("galera").value,
+    hembras: document.getElementById("hembras").value,
+    machos: document.getElementById("machos").value,
+    total: document.getElementById("cantidadImportada").value,
+    costo: document.getElementById("costo").value,
+    costoUnitario: document.getElementById("costoUnitario").value,
+    estado: document.getElementById("estado").value
+  };
+
+  console.log("Datos del lote:", data);
+
+  // 🔥 AQUÍ luego harás:
+  // fetch("http://localhost:3000/api/lotes", {...})
+
+  alert("Formulario listo para enviar al backend");
+});
+</script>
