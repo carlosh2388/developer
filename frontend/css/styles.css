@@ -1,80 +1,186 @@
-/* Quita márgenes por defecto */
+/* =====================================================
+VARIABLES DE DISEÑO (IDENTIDAD VISUAL)
+Colores y configuración global reutilizable
+===================================================== */
+:root {
+--color-primary: #2E7D32;   /* Verde (agro / crecimiento) */
+--color-secondary: #1565C0; /* Azul (tecnología / confianza) */
+--color-dark: #424242;      /* Gris (profesionalismo) */
+--color-bg: #f5f7fa;        /* Fondo general */
+--color-white: #ffffff;
+}
+
+/* =====================================================
+RESET GLOBAL
+Normaliza estilos base del navegador
+===================================================== */
 body {
-  margin: 0;
-  font-family: Arial;
+margin: 0;
+font-family: 'Inter', 'Roboto', 'Poppins', sans-serif;
+background: var(--color-bg);
+color: var(--color-dark);
 }
 
-/* Contenedor principal en layout horizontal */
+/* =====================================================
+LAYOUT PRINCIPAL
+Estructura base: sidebar + contenido
+===================================================== */
 .container {
-  display: flex;
+display: flex;
+min-height: 100vh;
 }
 
-/* MENÚ LATERAL */
+/* =====================================================
+SIDEBAR / MENÚ LATERAL
+===================================================== */
 .sidebar {
-  width: 250px;
-  background: #2c3e50;
-  color: white;
-  min-height: 100vh; /* ocupa toda la altura */
+width: 250px;
+background: var(--color-primary);
+color: var(--color-white);
+min-height: 100vh;
+transition: all 0.3s ease;
 }
 
-/* Lista del menú */
+/* Lista principal del menú */
 .menu {
-  list-style: none;
-  padding: 0;
+list-style: none;
+padding: 0;
+margin: 0;
 }
 
 /* Item principal */
 .menu-item {
-  padding: 10px;
-  cursor: pointer;
+padding: 14px 18px;
+cursor: pointer;
+font-weight: 500;
+transition: background 0.2s ease;
+}
+
+/* Hover item principal */
+.menu-item:hover {
+background: rgba(255,255,255,0.08);
 }
 
 /* Submenú */
 .menu-item ul {
-  list-style: none;
-  padding-left: 15px;
+list-style: none;
+padding-left: 15px;
+margin-top: 5px;
 }
 
-/* Opciones internas */
+/* Items internos */
 .menu-item li {
-  padding: 5px;
-  cursor: pointer;
+padding: 8px 12px;
+border-radius: 6px;
+transition: all 0.2s ease;
+font-size: 14px;
 }
 
-/* Efecto hover */
+/* Hover subitems */
 .menu-item li:hover {
-  background: #34495e;
+background: var(--color-secondary);
 }
 
-/* CONTENIDO */
+/* =====================================================
+CONTENIDO PRINCIPAL
+===================================================== */
 main {
-  flex: 1; /* ocupa el espacio restante */
-  padding: 20px;
+flex: 1;
+padding: 25px;
 }
 
-/* 📱 RESPONSIVO */
+/* =====================================================
+FORMULARIOS
+Contenedor visual tipo tarjeta
+===================================================== */
+.form-container {
+background: var(--color-white);
+padding: 24px;
+border-radius: 10px;
+max-width: 700px;
+margin: auto;
+box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* Filas horizontales (inputs en línea) */
+.row {
+display: flex;
+gap: 10px;
+align-items: center;
+}
+
+/* Inputs de ancho completo */
+.full {
+width: 100%;
+}
+
+/* =====================================================
+COMPONENTES (INPUTS / SELECT / BUTTON)
+===================================================== */
+input,
+select,
+button {
+font-family: inherit;
+padding: 10px;
+border-radius: 6px;
+border: 1px solid #ddd;
+width: 100%;
+margin-top: 10px;
+box-sizing: border-box;
+}
+
+/* Botón principal */
+button {
+background: var(--color-secondary);
+color: var(--color-white);
+border: none;
+cursor: pointer;
+transition: background 0.2s ease;
+}
+
+/* Hover botón */
+button:hover {
+background: #0d47a1;
+}
+
+/* Botones pequeños (como "+") */
+button[type="button"] {
+width: auto;
+padding: 8px 12px;
+margin-top: 0;
+}
+
+/* =====================================================
+RESPONSIVE (MÓVIL)
+===================================================== */
 @media (max-width: 768px) {
 
-  /* Oculta el menú */
-  .sidebar {
-    position: absolute;
-    left: -250px;
-    transition: 0.3s;
-  }
-
-  /* Clase para mostrar menú */
-  .sidebar.active {
-    left: 0;
-  }
-
-  /* Contenedor de formularios */
-.form-container {
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  max-width: 700px;
-  margin: auto;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+/* Sidebar oculto por defecto */
+.sidebar {
+position: absolute;
+left: -250px;
+z-index: 1000;
 }
 
+/* Sidebar visible */
+.sidebar.active {
+left: 0;
+}
+
+/* Ajuste de contenido */
+main {
+padding: 20px;
+}
+
+/* Formularios más compactos */
+.form-container {
+padding: 18px;
+border-radius: 8px;
+}
+
+/* Filas se vuelven verticales en móvil */
+.row {
+flex-direction: column;
+align-items: stretch;
+}
 }
