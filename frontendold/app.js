@@ -2,7 +2,7 @@
 const express = require("express");
 const cors = require("cors");
 
-const usuariosRoutes = require("./routes/usuarios");
+//const usuariosRoutes = require("./routes/usuarios");
 
 // Crear app
 const app = express();
@@ -19,7 +19,7 @@ app.use(express.json());
 ========================= */
 
 // Rutas API
-app.use("/api/usuarios", usuariosRoutes);
+//app.use("/api/usuarios", usuariosRoutes);
 
 // Ruta base
 app.get("/", (req, res) => {
@@ -30,7 +30,7 @@ app.get("/", (req, res) => {
    INICIAR SERVIDOR
 ========================= */
 // Puerto
-const PORT = 3000;
+const PORT = 3001;
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
