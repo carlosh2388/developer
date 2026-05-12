@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-function Productos() {
+function Inventarios() {
 
   // =========================
   // STATES
@@ -322,4 +322,4 @@ function Productos() {
   );
 }
 
-export default Productos;
+export default Inventarios;

@@ -8,6 +8,7 @@ import Sidebar from "./components/Sidebar";
 import Lotes from "./pages/Lotes";
 import Bodegas from "./pages/Bodegas";
 import Localidades from "./pages/Localidades";
+import Localidades from "./pages/Inventarios";
 
 function App() {
 
@@ -23,9 +24,12 @@ function App() {
       case "bodegas":
         return <Bodegas />;
 	
-	  case "localidades":
+	    case "localidades":
         return <Localidades />;
-		
+
+	    case "inventarios":
+        return <Inventarios />;
+        
       default:
         return <h1>Bienvenido</h1>;
     }
