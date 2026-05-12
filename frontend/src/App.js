@@ -8,7 +8,7 @@ import Sidebar from "./components/Sidebar";
 import Lotes from "./pages/Lotes";
 import Bodegas from "./pages/Bodegas";
 import Localidades from "./pages/Localidades";
-import Localidades from "./pages/Inventarios";
+import Inventarios from "./pages/Inventarios";
 
 function App() {
 
