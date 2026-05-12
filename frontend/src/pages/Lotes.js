@@ -168,7 +168,7 @@ function Lotes() {
 
     <form onSubmit={handleSubmit}>
 
-      <h2>Registro de Lote</h2>
+      <h2>Registro de Lotes</h2>
 
       {/* LOTE */}
       <label># Lote</label>
