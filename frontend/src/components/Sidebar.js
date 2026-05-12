@@ -23,6 +23,9 @@ function Sidebar({ setVista }) {
       			<li onClick={() => setVista("inventarios")}>
               Inventarios
             </li>
+      			<li onClick={() => setVista("clientes")}>
+              Clientes
+            </li>
           </ul>
         </li>
 

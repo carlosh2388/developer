@@ -9,6 +9,7 @@ import Lotes from "./pages/Lotes";
 import Bodegas from "./pages/Bodegas";
 import Localidades from "./pages/Localidades";
 import Inventarios from "./pages/Inventarios";
+import Clientes from "./pages/Clientes";
 
 function App() {
 
@@ -29,6 +30,9 @@ function App() {
 
 	    case "inventarios":
         return <Inventarios />;
+        
+	    case "clientes":
+        return <Clientes />;
         
       default:
         return <h1>Bienvenido</h1>;
