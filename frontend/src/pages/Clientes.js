@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 function Clientes() {
 
@@ -6,99 +6,34 @@ function Clientes() {
   // STATES
   // =========================
 
-  const [tipoInventario, setTipoInventario] = useState("");
+  const [nit, setNit] = useState("");
 
-  const [idProducto, setIdProducto] = useState("");
+  const [nombreComercial, setNombreComercial] = useState("");
 
-  const [nombre, setNombre] = useState("");
+  const [direccionFiscal, setDireccionFiscal] = useState("");
 
-  const [unidad, setUnidad] = useState("");
+  const [telefono, setTelefono] = useState("");
 
-  const [estado, setEstado] = useState("Activo");
-
-  const [existencia, setExistencia] = useState("");
-
-  const [costo, setCosto] = useState("");
-
-  const [presentacion, setPresentacion] = useState("");
-
-  const [enfermedad, setEnfermedad] = useState("");
-
-  const [dosis, setDosis] = useState("");
-
-  const [tipo, setTipo] = useState("");
-
-  const [mostrarGenerales, setMostrarGenerales] = useState(false);
-
-  const [mostrarInsumos, setMostrarInsumos] = useState(false);
-
-  const [helpId, setHelpId] = useState("");
-
-  const [mostrarGuardar, setMostrarGuardar] = useState(false);
+  const [contacto, setContacto] = useState("");
 
   // =========================
-  // CAMBIO DE TIPO INVENTARIO
+  // FORMATO TELÉFONO
   // =========================
 
-  const handleTipo = (e) => {
-
-    const value = e.target.value;
-
-    setTipoInventario(value);
-
-    if (value) {
-
-      setMostrarGenerales(true);
-      setMostrarGuardar(true);
-
-      if (value === "INS") {
-
-        setMostrarInsumos(true);
-
-        setHelpId(
-          "Ej: VC-NOM-COR, MD-NOM-COR, AD-NOM-COR"
-        );
-
-      } else {
-
-        setMostrarInsumos(false);
-
-        setHelpId(
-          "Ej: PT-HU-MED, PT-HU-GRD"
-        );
-      }
-
-    } else {
-
-      setMostrarGenerales(false);
-      setMostrarInsumos(false);
-      setMostrarGuardar(false);
-    }
-  };
-
-  // =========================
-  // MÁSCARA ID PRODUCTO
-  // =========================
-
-  const handleIdProducto = (e) => {
+  const handleTelefono = (e) => {
 
     let value = e.target.value
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, "");
+      .replace(/\D/g, "");
 
-    if (value.length > 2)
+    if (value.length > 4) {
+
       value =
-        value.slice(0, 2) +
+        value.slice(0, 4) +
         "-" +
-        value.slice(2);
+        value.slice(4, 8);
+    }
 
-    if (value.length > 5)
-      value =
-        value.slice(0, 5) +
-        "-" +
-        value.slice(5, 8);
-
-    setIdProducto(value);
+    setTelefono(value);
   };
 
   // =========================
@@ -109,24 +44,27 @@ function Clientes() {
 
     e.preventDefault();
 
+    if (!/^\d{4}-\d{4}$/.test(telefono)) {
+
+      alert(
+        "El teléfono debe tener formato ####-####"
+      );
+
+      return;
+    }
+
     const data = {
 
-      tipoInventario,
-      idProducto,
-      nombre,
-      unidad,
-      estado,
-      existencia,
-      costo,
-      presentacion,
-      enfermedad,
-      dosis,
-      tipo
+      nit,
+      nombreComercial,
+      direccionFiscal,
+      telefono,
+      contacto
     };
 
     console.log(data);
 
-    alert("Producto guardado correctamente");
+    alert("Cliente guardado correctamente");
   };
 
   // =========================
@@ -137,186 +75,73 @@ function Clientes() {
 
     <form onSubmit={handleSubmit}>
 
-      <h2>Registro de Producto</h2>
+      <h2>Registro de Cliente</h2>
 
-      {/* TIPO INVENTARIO */}
-      <label>Tipo de Inventario</label>
+      {/* NIT */}
+      <label>NIT</label>
 
-      <select
-        value={tipoInventario}
-        onChange={handleTipo}
-      >
+      <input
+        type="text"
+        value={nit}
+        onChange={(e) =>
+          setNit(e.target.value)
+        }
+        required
+      />
 
-        <option value="">
-          Seleccione
-        </option>
+      {/* NOMBRE COMERCIAL */}
+      <label>Nombre Comercial</label>
 
-        <option value="PT">
-          Producto Terminado
-        </option>
+      <input
+        type="text"
+        value={nombreComercial}
+        onChange={(e) =>
+          setNombreComercial(e.target.value)
+        }
+        required
+      />
 
-        <option value="INS">
-          Vacunas, Medicamentos y Aditivos
-        </option>
+      {/* DIRECCIÓN FISCAL */}
+      <label>Dirección Fiscal</label>
 
-      </select>
+      <input
+        type="text"
+        value={direccionFiscal}
+        onChange={(e) =>
+          setDireccionFiscal(e.target.value)
+        }
+        required
+      />
 
-      {/* CAMPOS GENERALES */}
-      {mostrarGenerales && (
+      {/* TELÉFONO */}
+      <label>Teléfono</label>
 
-        <div>
+      <input
+        type="text"
+        value={telefono}
+        onChange={handleTelefono}
+        placeholder="####-####"
+        maxLength={9}
+        required
+      />
 
-          <label>Id de Producto</label>
+      {/* CONTACTO */}
+      <label>Contacto</label>
 
-          <input
-            type="text"
-            value={idProducto}
-            onChange={handleIdProducto}
-            placeholder="TT-TT-TTT"
-          />
-
-          <small>{helpId}</small>
-
-          <label>Nombre del Producto</label>
-
-          <input
-            type="text"
-            value={nombre}
-            onChange={(e) =>
-              setNombre(e.target.value)
-            }
-          />
-
-          <label>Unidad de Medida</label>
-
-          <select
-            value={unidad}
-            onChange={(e) =>
-              setUnidad(e.target.value)
-            }
-          >
-
-            <option value="">
-              Seleccione
-            </option>
-
-            <option value="UN">
-              Unidad (UN)
-            </option>
-
-          </select>
-
-          <label>Estado</label>
-
-          <select
-            value={estado}
-            onChange={(e) =>
-              setEstado(e.target.value)
-            }
-          >
-
-            <option value="Activo">
-              Activo
-            </option>
-
-            <option value="Inactivo">
-              Inactivo
-            </option>
-
-          </select>
-
-          <label>Existencia</label>
-
-          <input
-            type="number"
-            value={existencia}
-            onChange={(e) =>
-              setExistencia(e.target.value)
-            }
-            placeholder="Calculado automáticamente"
-          />
-
-        </div>
-      )}
-
-      {/* CAMPOS INSUMOS */}
-      {mostrarInsumos && (
-
-        <div>
-
-          <label>Costo</label>
-
-          <input
-            type="number"
-            step="0.01"
-            value={costo}
-            onChange={(e) =>
-              setCosto(e.target.value)
-            }
-          />
-
-          <label>Presentación</label>
-
-          <input
-            type="text"
-            value={presentacion}
-            onChange={(e) =>
-              setPresentacion(e.target.value)
-            }
-          />
-
-          <label>Enfermedad</label>
-
-          <input
-            type="text"
-            value={enfermedad}
-            onChange={(e) =>
-              setEnfermedad(e.target.value)
-            }
-          />
-
-          <label>Dosis</label>
-
-          <input
-            type="text"
-            value={dosis}
-            onChange={(e) =>
-              setDosis(e.target.value)
-            }
-          />
-
-          <label>Tipo</label>
-
-          <select
-            value={tipo}
-            onChange={(e) =>
-              setTipo(e.target.value)
-            }
-          >
-
-            <option value="">
-              Seleccione
-            </option>
-
-            <option value="Viva">
-              Viva
-            </option>
-
-            <option value="Oleosa">
-              Oleosa
-            </option>
-
-          </select>
-
-        </div>
-      )}
+      <input
+        type="text"
+        value={contacto}
+        onChange={(e) =>
+          setContacto(e.target.value)
+        }
+      />
 
       {/* BOTÓN */}
-      {mostrarGuardar && (
-        <button type="submit">
-          Guardar
-        </button>
-      )}
+      <button type="submit">
+
+        Guardar
+
+      </button>
 
     </form>
   );
