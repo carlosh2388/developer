@@ -91,7 +91,7 @@ function ControlAlimento() {
 
   return (
 
-    <div className="container container-alimentos">
+    <div className="container container-vertical">
 
       <h2>
         Control de Alimentos

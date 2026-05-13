@@ -209,6 +209,6 @@ align-items: stretch;
   flex-direction: column;
 }
 
-.container-alimentos {
+.container-vertical {
   flex-direction: column;
 }

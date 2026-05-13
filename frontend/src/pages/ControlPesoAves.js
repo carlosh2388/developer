@@ -87,7 +87,7 @@ function ControlPesoAves() {
 
   return (
 
-    <div className="container">
+    <div className="container container-vertical">
 
       <h2>Registro de Pesos de Aves</h2>
 
