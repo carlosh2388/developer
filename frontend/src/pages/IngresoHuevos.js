@@ -245,7 +245,9 @@ function IngresoHuevos() {
           <h3
             style={{
               margin: 0,
-              textTransform: "capitalize"
+              textTransform: "capitalize",
+              fontSize: "18px",
+              fontWeight: "400"
             }}
           >
             {grupo}
@@ -436,7 +438,10 @@ function IngresoHuevos() {
     <div style={{ marginBottom: "40px" }}>
 
       <h2 style={{
-        textTransform: "capitalize"
+        textTransform: "capitalize",
+        fontSize: "20px",
+        marginBottom: "15px",
+        fontWeight: "500"
       }}>
         Huevo {tipo}
       </h2>
@@ -457,7 +462,7 @@ function IngresoHuevos() {
 
     <div className="form-container">
 
-      <h2>Ingreso de Huevos</h2>
+      <h2>Ingreso de Huevos (Clasificación)</h2>
 
       {/* FECHA */}
       <label>Fecha</label>

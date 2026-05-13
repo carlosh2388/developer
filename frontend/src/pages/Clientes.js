@@ -22,11 +22,9 @@ function Clientes() {
 
   const handleTelefono = (e) => {
 
-    let value = e.target.value
-      .replace(/\D/g, "");
+    let value = e.target.value.replace(/\D/g, "");
 
     if (value.length > 4) {
-
       value =
         value.slice(0, 4) +
         "-" +
@@ -45,16 +43,11 @@ function Clientes() {
     e.preventDefault();
 
     if (!/^\d{4}-\d{4}$/.test(telefono)) {
-
-      alert(
-        "El teléfono debe tener formato ####-####"
-      );
-
+      alert("El teléfono debe tener formato ####-####");
       return;
     }
 
     const data = {
-
       nit,
       nombreComercial,
       direccionFiscal,
@@ -75,19 +68,38 @@ function Clientes() {
 
     <form onSubmit={handleSubmit}>
 
-      <h2>Registro de Cliente</h2>
+      <h2>Registro de Clientes</h2>
 
-      {/* NIT */}
-      <label>NIT</label>
+      {/* NIT + TELÉFONO EN UNA LÍNEA */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: "10px"
+      }}>
 
-      <input
-        type="text"
-        value={nit}
-        onChange={(e) =>
-          setNit(e.target.value)
-        }
-        required
-      />
+        <div>
+          <label>NIT</label>
+          <input
+            type="text"
+            value={nit}
+            onChange={(e) => setNit(e.target.value)}
+            required
+          />
+        </div>
+
+        <div>
+          <label>Teléfono</label>
+          <input
+            type="text"
+            value={telefono}
+            onChange={handleTelefono}
+            placeholder="####-####"
+            maxLength={9}
+            required
+          />
+        </div>
+
+      </div>
 
       {/* NOMBRE COMERCIAL */}
       <label>Nombre Comercial</label>
@@ -113,20 +125,8 @@ function Clientes() {
         required
       />
 
-      {/* TELÉFONO */}
-      <label>Teléfono</label>
-
-      <input
-        type="text"
-        value={telefono}
-        onChange={handleTelefono}
-        placeholder="####-####"
-        maxLength={9}
-        required
-      />
-
-      {/* CONTACTO */}
-      <label>Contacto</label>
+      {/* CONTACTO RENOMBRADO */}
+      <label>Nombre del Contacto</label>
 
       <input
         type="text"
@@ -138,9 +138,7 @@ function Clientes() {
 
       {/* BOTÓN */}
       <button type="submit">
-
         Guardar
-
       </button>
 
     </form>

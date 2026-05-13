@@ -550,7 +550,7 @@ function EgresoHuevos() {
 
     <div className="form-container">
 
-      <h2>Egresos</h2>
+      <h2>Egreso de Huevos</h2>
 
       {/* FILA 1 */}
       <div style={{
