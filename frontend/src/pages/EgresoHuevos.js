@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-function EgresosCompleto() {
+function EgresoHuevos() {
 
   // =========================
   // STATES BASE
@@ -395,4 +395,4 @@ function EgresosCompleto() {
   );
 }
 
-export default EgresosCompleto;
+export default EgresoHuevos;

@@ -15,6 +15,10 @@ import ControlAlimento from "./pages/ControlAlimento";
 import ControlPesoAves from "./pages/ControlPesoAves";
 import ControlPesoHuevos from "./pages/ControlPesoHuevos";
 
+import IngresoHuevos from "./pages/IngresoHuevos";
+import EgresoHuevos from "./pages/EgresoHuevos";
+import Traslados from "./pages/Traslados";
+
 function App() {
 
   const [vista, setVista] = useState("inicio");
@@ -47,6 +51,16 @@ function App() {
 
       case "controlPesoHuevos":
         return <ControlPesoHuevos />;
+      
+
+	    case "ingresoHuevos":
+        return <IngresoHuevos />;
+
+      case "egresoHuevos":
+        return <EgresoHuevos />;
+
+      case "traslados":
+        return <Traslados />;
       
 
       default:

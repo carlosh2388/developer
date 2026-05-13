@@ -45,7 +45,21 @@ function Sidebar({ setVista }) {
           </ul>
         </li>
 
-
+        {/* MOVIMIENTOS */}
+        <li className="menu-item">
+          Movimientos
+          <ul>
+            <li onClick={() => setVista("ingresoHuevos")}>
+              Ingreso de Huevos
+            </li>
+            <li onClick={() => setVista("egresoHuevos")}>
+              Egreso de Huevos
+            </li>
+      			<li onClick={() => setVista("traslados")}>
+              Traslados
+            </li>
+          </ul>
+        </li>
 
       </ul>
 

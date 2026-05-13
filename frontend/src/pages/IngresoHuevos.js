@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-function ClasificacionHuevos() {
+function IngresoHuevos() {
 
   // =========================
   // STATES
@@ -239,4 +239,4 @@ function ClasificacionHuevos() {
   );
 }
 
-export default ClasificacionHuevos;
+export default IngresoHuevos;
