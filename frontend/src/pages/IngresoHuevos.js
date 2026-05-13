@@ -138,11 +138,23 @@ function IngresoHuevos() {
         {/* HEADER */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
 
-          <h3 style={{ margin: 0 }}>
-            {nombre.toUpperCase()}
+          <h3 style={{ margin: 0, textTransform: "capitalize" }}>
+            {nombre}
           </h3>
 
-          <button onClick={() => toggle(nombre)}>
+          <button
+            onClick={() => toggle(nombre)}
+            style={{
+              width: "28px",
+              height: "28px",
+              padding: "0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "16px",
+              lineHeight: "1"
+            }}>
+
             {open[nombre] ? "-" : "+"}
           </button>
 
