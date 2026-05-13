@@ -90,9 +90,8 @@ function ControlAlimento() {
   // =========================
 
   return (
-
-    <div className="container container-vertical">
-
+    <div className="form-container">
+ 
       <h2>
         Control de Alimentos
       </h2>
