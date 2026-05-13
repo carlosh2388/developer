@@ -12,34 +12,76 @@ function IngresoHuevos() {
 
   const [loteProd, setLoteProd] = useState("");
 
-  const [origen, setOrigen] = useState("");
+  // =========================
+  // ESTRUCTURA DE GRUPOS
+  // =========================
+
+  const grupos = [
+    "incubable",
+    "comercial",
+    "sucio",
+    "quebrado",
+    "otros"
+  ];
+
+  const tipos = [
+    "blanco",
+    "rojo"
+  ];
 
   // =========================
-  // EXPANSIÓN DE GRUPOS
+  // EXPANSIÓN
   // =========================
 
   const [open, setOpen] = useState({
-    incubable: false,
-    comercial: false,
-    sucio: false,
-    quebrado: false,
-    otros: false
+
+    blanco: {
+      incubable: false,
+      comercial: false,
+      sucio: false,
+      quebrado: false,
+      otros: false
+    },
+
+    rojo: {
+      incubable: false,
+      comercial: false,
+      sucio: false,
+      quebrado: false,
+      otros: false
+    }
   });
 
   // =========================
   // CANTIDADES
   // =========================
 
+  const crearGrupo = () => ({
+    pewee: 0,
+    pequeno: 0,
+    mediano: 0,
+    grande: 0,
+    extra: 0,
+    origen: ""
+  });
+
   const [cantidades, setCantidades] = useState({
-    incubable: { pewee: 0, pequeno: 0, mediano: 0, grande: 0, extra: 0 },
 
-    comercial: { pewee: 0, pequeno: 0, mediano: 0, grande: 0, extra: 0 },
+    blanco: {
+      incubable: crearGrupo(),
+      comercial: crearGrupo(),
+      sucio: crearGrupo(),
+      quebrado: crearGrupo(),
+      otros: crearGrupo()
+    },
 
-    sucio: { pewee: 0, pequeno: 0, mediano: 0, grande: 0, extra: 0 },
-
-    quebrado: { pewee: 0, pequeno: 0, mediano: 0, grande: 0, extra: 0 },
-
-    otros: { pewee: 0, pequeno: 0, mediano: 0, grande: 0, extra: 0 }
+    rojo: {
+      incubable: crearGrupo(),
+      comercial: crearGrupo(),
+      sucio: crearGrupo(),
+      quebrado: crearGrupo(),
+      otros: crearGrupo()
+    }
   });
 
   // =========================
@@ -66,16 +108,52 @@ function IngresoHuevos() {
   }, []);
 
   // =========================
-  // HANDLE INPUTS
+  // HANDLE CANTIDAD
   // =========================
 
-  const handleCantidad = (grupo, campo, value) => {
+  const handleCantidad = (
+    tipo,
+    grupo,
+    campo,
+    value
+  ) => {
 
     setCantidades(prev => ({
       ...prev,
-      [grupo]: {
-        ...prev[grupo],
-        [campo]: value
+
+      [tipo]: {
+        ...prev[tipo],
+
+        [grupo]: {
+          ...prev[tipo][grupo],
+
+          [campo]: value
+        }
+      }
+    }));
+  };
+
+  // =========================
+  // HANDLE ORIGEN
+  // =========================
+
+  const handleOrigen = (
+    tipo,
+    grupo,
+    value
+  ) => {
+
+    setCantidades(prev => ({
+      ...prev,
+
+      [tipo]: {
+        ...prev[tipo],
+
+        [grupo]: {
+          ...prev[tipo][grupo],
+
+          origen: value
+        }
       }
     }));
   };
@@ -84,23 +162,39 @@ function IngresoHuevos() {
   // TOTAL POR GRUPO
   // =========================
 
-  const calcularTotal = (grupo) => {
+  const calcularTotal = (
+    tipo,
+    grupo
+  ) => {
 
-    const g = cantidades[grupo];
+    const g = cantidades[tipo][grupo];
 
-    return Object.values(g)
-      .reduce((a, b) => a + (parseInt(b) || 0), 0);
+    return (
+      (parseInt(g.pewee) || 0) +
+      (parseInt(g.pequeno) || 0) +
+      (parseInt(g.mediano) || 0) +
+      (parseInt(g.grande) || 0) +
+      (parseInt(g.extra) || 0)
+    );
   };
 
   // =========================
   // TOGGLE
   // =========================
 
-  const toggle = (grupo) => {
+  const toggle = (
+    tipo,
+    grupo
+  ) => {
 
     setOpen(prev => ({
       ...prev,
-      [grupo]: !prev[grupo]
+
+      [tipo]: {
+        ...prev[tipo],
+
+        [grupo]: !prev[tipo][grupo]
+      }
     }));
   };
 
@@ -111,10 +205,10 @@ function IngresoHuevos() {
   const guardar = () => {
 
     const data = {
+
       fecha,
       lote,
       loteProd,
-      origen,
       cantidades
     };
 
@@ -124,26 +218,44 @@ function IngresoHuevos() {
   };
 
   // =========================
-  // RENDER GRUPO
+  // RENDER SUBGRUPO
   // =========================
 
-  const renderGrupo = (nombre) => {
+  const renderGrupo = (
+    tipo,
+    grupo
+  ) => {
 
-    const total = calcularTotal(nombre);
+    const total = calcularTotal(
+      tipo,
+      grupo
+    );
 
     return (
 
       <div style={{ marginBottom: "20px" }}>
 
         {/* HEADER */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center"
+        }}>
 
-          <h3 style={{ margin: 0, textTransform: "capitalize" }}>
-            {nombre}
+          <h3
+            style={{
+              margin: 0,
+              textTransform: "capitalize"
+            }}
+          >
+            {grupo}
           </h3>
 
           <button
-            onClick={() => toggle(nombre)}
+            type="button"
+            onClick={() =>
+              toggle(tipo, grupo)
+            }
             style={{
               width: "28px",
               height: "28px",
@@ -153,73 +265,156 @@ function IngresoHuevos() {
               justifyContent: "center",
               fontSize: "16px",
               lineHeight: "1"
-            }}>
-
-            {open[nombre] ? "-" : "+"}
+            }}
+          >
+            {open[tipo][grupo] ? "-" : "+"}
           </button>
 
         </div>
 
         {/* BODY */}
-        {open[nombre] && (
+        {open[tipo][grupo] && (
 
           <div>
 
+            {/* FILA 1 */}
             <div style={{
               display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
+              gridTemplateColumns:
+                "repeat(3, 1fr)",
               gap: "10px"
             }}>
 
-              {["pewee", "pequeno", "mediano"].map(k => (
+              {[
+                "pewee",
+                "pequeno",
+                "mediano"
+              ].map(k => (
+
                 <div key={k}>
+
                   <label>{k}</label>
+
                   <input
                     type="number"
-                    value={cantidades[nombre][k]}
+                    value={
+                      cantidades[tipo][grupo][k]
+                    }
                     onChange={(e) =>
-                      handleCantidad(nombre, k, e.target.value)
+                      handleCantidad(
+                        tipo,
+                        grupo,
+                        k,
+                        e.target.value
+                      )
                     }
                   />
+
                 </div>
+
               ))}
 
             </div>
 
+            {/* FILA 2 */}
             <div style={{
               display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
+              gridTemplateColumns:
+                "repeat(3, 1fr)",
               gap: "10px",
               marginTop: "10px"
             }}>
 
               <div>
-                <label>grande</label>
+
+                <label>Grande</label>
+
                 <input
                   type="number"
-                  value={cantidades[nombre].grande}
+                  value={
+                    cantidades[tipo][grupo]
+                      .grande
+                  }
                   onChange={(e) =>
-                    handleCantidad(nombre, "grande", e.target.value)
+                    handleCantidad(
+                      tipo,
+                      grupo,
+                      "grande",
+                      e.target.value
+                    )
                   }
                 />
+
               </div>
 
               <div>
-                <label>extra</label>
+
+                <label>Extra</label>
+
                 <input
                   type="number"
-                  value={cantidades[nombre].extra}
+                  value={
+                    cantidades[tipo][grupo]
+                      .extra
+                  }
                   onChange={(e) =>
-                    handleCantidad(nombre, "extra", e.target.value)
+                    handleCantidad(
+                      tipo,
+                      grupo,
+                      "extra",
+                      e.target.value
+                    )
                   }
                 />
+
               </div>
 
-              {/* TOTAL EN MISMA LÍNEA */}
               <div>
+
                 <label>Total</label>
-                <input type="number" value={total} readOnly />
+
+                <input
+                  type="number"
+                  value={total}
+                  readOnly
+                />
+
               </div>
+
+            </div>
+
+            {/* ORIGEN */}
+            <div style={{ marginTop: "10px" }}>
+
+              <label>Origen</label>
+
+              <select
+                value={
+                  cantidades[tipo][grupo]
+                    .origen
+                }
+                onChange={(e) =>
+                  handleOrigen(
+                    tipo,
+                    grupo,
+                    e.target.value
+                  )
+                }
+              >
+
+                <option value="">
+                  Seleccione
+                </option>
+
+                <option value="Nido">
+                  Nido
+                </option>
+
+                <option value="Piso">
+                  Piso
+                </option>
+
+              </select>
 
             </div>
 
@@ -233,6 +428,28 @@ function IngresoHuevos() {
   };
 
   // =========================
+  // RENDER TIPO
+  // =========================
+
+  const renderTipo = (tipo) => (
+
+    <div style={{ marginBottom: "40px" }}>
+
+      <h2 style={{
+        textTransform: "capitalize"
+      }}>
+        Huevo {tipo}
+      </h2>
+
+      {grupos.map(grupo =>
+        renderGrupo(tipo, grupo)
+      )}
+
+    </div>
+
+  );
+
+  // =========================
   // RENDER
   // =========================
 
@@ -244,32 +461,35 @@ function IngresoHuevos() {
 
       {/* FECHA */}
       <label>Fecha</label>
-      <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+
+      <input
+        type="date"
+        value={fecha}
+        onChange={(e) =>
+          setFecha(e.target.value)
+        }
+      />
 
       {/* LOTE */}
       <label>Lote</label>
+
       <select disabled>
         <option>{lote}</option>
       </select>
 
       {/* LOTE PROD */}
       <label>Lote Producción</label>
-      <input value={loteProd} readOnly />
 
-      {/* GRUPOS */}
-      {renderGrupo("incubable")}
-      {renderGrupo("comercial")}
-      {renderGrupo("sucio")}
-      {renderGrupo("quebrado")}
-      {renderGrupo("otros")}
+      <input
+        value={loteProd}
+        readOnly
+      />
 
-      {/* ORIGEN */}
-      <label>Origen</label>
-      <select value={origen} onChange={(e) => setOrigen(e.target.value)}>
-        <option value="">Seleccione</option>
-        <option value="Nido">Nido</option>
-        <option value="Piso">Piso</option>
-      </select>
+      {/* HUEVO BLANCO */}
+      {renderTipo("blanco")}
+
+      {/* HUEVO ROJO */}
+      {renderTipo("rojo")}
 
       {/* GUARDAR */}
       <button onClick={guardar}>
