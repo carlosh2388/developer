@@ -28,6 +28,8 @@ function Traslados() {
 
   const [observaciones, setObservaciones] = useState("");
 
+  const [mostrarNuevaCausa, setMostrarNuevaCausa] = useState(false);
+
   // =========================
   // FECHA AUTOMÁTICA
   // =========================
@@ -49,7 +51,6 @@ function Traslados() {
   const irPaso2 = () => {
 
     if (!causaInicial) {
-
       alert("Seleccione una causa");
       return;
     }
@@ -71,22 +72,7 @@ function Traslados() {
   }, [hembras, machos]);
 
   // =========================
-  // AGREGAR CAUSA
-  // =========================
-
-  const agregarCausa = () => {
-
-    if (!nuevaCausa.trim()) return;
-
-    setCausas([...causas, nuevaCausa]);
-
-    setCausaFinal(nuevaCausa);
-
-    setNuevaCausa("");
-  };
-
-  // =========================
-  // GUARDAR
+  // GUARDAR TRASLADO
   // =========================
 
   const guardar = () => {
@@ -105,7 +91,7 @@ function Traslados() {
 
     console.log(data);
 
-    alert("Egreso registrado correctamente");
+    alert("Traslado registrado correctamente");
   };
 
   // =========================
@@ -116,7 +102,7 @@ function Traslados() {
 
     <div className="form-container">
 
-      <h2>Traslados (venta, mortandad, otros</h2>
+      <h2>Traslados (venta, mortandad, otros)</h2>
 
       {/* =========================
           PASO 1
@@ -134,9 +120,7 @@ function Traslados() {
             }
           >
 
-            <option value="">
-              Seleccione
-            </option>
+            <option value="">Seleccione</option>
 
             <option>Mortandad</option>
             <option>Venta</option>
@@ -150,6 +134,7 @@ function Traslados() {
           </button>
 
         </div>
+
       )}
 
       {/* =========================
@@ -205,13 +190,15 @@ function Traslados() {
 
           <label>Causa</label>
 
-          <div className="erp-causa">
+          {/* SELECT + BOTÓN EN UNA LÍNEA */}
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
 
             <select
               value={causaFinal}
               onChange={(e) =>
                 setCausaFinal(e.target.value)
               }
+              style={{ flex: 1 }}
             >
 
               <option value="">
@@ -226,27 +213,69 @@ function Traslados() {
 
             </select>
 
-            <input
-              type="text"
-              value={nuevaCausa}
-              onChange={(e) =>
-                setNuevaCausa(e.target.value)
-              }
-              placeholder="Nueva causa"
-            />
-
             <button
               type="button"
-              onClick={agregarCausa}
+              onClick={() =>
+                setMostrarNuevaCausa(true)
+              }
+              style={{
+                width: "28px",
+                height: "28px",
+                padding: "0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
             >
-              ＋
+              +
             </button>
 
           </div>
 
-          <label>
-            Observaciones adicionales
-          </label>
+          {/* NUEVA CAUSA */}
+          {mostrarNuevaCausa && (
+
+            <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+
+              <input
+                type="text"
+                value={nuevaCausa}
+                onChange={(e) =>
+                  setNuevaCausa(e.target.value)
+                }
+                placeholder="Nueva causa"
+                style={{ flex: 1 }}
+              />
+
+              <button
+                type="button"
+                onClick={() => {
+
+                  if (!nuevaCausa.trim()) return;
+
+                  const nuevaLista = [
+                    ...causas,
+                    nuevaCausa
+                  ];
+
+                  setCausas(nuevaLista);
+
+                  setCausaFinal(nuevaCausa);
+
+                  setNuevaCausa("");
+
+                  setMostrarNuevaCausa(false);
+
+                }}
+              >
+                Guardar nueva causa
+              </button>
+
+            </div>
+
+          )}
+
+          <label>Observaciones adicionales</label>
 
           <textarea
             value={observaciones}
@@ -256,10 +285,11 @@ function Traslados() {
           />
 
           <button onClick={guardar}>
-            Guardar Egreso
+            Guardar Traslado
           </button>
 
         </div>
+
       )}
 
     </div>
