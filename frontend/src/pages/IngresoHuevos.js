@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 function IngresoHuevos() {
 
   // =========================
-  // STATES
+  // STATES BASE
   // =========================
 
   const [fecha, setFecha] = useState("");
@@ -14,26 +14,32 @@ function IngresoHuevos() {
 
   const [origen, setOrigen] = useState("");
 
-  const [total, setTotal] = useState(0);
+  // =========================
+  // EXPANSIÓN DE GRUPOS
+  // =========================
+
+  const [open, setOpen] = useState({
+    incubable: false,
+    comercial: false,
+    sucio: false,
+    quebrado: false,
+    otros: false
+  });
+
+  // =========================
+  // CANTIDADES
+  // =========================
 
   const [cantidades, setCantidades] = useState({
-    incubable: 0,
+    incubable: { pewee: 0, pequeno: 0, mediano: 0, grande: 0, extra: 0 },
 
-    pewee: 0,
-    pequeno: 0,
-    mediano: 0,
-    grande: 0,
-    extra: 0,
+    comercial: { pewee: 0, pequeno: 0, mediano: 0, grande: 0, extra: 0 },
 
-    comercial_pewee: 0,
-    comercial_pequeno: 0,
-    comercial_mediano: 0,
-    comercial_grande: 0,
-    comercial_extra: 0,
+    sucio: { pewee: 0, pequeno: 0, mediano: 0, grande: 0, extra: 0 },
 
-    sucio: 0,
-    quebrado: 0,
-    otros: 0
+    quebrado: { pewee: 0, pequeno: 0, mediano: 0, grande: 0, extra: 0 },
+
+    otros: { pewee: 0, pequeno: 0, mediano: 0, grande: 0, extra: 0 }
   });
 
   // =========================
@@ -60,28 +66,42 @@ function IngresoHuevos() {
   }, []);
 
   // =========================
-  // TOTAL GENERAL
+  // HANDLE INPUTS
   // =========================
 
-  useEffect(() => {
+  const handleCantidad = (grupo, campo, value) => {
 
-    const suma = Object.values(cantidades)
+    setCantidades(prev => ({
+      ...prev,
+      [grupo]: {
+        ...prev[grupo],
+        [campo]: value
+      }
+    }));
+  };
+
+  // =========================
+  // TOTAL POR GRUPO
+  // =========================
+
+  const calcularTotal = (grupo) => {
+
+    const g = cantidades[grupo];
+
+    return Object.values(g)
       .reduce((a, b) => a + (parseInt(b) || 0), 0);
-
-    setTotal(suma);
-
-  }, [cantidades]);
+  };
 
   // =========================
-  // INPUTS
+  // TOGGLE
   // =========================
 
-  const handleCantidad = (e) => {
+  const toggle = (grupo) => {
 
-    setCantidades({
-      ...cantidades,
-      [e.target.name]: e.target.value
-    });
+    setOpen(prev => ({
+      ...prev,
+      [grupo]: !prev[grupo]
+    }));
   };
 
   // =========================
@@ -95,13 +115,109 @@ function IngresoHuevos() {
       lote,
       loteProd,
       origen,
-      cantidades,
-      total
+      cantidades
     };
 
     console.log(data);
 
-    alert("Registro de ingreso guardado correctamente");
+    alert("Registro guardado correctamente");
+  };
+
+  // =========================
+  // RENDER GRUPO
+  // =========================
+
+  const renderGrupo = (nombre) => {
+
+    const total = calcularTotal(nombre);
+
+    return (
+
+      <div style={{ marginBottom: "20px" }}>
+
+        {/* HEADER */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+
+          <h3 style={{ margin: 0 }}>
+            {nombre.toUpperCase()}
+          </h3>
+
+          <button onClick={() => toggle(nombre)}>
+            {open[nombre] ? "-" : "+"}
+          </button>
+
+        </div>
+
+        {/* BODY */}
+        {open[nombre] && (
+
+          <div>
+
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "10px"
+            }}>
+
+              {["pewee", "pequeno", "mediano"].map(k => (
+                <div key={k}>
+                  <label>{k}</label>
+                  <input
+                    type="number"
+                    value={cantidades[nombre][k]}
+                    onChange={(e) =>
+                      handleCantidad(nombre, k, e.target.value)
+                    }
+                  />
+                </div>
+              ))}
+
+            </div>
+
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "10px",
+              marginTop: "10px"
+            }}>
+
+              <div>
+                <label>grande</label>
+                <input
+                  type="number"
+                  value={cantidades[nombre].grande}
+                  onChange={(e) =>
+                    handleCantidad(nombre, "grande", e.target.value)
+                  }
+                />
+              </div>
+
+              <div>
+                <label>extra</label>
+                <input
+                  type="number"
+                  value={cantidades[nombre].extra}
+                  onChange={(e) =>
+                    handleCantidad(nombre, "extra", e.target.value)
+                  }
+                />
+              </div>
+
+              {/* TOTAL EN MISMA LÍNEA */}
+              <div>
+                <label>Total</label>
+                <input type="number" value={total} readOnly />
+              </div>
+
+            </div>
+
+          </div>
+
+        )}
+
+      </div>
+
+    );
   };
 
   // =========================
@@ -119,104 +235,23 @@ function IngresoHuevos() {
       <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
 
       {/* LOTE */}
-      <label># Lote</label>
-      <select value={lote} disabled>
+      <label>Lote</label>
+      <select disabled>
         <option>{lote}</option>
       </select>
 
       {/* LOTE PROD */}
-      <label># Lote de Producción</label>
-      <input type="text" value={loteProd} readOnly />
+      <label>Lote Producción</label>
+      <input value={loteProd} readOnly />
 
-      {/* =========================
-          INCUBABLE
-      ========================= */}
-      <label>Incubable</label>
+      {/* GRUPOS */}
+      {renderGrupo("incubable")}
+      {renderGrupo("comercial")}
+      {renderGrupo("sucio")}
+      {renderGrupo("quebrado")}
+      {renderGrupo("otros")}
 
-      <div className="grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
-
-        {["incubable"].map((k) => (
-          <div key={k}>
-            <input
-              type="number"
-              name={k}
-              value={cantidades[k]}
-              onChange={handleCantidad}
-            />
-          </div>
-        ))}
-
-      </div>
-
-      <hr />
-
-      {/* =========================
-          COMERCIAL
-      ========================= */}
-      <label>Comercial</label>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
-
-        {["pewee", "pequeno", "mediano"].map((k) => (
-          <div key={k}>
-            <label>{k}</label>
-            <input
-              type="number"
-              name={k}
-              value={cantidades[k]}
-              onChange={handleCantidad}
-            />
-          </div>
-        ))}
-
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", marginTop: "10px" }}>
-
-        {["grande", "extra"].map((k) => (
-          <div key={k}>
-            <label>{k}</label>
-            <input
-              type="number"
-              name={k}
-              value={cantidades[k]}
-              onChange={handleCantidad}
-            />
-          </div>
-        ))}
-
-      </div>
-
-      <hr />
-
-      {/* =========================
-          OTROS
-      ========================= */}
-      <label>Otros</label>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
-
-        {["sucio", "quebrado", "otros"].map((k) => (
-          <div key={k}>
-            <label>{k}</label>
-            <input
-              type="number"
-              name={k}
-              value={cantidades[k]}
-              onChange={handleCantidad}
-            />
-          </div>
-        ))}
-
-      </div>
-
-      {/* =========================
-          TOTAL
-      ========================= */}
-      <label>Cantidad Total</label>
-      <input type="number" value={total} readOnly />
-
-      {/* ORIGEN (opcional mantener) */}
+      {/* ORIGEN */}
       <label>Origen</label>
       <select value={origen} onChange={(e) => setOrigen(e.target.value)}>
         <option value="">Seleccione</option>
