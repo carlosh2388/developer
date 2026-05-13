@@ -11,6 +11,10 @@ import Localidades from "./pages/Localidades";
 import Inventarios from "./pages/Inventarios";
 import Clientes from "./pages/Clientes";
 
+import ControlAlimento from "./pages/ControlAlimento";
+import ControlPesoAves from "./pages/ControlPesoAves";
+import ControlPesoHuevos from "./pages/ControlPesoHuevos";
+
 function App() {
 
   const [vista, setVista] = useState("inicio");
