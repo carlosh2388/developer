@@ -61,6 +61,14 @@ function Sidebar({ setVista }) {
           </ul>
         </li>
 
+        {/* REPORTERIA */}
+        <li className="menu-item">
+          Reportería
+          <ul>
+              Dashboard Gerencial
+          </ul>
+        </li>
+
       </ul>
 
     </aside>
