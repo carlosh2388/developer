@@ -14,16 +14,13 @@ VARIABLES DE DISEÑO (IDENTIDAD VISUAL)
 
   --color-border: #dfe3e8;
 
-  --shadow-soft:
-    0 2px 8px rgba(0,0,0,0.08);
+  --shadow-soft: 0 2px 8px rgba(0,0,0,0.08);
 
-  --shadow-medium:
-    0 4px 12px rgba(0,0,0,0.12);
+  --shadow-medium: 0 4px 12px rgba(0,0,0,0.12);
 
   --radius: 8px;
 
-  --transition:
-    all 0.2s ease;
+  --transition: all 0.2s ease;
 }
 
 /* =====================================================
@@ -33,11 +30,7 @@ body {
 
   margin: 0;
 
-  font-family:
-    'Inter',
-    'Roboto',
-    'Poppins',
-    sans-serif;
+  font-family: 'Inter', 'Roboto', 'Poppins', sans-serif;
 
   background: var(--color-bg);
 
@@ -46,7 +39,6 @@ body {
 
 /* =====================================================
 LAYOUT PRINCIPAL
-(SIN ROMPER TU ESTRUCTURA ACTUAL)
 ===================================================== */
 .container {
 
@@ -56,18 +48,13 @@ LAYOUT PRINCIPAL
 }
 
 /* =====================================================
-SIDEBAR / MENÚ
+SIDEBAR
 ===================================================== */
 .sidebar {
 
   width: 250px;
 
-  background:
-    linear-gradient(
-      180deg,
-      #2E7D32,
-      #256428
-    );
+  background: linear-gradient(180deg, #2E7D32, #256428);
 
   color: var(--color-white);
 
@@ -75,13 +62,11 @@ SIDEBAR / MENÚ
 
   transition: var(--transition);
 
-  box-shadow:
-    2px 0 10px rgba(0,0,0,0.08);
+  box-shadow: 2px 0 10px rgba(0,0,0,0.08);
 
   overflow-y: auto;
 }
 
-/* Lista principal */
 .menu {
 
   list-style: none;
@@ -91,7 +76,6 @@ SIDEBAR / MENÚ
   margin: 0;
 }
 
-/* Item principal */
 .menu-item {
 
   padding: 14px 18px;
@@ -105,16 +89,15 @@ SIDEBAR / MENÚ
   border-radius: 6px;
 
   margin: 4px 8px;
+
+  position: relative;
 }
 
-/* Hover item */
 .menu-item:hover {
 
-  background:
-    rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.10);
 }
 
-/* Submenú */
 .menu-item ul {
 
   list-style: none;
@@ -124,7 +107,6 @@ SIDEBAR / MENÚ
   margin-top: 8px;
 }
 
-/* Subitems */
 .menu-item li {
 
   padding: 10px 12px;
@@ -138,21 +120,12 @@ SIDEBAR / MENÚ
   margin-top: 4px;
 }
 
-/* Hover subitems */
 .menu-item li:hover {
 
-  background:
-    var(--color-secondary);
+  background: var(--color-secondary);
 }
 
-/* =====================================================
-SUBMENUS FLOTANTES
-===================================================== */
-.menu-item {
-
-  position: relative;
-}
-
+/* submenu flotante */
 .submenu {
 
   display: none;
@@ -198,30 +171,11 @@ FORMULARIOS
 
   box-shadow: var(--shadow-soft);
 
-  border:
-    1px solid var(--color-border);
+  border: 1px solid var(--color-border);
 }
 
 /* =====================================================
-FILAS HORIZONTALES
-===================================================== */
-.row {
-
-  display: flex;
-
-  gap: 16px;
-
-  align-items: flex-start;
-}
-
-/* Inputs full */
-.full {
-
-  width: 100%;
-}
-
-/* =====================================================
-INPUTS / SELECTS / BUTTONS
+INPUTS / SELECTS / TEXTAREA
 ===================================================== */
 input,
 select,
@@ -234,8 +188,7 @@ textarea {
 
   border-radius: var(--radius);
 
-  border:
-    1px solid #cfd8dc;
+  border: 1px solid #cfd8dc;
 
   width: 100%;
 
@@ -250,18 +203,15 @@ textarea {
   background: white;
 }
 
-/* Focus ERP */
 input:focus,
 select:focus,
 textarea:focus {
 
   outline: none;
 
-  border-color:
-    var(--color-secondary);
+  border-color: var(--color-secondary);
 
-  box-shadow:
-    0 0 0 3px rgba(21,101,192,0.12);
+  box-shadow: 0 0 0 3px rgba(21,101,192,0.12);
 }
 
 /* =====================================================
@@ -281,15 +231,13 @@ label {
 }
 
 /* =====================================================
-BOTONES
+BOTONES GENERALES
 ===================================================== */
 button {
 
-  background:
-    var(--color-secondary);
+  background: var(--color-secondary);
 
-  color:
-    var(--color-white);
+  color: var(--color-white);
 
   border: none;
 
@@ -300,16 +248,14 @@ button {
   transition: var(--transition);
 }
 
-/* Hover botón */
 button:hover {
 
   background: #0d47a1;
 
-  transform:
-    translateY(-1px);
+  transform: translateY(-1px);
 }
 
-/* Botones secundarios */
+/* botones secundarios */
 button[type="button"] {
 
   width: auto;
@@ -322,9 +268,7 @@ button[type="button"] {
 /* =====================================================
 TÍTULOS
 ===================================================== */
-h1,
-h2,
-h3 {
+h1, h2, h3 {
 
   margin-top: 0;
 
@@ -336,31 +280,7 @@ h3 {
 }
 
 /* =====================================================
-HELP TEXT
-===================================================== */
-small {
-
-  color: #78909c;
-
-  font-size: 12px;
-}
-
-/* =====================================================
-SEPARADORES
-===================================================== */
-hr {
-
-  border: none;
-
-  border-top:
-    1px solid #eceff1;
-
-  margin:
-    10px 0;
-}
-
-/* =====================================================
-TABLAS ERP
+TABLAS
 ===================================================== */
 table {
 
@@ -388,10 +308,67 @@ td {
 
   padding: 12px;
 
-  border-top:
-    1px solid #eceff1;
+  border-top: 1px solid #eceff1;
 
   font-size: 14px;
+}
+
+/* =====================================================
+CAUSA (UI NUEVA)
+===================================================== */
+.causa-linea {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+}
+
+.causa-linea select {
+
+  flex: 1;
+}
+
+/* botón + */
+.btn-plus {
+
+  background: var(--color-secondary);
+
+  color: white;
+
+  border: none;
+
+  width: 40px;
+
+  height: 40px;
+
+  border-radius: 8px;
+
+  font-size: 22px;
+
+  cursor: pointer;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+}
+
+/* nueva causa */
+.nueva-causa-box {
+
+  margin-top: 12px;
+
+  display: flex;
+
+  gap: 10px;
+}
+
+.nueva-causa-box input {
+
+  flex: 1;
 }
 
 /* =====================================================
@@ -399,7 +376,6 @@ RESPONSIVE
 ===================================================== */
 @media (max-width: 768px) {
 
-  /* Sidebar oculto */
   .sidebar {
 
     position: absolute;
@@ -409,20 +385,16 @@ RESPONSIVE
     z-index: 1000;
   }
 
-  /* Sidebar visible */
   .sidebar.active {
 
     left: 0;
   }
 
-  /* Contenido */
   main {
 
     padding: 20px;
   }
 
-
-  /* Formularios */
   .form-container {
 
     padding: 18px;
@@ -430,7 +402,6 @@ RESPONSIVE
     border-radius: 10px;
   }
 
-  /* Rows responsive */
   .row {
 
     flex-direction: column;
@@ -438,45 +409,12 @@ RESPONSIVE
     align-items: stretch;
   }
 
-
   .container-vertical {
 
-  display: flex;
+    display: flex;
 
-  flex-direction: column;
+    flex-direction: column;
 
-  gap: 14px;
-
+    gap: 14px;
   }
-
-.causa-linea {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.causa-linea select {
-  flex: 1;
-}
-
-.btn-plus {
-  background: #1976d2;
-  color: white;
-  border: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  font-size: 24px;
-  cursor: pointer;
-}
-
-.nueva-causa-box {
-  margin-top: 12px;
-  display: flex;
-  gap: 10px;
-}
-
-.nueva-causa-box input {
-  flex: 1;
-}
 }
