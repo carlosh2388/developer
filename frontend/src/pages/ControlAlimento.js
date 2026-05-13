@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 function ControlAlimento() {
 
@@ -8,37 +8,31 @@ function ControlAlimento() {
 
   const [movimiento, setMovimiento] = useState("");
 
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [mostrarFormulario, setMostrarFormulario] =
+    useState(false);
 
   const [fecha, setFecha] = useState("");
 
-  const [lote] = useState("REP-260401-1600");
+  const [lote, setLote] =
+    useState("REP-260401-1600");
 
-  const [tipoAlimento, setTipoAlimento] = useState("");
+  const [tipoAlimento, setTipoAlimento] =
+    useState("");
 
-  const [aditivo, setAditivo] = useState("");
+  const [cantidadAlimento, setCantidadAlimento] =
+    useState("");
 
-  const [medicamento, setMedicamento] = useState("");
+  const [aditivo, setAditivo] =
+    useState("");
 
-  const [showAlimento, setShowAlimento] = useState(false);
+  const [cantidadAditivo, setCantidadAditivo] =
+    useState("");
 
-  const [showAditivo, setShowAditivo] = useState(false);
+  const [medicamento, setMedicamento] =
+    useState("");
 
-  const [showMedicamento, setShowMedicamento] = useState(false);
-
-  // =========================
-  // FECHA AUTOMÁTICA
-  // =========================
-
-  useEffect(() => {
-
-    const hoy = new Date()
-      .toISOString()
-      .split("T")[0];
-
-    setFecha(hoy);
-
-  }, []);
+  const [cantidadMedicamento, setCantidadMedicamento] =
+    useState("");
 
   // =========================
   // CONTINUAR
@@ -49,45 +43,27 @@ function ControlAlimento() {
     if (!movimiento) {
 
       alert("Seleccione tipo de movimiento");
+
       return;
     }
 
     setMostrarFormulario(true);
+
+    const hoy =
+      new Date()
+        .toISOString()
+        .split("T")[0];
+
+    setFecha(hoy);
   };
 
   // =========================
-  // TOGGLES ERP
+  // SUBMIT
   // =========================
 
-  const handleTipoAlimento = (e) => {
+  const guardar = (e) => {
 
-    const value = e.target.value;
-
-    setTipoAlimento(value);
-    setShowAlimento(!!value);
-  };
-
-  const handleAditivo = (e) => {
-
-    const value = e.target.value;
-
-    setAditivo(value);
-    setShowAditivo(!!value);
-  };
-
-  const handleMedicamento = (e) => {
-
-    const value = e.target.value;
-
-    setMedicamento(value);
-    setShowMedicamento(!!value);
-  };
-
-  // =========================
-  // GUARDAR
-  // =========================
-
-  const guardar = () => {
+    e.preventDefault();
 
     const data = {
 
@@ -95,13 +71,18 @@ function ControlAlimento() {
       fecha,
       lote,
       tipoAlimento,
+      cantidadAlimento,
       aditivo,
-      medicamento
+      cantidadAditivo,
+      medicamento,
+      cantidadMedicamento
     };
 
     console.log(data);
 
-    alert("Movimiento de alimentos registrado correctamente");
+    alert(
+      "Movimiento de alimentos registrado correctamente"
+    );
   };
 
   // =========================
@@ -112,10 +93,14 @@ function ControlAlimento() {
 
     <div className="container">
 
-      <h2>Movimientos de Alimentos</h2>
+      <h2>
+        Movimientos de Alimentos
+      </h2>
 
       {/* TIPO MOVIMIENTO */}
-      <label>Tipo de Movimiento</label>
+      <label>
+        Tipo de Movimiento
+      </label>
 
       <select
         value={movimiento}
@@ -138,16 +123,24 @@ function ControlAlimento() {
 
       </select>
 
-      <button onClick={continuar}>
+      <button
+        className="btn"
+        onClick={continuar}
+      >
+
         Continuar
+
       </button>
 
-      {/* FORMULARIO ERP */}
+      {/* FORMULARIO */}
       {mostrarFormulario && (
 
-        <div>
+        <form onSubmit={guardar}>
 
-          <label>Fecha</label>
+          {/* FECHA */}
+          <label>
+            Fecha
+          </label>
 
           <input
             type="date"
@@ -157,115 +150,200 @@ function ControlAlimento() {
             }
           />
 
-          <label># Lote</label>
+          {/* LOTE */}
+          <label>
+            # Lote
+          </label>
 
-          <select value={lote} disabled>
-            <option>{lote}</option>
+          <select
+            value={lote}
+            onChange={(e) =>
+              setLote(e.target.value)
+            }
+          >
+
+            <option value="REP-260401-1600">
+              REP-260401-1600
+            </option>
+
           </select>
 
-          {/* ALIMENTO */}
-          <label>Tipo de Alimento</label>
+          {/* TIPO ALIMENTO */}
+          <label>
+            Tipo de Alimento
+          </label>
 
           <select
             value={tipoAlimento}
-            onChange={handleTipoAlimento}
+            onChange={(e) =>
+              setTipoAlimento(e.target.value)
+            }
           >
 
             <option value="">
               Seleccione
             </option>
 
-            <option>Preinicio</option>
-            <option>Inicio Polla</option>
-            <option>Desarrollo Polla</option>
-            <option>Crecimiento Polla</option>
-            <option>Prepostura</option>
-            <option>Fase 1</option>
-            <option>Fase 2</option>
+            <option value="Preinicio">
+              Preinicio
+            </option>
+
+            <option value="Inicio Polla">
+              Inicio Polla
+            </option>
+
+            <option value="Desarrollo Polla">
+              Desarrollo Polla
+            </option>
+
+            <option value="Crecimiento Polla">
+              Crecimiento Polla
+            </option>
+
+            <option value="Prepostura">
+              Prepostura
+            </option>
+
+            <option value="Fase 1">
+              Fase 1
+            </option>
+
+            <option value="Fase 2">
+              Fase 2
+            </option>
 
           </select>
 
-          {showAlimento && (
+          {/* CANTIDAD ALIMENTO */}
+          {tipoAlimento && (
+
             <div>
 
               <label>
-                Cantidad de Alimento (quintales)
+                Cantidad de Alimento
+                (quintales)
               </label>
 
-              <input type="number" />
+              <input
+                type="number"
+                value={cantidadAlimento}
+                onChange={(e) =>
+                  setCantidadAlimento(
+                    e.target.value
+                  )
+                }
+              />
 
             </div>
           )}
 
           <hr />
 
-          {/* ADITIVO */}
-          <label>Aditivos</label>
+          {/* ADITIVOS */}
+          <label>
+            Aditivos
+          </label>
 
           <select
             value={aditivo}
-            onChange={handleAditivo}
+            onChange={(e) =>
+              setAditivo(e.target.value)
+            }
           >
 
             <option value="">
               Seleccione
             </option>
 
-            <option>
+            <option value="AD-001 Ejemplo">
               AD-001 Ejemplo
             </option>
 
           </select>
 
-          {showAditivo && (
+          {/* CANTIDAD ADITIVO */}
+          {aditivo && (
+
             <div>
 
               <label>
-                Cantidad de Aditivo (gramos)
+                Cantidad de Aditivo
+                (gramos)
               </label>
 
-              <input type="number" />
+              <input
+                type="number"
+                value={cantidadAditivo}
+                onChange={(e) =>
+                  setCantidadAditivo(
+                    e.target.value
+                  )
+                }
+              />
 
             </div>
           )}
 
           <hr />
 
-          {/* MEDICAMENTO */}
-          <label>Medicamentos</label>
+          {/* MEDICAMENTOS */}
+          <label>
+            Medicamentos
+          </label>
 
           <select
             value={medicamento}
-            onChange={handleMedicamento}
+            onChange={(e) =>
+              setMedicamento(
+                e.target.value
+              )
+            }
           >
 
             <option value="">
               Seleccione
             </option>
 
-            <option>
+            <option value="MD-001 Ejemplo">
               MD-001 Ejemplo
             </option>
 
           </select>
 
-          {showMedicamento && (
+          {/* CANTIDAD MEDICAMENTO */}
+          {medicamento && (
+
             <div>
 
               <label>
-                Cantidad de Medicamento (gramos)
+                Cantidad de Medicamento
+                (gramos)
               </label>
 
-              <input type="number" />
+              <input
+                type="number"
+                value={cantidadMedicamento}
+                onChange={(e) =>
+                  setCantidadMedicamento(
+                    e.target.value
+                  )
+                }
+              />
 
             </div>
           )}
 
-          <button onClick={guardar}>
+          {/* BOTÓN */}
+          <button
+            type="submit"
+            className="btn"
+          >
+
             Guardar
+
           </button>
 
-        </div>
+        </form>
       )}
 
     </div>
