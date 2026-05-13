@@ -129,7 +129,7 @@ function Lotes() {
     };
 
     console.log(data);
-    alert("Lote guardado correctamente");
+    alert("Formulario guardado correctamente");
   };
 
   // =========================
