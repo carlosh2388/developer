@@ -101,6 +101,17 @@ function Clientes() {
 
       </div>
 
+      {/* CONTACTO RENOMBRADO */}
+      <label>Nombre del Contacto</label>
+
+      <input
+        type="text"
+        value={contacto}
+        onChange={(e) =>
+          setContacto(e.target.value)
+        }
+      />
+      
       {/* NOMBRE COMERCIAL */}
       <label>Nombre Comercial</label>
 
@@ -123,17 +134,6 @@ function Clientes() {
           setDireccionFiscal(e.target.value)
         }
         required
-      />
-
-      {/* CONTACTO RENOMBRADO */}
-      <label>Nombre del Contacto</label>
-
-      <input
-        type="text"
-        value={contacto}
-        onChange={(e) =>
-          setContacto(e.target.value)
-        }
       />
 
       {/* BOTÓN */}
