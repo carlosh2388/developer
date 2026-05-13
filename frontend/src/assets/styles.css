@@ -202,3 +202,9 @@ flex-direction: column;
 align-items: stretch;
 }
 }
+
+
+.form-alimentos {
+  display: flex;
+  flex-direction: column;
+}

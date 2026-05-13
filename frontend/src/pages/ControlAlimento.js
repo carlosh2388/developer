@@ -94,7 +94,7 @@ function ControlAlimento() {
     <div className="container">
 
       <h2>
-        Movimientos de Alimentos
+        Control de Alimentos
       </h2>
 
       {/* TIPO MOVIMIENTO */}
@@ -135,8 +135,8 @@ function ControlAlimento() {
       {/* FORMULARIO */}
       {mostrarFormulario && (
 
-        <form onSubmit={guardar}>
-
+        <form onSubmit={guardar} className="form-alimentos">
+        
           {/* FECHA */}
           <label>
             Fecha
