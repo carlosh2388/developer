@@ -30,6 +30,9 @@ function EgresoHuevos() {
 
   const [nuevaPlaca, setNuevaPlaca] = useState("");
 
+  const [mostrarNuevaPlaca, setMostrarNuevaPlaca] =
+    useState(false);
+
   const [placas, setPlacas] = useState([
     "L-123ABC",
     "L-456DEF"
@@ -42,6 +45,9 @@ function EgresoHuevos() {
   const [piloto, setPiloto] = useState("");
 
   const [nuevoPiloto, setNuevoPiloto] = useState("");
+
+  const [mostrarNuevoPiloto, setMostrarNuevoPiloto] =
+    useState(false);
 
   const [pilotos, setPilotos] = useState([
     "Juan Pérez",
@@ -199,7 +205,7 @@ function EgresoHuevos() {
   };
 
   // =========================
-  // TOTAL POR GRUPO
+  // TOTAL
   // =========================
 
   const calcularTotal = (
@@ -239,33 +245,43 @@ function EgresoHuevos() {
   };
 
   // =========================
-  // PLACA
+  // AGREGAR PLACA
   // =========================
 
   const agregarPlaca = () => {
 
     if (!nuevaPlaca.trim()) return;
 
-    setPlacas([...placas, nuevaPlaca]);
+    setPlacas([
+      ...placas,
+      nuevaPlaca
+    ]);
 
     setPlaca(nuevaPlaca);
 
     setNuevaPlaca("");
+
+    setMostrarNuevaPlaca(false);
   };
 
   // =========================
-  // PILOTO
+  // AGREGAR PILOTO
   // =========================
 
   const agregarPiloto = () => {
 
     if (!nuevoPiloto.trim()) return;
 
-    setPilotos([...pilotos, nuevoPiloto]);
+    setPilotos([
+      ...pilotos,
+      nuevoPiloto
+    ]);
 
     setPiloto(nuevoPiloto);
 
     setNuevoPiloto("");
+
+    setMostrarNuevoPiloto(false);
   };
 
   // =========================
@@ -320,7 +336,9 @@ function EgresoHuevos() {
 
           <h3 style={{
             margin: 0,
-            textTransform: "capitalize"
+            fontWeight: "400",
+            textTransform: "capitalize",
+            fontSize: "18px"
           }}>
             {grupo}
           </h3>
@@ -334,9 +352,6 @@ function EgresoHuevos() {
               width: "28px",
               height: "28px",
               padding: "0",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
               fontSize: "16px",
               lineHeight: "1"
             }}
@@ -512,7 +527,9 @@ function EgresoHuevos() {
     <div style={{ marginBottom: "40px" }}>
 
       <h2 style={{
-        textTransform: "capitalize"
+        textTransform: "capitalize",
+        fontSize: "22px",
+        marginBottom: "15px"
       }}>
         Huevo {tipo}
       </h2>
@@ -535,165 +552,293 @@ function EgresoHuevos() {
 
       <h2>Egresos</h2>
 
-      {/* EGRESO */}
-      <label># Egreso</label>
+      {/* FILA 1 */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns:
+          "repeat(3, 1fr)",
+        gap: "10px"
+      }}>
 
-      <input
-        type="number"
-        value={egreso}
-        onChange={(e) =>
-          setEgreso(e.target.value)
-        }
-      />
+        <div>
 
-      {/* FECHA */}
-      <label>Fecha</label>
+          <label># Egreso</label>
 
-      <input
-        type="date"
-        value={fecha}
-        onChange={(e) =>
-          setFecha(e.target.value)
-        }
-      />
+          <input
+            type="number"
+            value={egreso}
+            onChange={(e) =>
+              setEgreso(e.target.value)
+            }
+          />
 
-      {/* HORA */}
-      <label>Hora</label>
+        </div>
 
-      <input
-        type="time"
-        value={hora}
-        onChange={(e) =>
-          setHora(e.target.value)
-        }
-      />
+        <div>
 
-      {/* LOTE */}
-      <label># Lote</label>
+          <label>Fecha</label>
 
-      <select value={lote} disabled>
-        <option>{lote}</option>
-      </select>
+          <input
+            type="date"
+            value={fecha}
+            onChange={(e) =>
+              setFecha(e.target.value)
+            }
+          />
 
-      {/* BODEGA SALIDA */}
-      <label>Bodega de Salida</label>
+        </div>
 
-      <select
-        value={bodegaSalida}
-        onChange={(e) =>
-          setBodegaSalida(e.target.value)
-        }
-      >
-        <option>BA</option>
-        <option>BH</option>
-        <option>BGR</option>
-        <option>BI</option>
-      </select>
+        <div>
 
-      {/* BODEGA DESTINO */}
-      <label>Bodega Destino</label>
+          <label>Hora</label>
 
-      <select
-        value={bodegaDestino}
-        onChange={(e) =>
-          setBodegaDestino(e.target.value)
-        }
-      >
+          <input
+            type="time"
+            value={hora}
+            onChange={(e) =>
+              setHora(e.target.value)
+            }
+          />
 
-        <option value="">
-          Sin Bodega de Destino
-        </option>
-
-        <option>BA</option>
-        <option>BH</option>
-        <option>BGR</option>
-        <option>BI</option>
-
-      </select>
-
-      {/* PLACA */}
-      <label>Placa Camión</label>
-
-      <div className="causa-linea">
-
-        <select
-          value={placa}
-          onChange={(e) =>
-            setPlaca(e.target.value)
-          }
-        >
-
-          <option value="">
-            Seleccione
-          </option>
-
-          {placas.map((p, i) => (
-            <option key={i} value={p}>
-              {p}
-            </option>
-          ))}
-
-        </select>
-
-        <input
-          type="text"
-          value={nuevaPlaca}
-          onChange={(e) =>
-            setNuevaPlaca(e.target.value)
-          }
-          placeholder="Nueva placa"
-        />
-
-        <button
-          type="button"
-          onClick={agregarPlaca}
-          className="btn-plus"
-        >
-          +
-        </button>
+        </div>
 
       </div>
 
-      {/* PILOTO */}
-      <label>Piloto</label>
+      {/* FILA 2 */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns:
+          "repeat(3, 1fr)",
+        gap: "10px",
+        marginTop: "10px"
+      }}>
 
-      <div className="causa-linea">
+        <div>
 
-        <select
-          value={piloto}
-          onChange={(e) =>
-            setPiloto(e.target.value)
-          }
-        >
+          <label># Lote</label>
 
-          <option value="">
-            Seleccione
-          </option>
+          <select value={lote} disabled>
+            <option>{lote}</option>
+          </select>
 
-          {pilotos.map((p, i) => (
-            <option key={i} value={p}>
-              {p}
+        </div>
+
+        <div>
+
+          <label>Bodega de Salida</label>
+
+          <select
+            value={bodegaSalida}
+            onChange={(e) =>
+              setBodegaSalida(e.target.value)
+            }
+          >
+            <option>BA</option>
+            <option>BH</option>
+            <option>BGR</option>
+            <option>BI</option>
+          </select>
+
+        </div>
+
+        <div>
+
+          <label>Bodega Destino</label>
+
+          <select
+            value={bodegaDestino}
+            onChange={(e) =>
+              setBodegaDestino(e.target.value)
+            }
+          >
+
+            <option value="">
+              Sin Bodega
             </option>
-          ))}
 
-        </select>
+            <option>BA</option>
+            <option>BH</option>
+            <option>BGR</option>
+            <option>BI</option>
 
-        <input
-          type="text"
-          value={nuevoPiloto}
-          onChange={(e) =>
-            setNuevoPiloto(e.target.value)
-          }
-          placeholder="Nuevo piloto"
-        />
+          </select>
 
-        <button
-          type="button"
-          onClick={agregarPiloto}
-          className="btn-plus"
-        >
-          +
-        </button>
+        </div>
+
+      </div>
+
+      {/* FILA 3 */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns:
+          "1fr 1fr",
+        gap: "10px",
+        marginTop: "10px"
+      }}>
+
+        {/* PLACA */}
+        <div>
+
+          <label>Placa Camión</label>
+
+          <div style={{
+            display: "flex",
+            gap: "8px",
+            alignItems: "center"
+          }}>
+
+            <select
+              value={placa}
+              onChange={(e) =>
+                setPlaca(e.target.value)
+              }
+            >
+
+              <option value="">
+                Seleccione
+              </option>
+
+              {placas.map((p, i) => (
+                <option key={i} value={p}>
+                  {p}
+                </option>
+              ))}
+
+            </select>
+
+            <button
+              type="button"
+              onClick={() =>
+                setMostrarNuevaPlaca(true)
+              }
+              style={{
+                width: "40px",
+                minWidth: "40px",
+                padding: "0"
+              }}
+            >
+              +
+            </button>
+
+          </div>
+
+          {mostrarNuevaPlaca && (
+
+            <div style={{
+              display: "flex",
+              gap: "8px",
+              marginTop: "8px"
+            }}>
+
+              <input
+                type="text"
+                value={nuevaPlaca}
+                onChange={(e) =>
+                  setNuevaPlaca(
+                    e.target.value
+                  )
+                }
+                placeholder="Nueva placa"
+              />
+
+              <button
+                type="button"
+                onClick={agregarPlaca}
+                style={{
+                  width: "90px",
+                  minWidth: "90px"
+                }}
+              >
+                Guardar
+              </button>
+
+            </div>
+
+          )}
+
+        </div>
+
+        {/* PILOTO */}
+        <div>
+
+          <label>Piloto</label>
+
+          <div style={{
+            display: "flex",
+            gap: "8px",
+            alignItems: "center"
+          }}>
+
+            <select
+              value={piloto}
+              onChange={(e) =>
+                setPiloto(e.target.value)
+              }
+            >
+
+              <option value="">
+                Seleccione
+              </option>
+
+              {pilotos.map((p, i) => (
+                <option key={i} value={p}>
+                  {p}
+                </option>
+              ))}
+
+            </select>
+
+            <button
+              type="button"
+              onClick={() =>
+                setMostrarNuevoPiloto(true)
+              }
+              style={{
+                width: "40px",
+                minWidth: "40px",
+                padding: "0"
+              }}
+            >
+              +
+            </button>
+
+          </div>
+
+          {mostrarNuevoPiloto && (
+
+            <div style={{
+              display: "flex",
+              gap: "8px",
+              marginTop: "8px"
+            }}>
+
+              <input
+                type="text"
+                value={nuevoPiloto}
+                onChange={(e) =>
+                  setNuevoPiloto(
+                    e.target.value
+                  )
+                }
+                placeholder="Nuevo piloto"
+              />
+
+              <button
+                type="button"
+                onClick={agregarPiloto}
+                style={{
+                  width: "90px",
+                  minWidth: "90px"
+                }}
+              >
+                Guardar
+              </button>
+
+            </div>
+
+          )}
+
+        </div>
 
       </div>
 
