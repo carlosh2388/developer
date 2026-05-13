@@ -28,6 +28,10 @@ function Traslados() {
 
   const [observaciones, setObservaciones] = useState("");
 
+  // NUEVO STATE
+  const [mostrarNuevaCausa, setMostrarNuevaCausa] =
+    useState(false);
+
   // =========================
   // FECHA AUTOMÁTICA
   // =========================
@@ -83,6 +87,8 @@ function Traslados() {
     setCausaFinal(nuevaCausa);
 
     setNuevaCausa("");
+
+    setMostrarNuevaCausa(false);
   };
 
   // =========================
@@ -108,104 +114,22 @@ function Traslados() {
     alert("Egreso registrado correctamente");
   };
 
-  // =========================
-  // RENDER
-  // =========================
-
   return (
 
     <div className="form-container">
 
-      <h2>Registro de Egresos ERP</h2>
+      <h2>
+        Traslados (venta, mortandad, otros)
+      </h2>
 
-      {/* =========================
-          PASO 1
-      ========================= */}
-      {paso === 1 && (
-
-        <div>
-
-          <label>Causa</label>
-
-          <select
-            value={causaInicial}
-            onChange={(e) =>
-              setCausaInicial(e.target.value)
-            }
-          >
-
-            <option value="">
-              Seleccione
-            </option>
-
-            <option>Mortalidad</option>
-            <option>Venta</option>
-            <option>Traslados</option>
-            <option>Otros</option>
-
-          </select>
-
-          <button onClick={irPaso2}>
-            Continuar
-          </button>
-
-        </div>
-      )}
-
-      {/* =========================
-          PASO 2
-      ========================= */}
       {paso === 2 && (
 
         <div>
 
-          <label>Fecha</label>
-
-          <input
-            type="date"
-            value={fecha}
-            onChange={(e) =>
-              setFecha(e.target.value)
-            }
-          />
-
-          <label># Lote</label>
-
-          <select value={lote} disabled>
-            <option>{lote}</option>
-          </select>
-
-          <label>Cantidad Hembras</label>
-
-          <input
-            type="number"
-            value={hembras}
-            onChange={(e) =>
-              setHembras(e.target.value)
-            }
-          />
-
-          <label>Cantidad Machos</label>
-
-          <input
-            type="number"
-            value={machos}
-            onChange={(e) =>
-              setMachos(e.target.value)
-            }
-          />
-
-          <label>Cantidad Total</label>
-
-          <input
-            type="number"
-            value={total}
-            readOnly
-          />
-
           <label>Causa</label>
 
-          <div className="erp-causa">
+          {/* FILA */}
+          <div className="causa-linea">
 
             <select
               value={causaFinal}
@@ -226,38 +150,44 @@ function Traslados() {
 
             </select>
 
-            <input
-              type="text"
-              value={nuevaCausa}
-              onChange={(e) =>
-                setNuevaCausa(e.target.value)
-              }
-              placeholder="Nueva causa"
-            />
-
             <button
               type="button"
-              onClick={agregarCausa}
+              className="btn-plus"
+              onClick={() =>
+                setMostrarNuevaCausa(
+                  !mostrarNuevaCausa
+                )
+              }
             >
-              ＋
+              +
             </button>
 
           </div>
 
-          <label>
-            Observaciones adicionales
-          </label>
+          {/* INPUT NUEVA CAUSA */}
+          {mostrarNuevaCausa && (
 
-          <textarea
-            value={observaciones}
-            onChange={(e) =>
-              setObservaciones(e.target.value)
-            }
-          />
+            <div className="nueva-causa-box">
 
-          <button onClick={guardar}>
-            Guardar Egreso
-          </button>
+              <input
+                type="text"
+                value={nuevaCausa}
+                onChange={(e) =>
+                  setNuevaCausa(e.target.value)
+                }
+                placeholder="Nueva causa"
+              />
+
+              <button
+                type="button"
+                onClick={agregarCausa}
+              >
+                Guardar causa
+              </button>
+
+            </div>
+
+          )}
 
         </div>
       )}

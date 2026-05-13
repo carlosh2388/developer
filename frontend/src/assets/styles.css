@@ -449,5 +449,34 @@ RESPONSIVE
 
   }
 
+.causa-linea {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
+.causa-linea select {
+  flex: 1;
+}
+
+.btn-plus {
+  background: #1976d2;
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.nueva-causa-box {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+}
+
+.nueva-causa-box input {
+  flex: 1;
+}
 }
