@@ -208,3 +208,7 @@ align-items: stretch;
   display: flex;
   flex-direction: column;
 }
+
+.container-alimentos {
+  flex-direction: column;
+}
