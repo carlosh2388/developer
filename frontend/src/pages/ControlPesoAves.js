@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-function PesosAves() {
+function ControlPesoAves() {
 
   // =========================
   // STATES
@@ -209,4 +209,4 @@ function PesosAves() {
   );
 }
 
-export default PesosAves;
+export default ControlPesoAves;

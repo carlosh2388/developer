@@ -33,7 +33,18 @@ function App() {
         
 	    case "clientes":
         return <Clientes />;
-        
+
+
+	    case "controlAlimento":
+        return <ControlAlimento />;
+
+      case "controlPesoAves":
+        return <ControlPesoAves />;
+
+      case "controlPesoHuevos":
+        return <ControlPesoHuevos />;
+      
+
       default:
         return <h1>Bienvenido</h1>;
     }

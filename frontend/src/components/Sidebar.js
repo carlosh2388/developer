@@ -29,21 +29,23 @@ function Sidebar({ setVista }) {
           </ul>
         </li>
 
-        {/* GRANJA */}
+        {/* CONTROLES */}
         <li className="menu-item">
-		  Granja Reproductora
+          Controles
+          <ul>
+            <li onClick={() => setVista("controlAlimento")}>
+              Control de Alimento
+            </li>
+            <li onClick={() => setVista("controlPesoAves")}>
+              Control de Peso en Aves
+            </li>
+      			<li onClick={() => setVista("controlPesoHuevos")}>
+              Control de Peso en Huevos
+            </li>
+          </ul>
+        </li>
 
-		  <ul className="submenu">
-			<li className="submenu-item">
-			  Controles
 
-			  <ul className="submenu submenu-level-2">
-				<li className="submenu-item">Alimento</li>
-			  </ul>
-			
-			</li>
-		  </ul>
-		</li>
 
       </ul>
 

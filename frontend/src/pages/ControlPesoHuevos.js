@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-function PesosHuevos() {
+function ControlPesoHuevos() {
 
   // =========================
   // STATES
@@ -198,4 +198,4 @@ function PesosHuevos() {
   );
 }
 
-export default PesosHuevos;
+export default ControlPesoHuevos;

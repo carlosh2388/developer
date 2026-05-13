@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-function MovimientosAlimentos() {
+function ControlAlimento() {
 
   // =========================
   // STATES
@@ -272,4 +272,4 @@ function MovimientosAlimentos() {
   );
 }
 
-export default MovimientosAlimentos;
+export default ControlAlimento;
