@@ -118,7 +118,7 @@ function IngresoHuevos() {
 
   return (
 
-    <div className="container">
+    <div className="container container-vertical">
 
       <h2>Clasificación de Huevos</h2>
 

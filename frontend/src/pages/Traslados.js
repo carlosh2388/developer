@@ -114,7 +114,7 @@ function Traslados() {
 
   return (
 
-    <div className="container">
+    <div className="container container-vertical">
 
       <h2>Registro de Egresos ERP</h2>
 

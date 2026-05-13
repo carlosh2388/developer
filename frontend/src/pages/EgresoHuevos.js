@@ -181,7 +181,7 @@ function EgresoHuevos() {
 
   return (
 
-    <div className="container">
+    <div className="container container-vertical">
 
       <h2>EGRESOS</h2>
 
