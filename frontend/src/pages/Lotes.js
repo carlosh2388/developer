@@ -69,7 +69,7 @@ function Lotes() {
   };
 
   // =========================
-  // AGREGAR OPCIÓN
+  // AGREGAR OPCIONES
   // =========================
 
   const agregarVariedad = () => {
@@ -165,8 +165,9 @@ function Lotes() {
   // =========================
 
   const styles = {
+
     form: {
-      maxWidth: "900px",
+      maxWidth: "1000px",
       margin: "0 auto",
       padding: "20px",
       border: "1px solid #ddd",
@@ -192,7 +193,8 @@ function Lotes() {
     input: {
       padding: "10px",
       borderRadius: "5px",
-      border: "1px solid #ccc"
+      border: "1px solid #ccc",
+      fontSize: "14px"
     },
 
     button: {
@@ -201,17 +203,19 @@ function Lotes() {
       borderRadius: "5px",
       backgroundColor: "#1976d2",
       color: "#fff",
-      cursor: "pointer"
+      cursor: "pointer",
+      fontSize: "14px"
     },
 
     addButton: {
       padding: "10px 15px",
       border: "none",
       borderRadius: "5px",
-      backgroundColor: "#28a745",
+      backgroundColor: "#1976d2",
       color: "#fff",
       cursor: "pointer",
-      marginTop: "22px"
+      marginTop: "22px",
+      height: "42px"
     }
   };
 
@@ -397,7 +401,7 @@ function Lotes() {
 
       </div>
 
-      {/* HEMBRAS - MACHOS */}
+      {/* HEMBRAS - MACHOS - TOTAL */}
       <div style={styles.row}>
 
         <div style={styles.field}>
@@ -430,11 +434,6 @@ function Lotes() {
 
         </div>
 
-      </div>
-
-      {/* TOTAL - COSTOS */}
-      <div style={styles.row}>
-
         <div style={styles.field}>
 
           <label>Cantidad Importada</label>
@@ -447,6 +446,11 @@ function Lotes() {
           />
 
         </div>
+
+      </div>
+
+      {/* COSTOS */}
+      <div style={styles.row}>
 
         <div style={styles.field}>
 
