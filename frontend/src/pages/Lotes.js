@@ -10,13 +10,23 @@ function Lotes() {
 
   const [fecha, setFecha] = useState("");
 
-  const [variedades, setVariedades] = useState([]);
+  const [variedades, setVariedades] = useState([
+    "Variedad A",
+    "Variedad B"
+  ]);
 
-  const [galeras, setGaleras] = useState([]);
+  const [galeras, setGaleras] = useState([
+    "Galera 1",
+    "Galera 2"
+  ]);
 
   const [nuevaVariedad, setNuevaVariedad] = useState("");
 
   const [nuevaGalera, setNuevaGalera] = useState("");
+
+  const [mostrarNuevaVariedad, setMostrarNuevaVariedad] = useState(false);
+
+  const [mostrarNuevaGalera, setMostrarNuevaGalera] = useState(false);
 
   const [variedad, setVariedad] = useState("");
 
@@ -69,32 +79,54 @@ function Lotes() {
   };
 
   // =========================
-  // AGREGAR OPCIONES
+  // AGREGAR VARIEDAD
   // =========================
 
   const agregarVariedad = () => {
 
     if (nuevaVariedad.trim() !== "") {
 
+      const nueva = nuevaVariedad.trim();
+
       setVariedades([
         ...variedades,
-        nuevaVariedad
+        nueva
       ]);
 
+      // Seleccionar automáticamente
+      setVariedad(nueva);
+
+      // Limpiar campo
       setNuevaVariedad("");
+
+      // Ocultar campo nuevamente
+      setMostrarNuevaVariedad(false);
     }
   };
+
+  // =========================
+  // AGREGAR GALERA
+  // =========================
 
   const agregarGalera = () => {
 
     if (nuevaGalera.trim() !== "") {
 
+      const nueva = nuevaGalera.trim();
+
       setGaleras([
         ...galeras,
-        nuevaGalera
+        nueva
       ]);
 
+      // Seleccionar automáticamente
+      setGalera(nueva);
+
+      // Limpiar campo
       setNuevaGalera("");
+
+      // Ocultar campo nuevamente
+      setMostrarNuevaGalera(false);
     }
   };
 
@@ -181,7 +213,8 @@ function Lotes() {
     row: {
       display: "flex",
       gap: "15px",
-      width: "100%"
+      width: "100%",
+      alignItems: "flex-end"
     },
 
     field: {
@@ -208,14 +241,15 @@ function Lotes() {
     },
 
     addButton: {
-      padding: "10px 15px",
+      width: "42px",
+      height: "42px",
       border: "none",
       borderRadius: "5px",
       backgroundColor: "#1976d2",
       color: "#fff",
       cursor: "pointer",
-      marginTop: "22px",
-      height: "42px"
+      fontSize: "18px",
+      fontWeight: "bold"
     }
   };
 
@@ -322,22 +356,36 @@ function Lotes() {
 
         </select>
 
-        <input
-          type="text"
-          placeholder="Nueva variedad"
-          value={nuevaVariedad}
-          onChange={(e) =>
-            setNuevaVariedad(e.target.value)
-          }
-          style={{
-            ...styles.input,
-            flex: 1
-          }}
-        />
+        {mostrarNuevaVariedad && (
+
+          <input
+            type="text"
+            placeholder="Nueva variedad"
+            value={nuevaVariedad}
+            onChange={(e) =>
+              setNuevaVariedad(e.target.value)
+            }
+            style={{
+              ...styles.input,
+              flex: 1
+            }}
+          />
+
+        )}
 
         <button
           type="button"
-          onClick={agregarVariedad}
+          onClick={() => {
+
+            if (mostrarNuevaVariedad) {
+
+              agregarVariedad();
+
+            } else {
+
+              setMostrarNuevaVariedad(true);
+            }
+          }}
           style={styles.addButton}
         >
           +
@@ -378,22 +426,36 @@ function Lotes() {
 
         </select>
 
-        <input
-          type="text"
-          placeholder="Nueva galera"
-          value={nuevaGalera}
-          onChange={(e) =>
-            setNuevaGalera(e.target.value)
-          }
-          style={{
-            ...styles.input,
-            flex: 1
-          }}
-        />
+        {mostrarNuevaGalera && (
+
+          <input
+            type="text"
+            placeholder="Nueva galera"
+            value={nuevaGalera}
+            onChange={(e) =>
+              setNuevaGalera(e.target.value)
+            }
+            style={{
+              ...styles.input,
+              flex: 1
+            }}
+          />
+
+        )}
 
         <button
           type="button"
-          onClick={agregarGalera}
+          onClick={() => {
+
+            if (mostrarNuevaGalera) {
+
+              agregarGalera();
+
+            } else {
+
+              setMostrarNuevaGalera(true);
+            }
+          }}
           style={styles.addButton}
         >
           +
