@@ -7,44 +7,49 @@ function Lotes() {
   // =========================
 
   const [lote, setLote] = useState("");
+
   const [fecha, setFecha] = useState("");
+
   const [variedades, setVariedades] = useState([]);
+
   const [galeras, setGaleras] = useState([]);
 
   const [nuevaVariedad, setNuevaVariedad] = useState("");
+
   const [nuevaGalera, setNuevaGalera] = useState("");
 
   const [variedad, setVariedad] = useState("");
+
   const [galera, setGalera] = useState("");
 
   const [hembras, setHembras] = useState(0);
+
   const [machos, setMachos] = useState(0);
 
   const [cantidadImportada, setCantidadImportada] = useState(0);
 
   const [costo, setCosto] = useState(0);
+
   const [costoUnitario, setCostoUnitario] = useState(0);
 
   const [estado, setEstado] = useState("Activo");
-
-  // =========================
-  // UI STATES (TOGGLE INPUTS)
-  // =========================
-
-  const [showNuevaVariedad, setShowNuevaVariedad] = useState(false);
-  const [showNuevaGalera, setShowNuevaGalera] = useState(false);
 
   // =========================
   // GENERAR LOTE
   // =========================
 
   const generarLote = () => {
+
     const now = new Date();
 
     const year = now.getFullYear().toString().slice(-2);
+
     const month = String(now.getMonth() + 1).padStart(2, "0");
+
     const day = String(now.getDate()).padStart(2, "0");
+
     const hours = String(now.getHours()).padStart(2, "0");
+
     const minutes = String(now.getMinutes()).padStart(2, "0");
 
     return `REP-${year}${month}${day}-${hours}${minutes}`;
@@ -55,81 +60,159 @@ function Lotes() {
   // =========================
 
   const setFechaActual = () => {
-    const today = new Date().toISOString().split("T")[0];
+
+    const today = new Date()
+      .toISOString()
+      .split("T")[0];
+
     setFecha(today);
   };
+
+  // =========================
+  // AGREGAR OPCIÓN
+  // =========================
+
+  const agregarVariedad = () => {
+
+    if (nuevaVariedad.trim() !== "") {
+
+      setVariedades([
+        ...variedades,
+        nuevaVariedad
+      ]);
+
+      setNuevaVariedad("");
+    }
+  };
+
+  const agregarGalera = () => {
+
+    if (nuevaGalera.trim() !== "") {
+
+      setGaleras([
+        ...galeras,
+        nuevaGalera
+      ]);
+
+      setNuevaGalera("");
+    }
+  };
+
+  // =========================
+  // CALCULAR TOTALES
+  // =========================
+
+  useEffect(() => {
+
+    const total =
+      Number(hembras) + Number(machos);
+
+    setCantidadImportada(total);
+
+    if (total > 0) {
+
+      setCostoUnitario(
+        (Number(costo) / total).toFixed(2)
+      );
+
+    } else {
+
+      setCostoUnitario(0);
+    }
+
+  }, [hembras, machos, costo]);
 
   // =========================
   // INIT
   // =========================
 
   useEffect(() => {
+
     setLote(generarLote());
+
     setFechaActual();
+
   }, []);
-
-  // =========================
-  // AGREGAR OPCIONES
-  // =========================
-
-  const guardarVariedad = () => {
-    if (!nuevaVariedad.trim()) return;
-
-    setVariedades([...variedades, nuevaVariedad]);
-    setVariedad(nuevaVariedad);
-
-    setNuevaVariedad("");
-    setShowNuevaVariedad(false);
-  };
-
-  const guardarGalera = () => {
-    if (!nuevaGalera.trim()) return;
-
-    setGaleras([...galeras, nuevaGalera]);
-    setGalera(nuevaGalera);
-
-    setNuevaGalera("");
-    setShowNuevaGalera(false);
-  };
-
-  // =========================
-  // TOTALES
-  // =========================
-
-  useEffect(() => {
-    const total = Number(hembras) + Number(machos);
-
-    setCantidadImportada(total);
-
-    if (total > 0) {
-      setCostoUnitario((Number(costo) / total).toFixed(2));
-    } else {
-      setCostoUnitario(0);
-    }
-  }, [hembras, machos, costo]);
 
   // =========================
   // SUBMIT
   // =========================
 
   const handleSubmit = (e) => {
+
     e.preventDefault();
 
     const data = {
       lote,
       fecha,
-      estado,
       variedad,
       galera,
       hembras,
       machos,
       cantidadImportada,
       costo,
-      costoUnitario
+      costoUnitario,
+      estado
     };
 
     console.log(data);
+
     alert("Formulario guardado correctamente");
+  };
+
+  // =========================
+  // STYLES
+  // =========================
+
+  const styles = {
+    form: {
+      maxWidth: "900px",
+      margin: "0 auto",
+      padding: "20px",
+      border: "1px solid #ddd",
+      borderRadius: "10px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "15px",
+      fontFamily: "Arial"
+    },
+
+    row: {
+      display: "flex",
+      gap: "15px",
+      width: "100%"
+    },
+
+    field: {
+      flex: 1,
+      display: "flex",
+      flexDirection: "column"
+    },
+
+    input: {
+      padding: "10px",
+      borderRadius: "5px",
+      border: "1px solid #ccc"
+    },
+
+    button: {
+      padding: "10px",
+      border: "none",
+      borderRadius: "5px",
+      backgroundColor: "#1976d2",
+      color: "#fff",
+      cursor: "pointer"
+    },
+
+    addButton: {
+      padding: "10px 15px",
+      border: "none",
+      borderRadius: "5px",
+      backgroundColor: "#28a745",
+      color: "#fff",
+      cursor: "pointer",
+      marginTop: "22px"
+    }
   };
 
   // =========================
@@ -137,170 +220,271 @@ function Lotes() {
   // =========================
 
   return (
-    <form onSubmit={handleSubmit}>
+
+    <form
+      onSubmit={handleSubmit}
+      style={styles.form}
+    >
 
       <h2>Registro de Lotes</h2>
 
-      {/* =========================
-          LINEA 1: FECHA + LOTE + ESTADO
-      ========================= */}
-      <div className="row">
+      {/* LOTE - FECHA - ESTADO */}
+      <div style={styles.row}>
 
-        <div>
-          <label>Fecha</label>
-          <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
-        </div>
+        <div style={styles.field}>
 
-        <div>
           <label># Lote</label>
-          <input type="text" value={lote} readOnly />
+
+          <input
+            type="text"
+            value={lote}
+            readOnly
+            style={styles.input}
+          />
+
         </div>
 
-        <div>
+        <div style={styles.field}>
+
+          <label>Fecha</label>
+
+          <input
+            type="date"
+            value={fecha}
+            onChange={(e) =>
+              setFecha(e.target.value)
+            }
+            style={styles.input}
+          />
+
+        </div>
+
+        <div style={styles.field}>
+
           <label>Estado</label>
-          <select value={estado} onChange={(e) => setEstado(e.target.value)}>
-            <option value="Activo">Activo</option>
-            <option value="Inactivo">Inactivo</option>
+
+          <select
+            value={estado}
+            onChange={(e) =>
+              setEstado(e.target.value)
+            }
+            style={styles.input}
+          >
+
+            <option value="Activo">
+              Activo
+            </option>
+
+            <option value="Inactivo">
+              Inactivo
+            </option>
+
           </select>
+
         </div>
 
       </div>
 
-      {/* =========================
-          LINEA 2: VARIEDAD + GALERA
-      ========================= */}
-      <div className="row">
+      {/* VARIEDAD */}
+      <label>Variedad</label>
 
-        {/* VARIEDAD */}
-        <div style={{ flex: 1 }}>
-          <label>Variedad</label>
+      <div style={styles.row}>
 
-          <div className="row">
+        <select
+          value={variedad}
+          onChange={(e) =>
+            setVariedad(e.target.value)
+          }
+          style={{
+            ...styles.input,
+            flex: 1
+          }}
+        >
 
-            {!showNuevaVariedad ? (
-              <>
-                <select
-                  value={variedad}
-                  onChange={(e) => setVariedad(e.target.value)}
-                >
-                  <option value="">Seleccione</option>
-                  {variedades.map((v, i) => (
-                    <option key={i} value={v}>{v}</option>
-                  ))}
-                </select>
+          <option value="">
+            Seleccione
+          </option>
 
-                <button
-                  type="button"
-                  style={{ width: "5ch" }}
-                  onClick={() => setShowNuevaVariedad(true)}
-                >
-                  +
-                </button>
-              </>
-            ) : (
-              <>
-                <input
-                  type="text"
-                  value={nuevaVariedad}
-                  onChange={(e) => setNuevaVariedad(e.target.value)}
-                  placeholder="Nueva variedad"
-                />
+          {variedades.map((v, index) => (
 
-                <button type="button" onClick={guardarVariedad}>
-                  Guardar
-                </button>
-              </>
-            )}
+            <option
+              key={index}
+              value={v}
+            >
+              {v}
+            </option>
 
-          </div>
+          ))}
+
+        </select>
+
+        <input
+          type="text"
+          placeholder="Nueva variedad"
+          value={nuevaVariedad}
+          onChange={(e) =>
+            setNuevaVariedad(e.target.value)
+          }
+          style={{
+            ...styles.input,
+            flex: 1
+          }}
+        />
+
+        <button
+          type="button"
+          onClick={agregarVariedad}
+          style={styles.addButton}
+        >
+          +
+        </button>
+
+      </div>
+
+      {/* GALERA */}
+      <label>Galera</label>
+
+      <div style={styles.row}>
+
+        <select
+          value={galera}
+          onChange={(e) =>
+            setGalera(e.target.value)
+          }
+          style={{
+            ...styles.input,
+            flex: 1
+          }}
+        >
+
+          <option value="">
+            Seleccione
+          </option>
+
+          {galeras.map((g, index) => (
+
+            <option
+              key={index}
+              value={g}
+            >
+              {g}
+            </option>
+
+          ))}
+
+        </select>
+
+        <input
+          type="text"
+          placeholder="Nueva galera"
+          value={nuevaGalera}
+          onChange={(e) =>
+            setNuevaGalera(e.target.value)
+          }
+          style={{
+            ...styles.input,
+            flex: 1
+          }}
+        />
+
+        <button
+          type="button"
+          onClick={agregarGalera}
+          style={styles.addButton}
+        >
+          +
+        </button>
+
+      </div>
+
+      {/* HEMBRAS - MACHOS */}
+      <div style={styles.row}>
+
+        <div style={styles.field}>
+
+          <label>Cantidad Hembras</label>
+
+          <input
+            type="number"
+            value={hembras}
+            onChange={(e) =>
+              setHembras(e.target.value)
+            }
+            style={styles.input}
+          />
+
         </div>
 
-        {/* GALERA */}
-        <div style={{ flex: 1 }}>
-          <label>Galera</label>
+        <div style={styles.field}>
 
-          <div className="row">
+          <label>Cantidad Machos</label>
 
-            {!showNuevaGalera ? (
-              <>
-                <select
-                  value={galera}
-                  onChange={(e) => setGalera(e.target.value)}
-                >
-                  <option value="">Seleccione</option>
-                  {galeras.map((g, i) => (
-                    <option key={i} value={g}>{g}</option>
-                  ))}
-                </select>
+          <input
+            type="number"
+            value={machos}
+            onChange={(e) =>
+              setMachos(e.target.value)
+            }
+            style={styles.input}
+          />
 
-                <button
-                  type="button"
-                  style={{ width: "5ch" }}
-                  onClick={() => setShowNuevaGalera(true)}
-                >
-                  +
-                </button>
-              </>
-            ) : (
-              <>
-                <input
-                  type="text"
-                  value={nuevaGalera}
-                  onChange={(e) => setNuevaGalera(e.target.value)}
-                  placeholder="Nueva galera"
-                />
-
-                <button type="button" onClick={guardarGalera}>
-                  Guardar
-                </button>
-              </>
-            )}
-
-          </div>
         </div>
 
       </div>
 
-      {/* =========================
-          LINEA 3: HEMBRAS + MACHOS + TOTAL
-      ========================= */}
-      <div className="row">
+      {/* TOTAL - COSTOS */}
+      <div style={styles.row}>
 
-        <div>
-          <label>Hembras</label>
-          <input type="number" value={hembras} onChange={(e) => setHembras(e.target.value)} />
+        <div style={styles.field}>
+
+          <label>Cantidad Importada</label>
+
+          <input
+            type="number"
+            value={cantidadImportada}
+            readOnly
+            style={styles.input}
+          />
+
         </div>
 
-        <div>
-          <label>Machos</label>
-          <input type="number" value={machos} onChange={(e) => setMachos(e.target.value)} />
-        </div>
+        <div style={styles.field}>
 
-        <div>
-          <label>Total</label>
-          <input type="number" value={cantidadImportada} readOnly />
-        </div>
-
-      </div>
-
-      {/* =========================
-          LINEA 4: COSTOS
-      ========================= */}
-      <div className="row">
-
-        <div>
           <label>Costo (Q)</label>
-          <input type="number" value={costo} onChange={(e) => setCosto(e.target.value)} />
+
+          <input
+            type="number"
+            value={costo}
+            onChange={(e) =>
+              setCosto(e.target.value)
+            }
+            style={styles.input}
+          />
+
         </div>
 
-        <div>
+        <div style={styles.field}>
+
           <label>Costo Unitario</label>
-          <input type="number" value={costoUnitario} readOnly />
+
+          <input
+            type="number"
+            value={costoUnitario}
+            readOnly
+            style={styles.input}
+          />
+
         </div>
 
       </div>
 
-      <button type="submit">Guardar</button>
+      {/* BOTÓN */}
+      <button
+        type="submit"
+        style={styles.button}
+      >
+        Guardar
+      </button>
 
     </form>
   );
