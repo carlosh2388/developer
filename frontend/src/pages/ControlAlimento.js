@@ -6,12 +6,14 @@ function ControlAlimento() {
   // STATES
   // =========================
 
-  const [movimiento, setMovimiento] = useState("");
+  const [movimiento, setMovimiento] =
+    useState("");
 
   const [mostrarFormulario, setMostrarFormulario] =
     useState(false);
 
-  const [fecha, setFecha] = useState("");
+  const [fecha, setFecha] =
+    useState("");
 
   const [lote, setLote] =
     useState("REP-260401-1600");
@@ -35,18 +37,35 @@ function ControlAlimento() {
     useState("");
 
   // =========================
-  // CONTINUAR
+  // CAMBIO MOVIMIENTO
   // =========================
 
-  const continuar = () => {
+  const handleMovimiento = (e) => {
 
-    if (!movimiento) {
+    const value = e.target.value;
 
-      alert("Seleccione tipo de movimiento");
+    setMovimiento(value);
+
+    // SI REGRESA A "SELECCIONE"
+    if (value === "") {
+
+      setMostrarFormulario(false);
+
+      setFecha("");
+
+      setTipoAlimento("");
+      setCantidadAlimento("");
+
+      setAditivo("");
+      setCantidadAditivo("");
+
+      setMedicamento("");
+      setCantidadMedicamento("");
 
       return;
     }
 
+    // MOSTRAR FORMULARIO
     setMostrarFormulario(true);
 
     const hoy =
@@ -86,12 +105,33 @@ function ControlAlimento() {
   };
 
   // =========================
+  // ESTILOS
+  // =========================
+
+  const inputStyle = {
+    width: "100%",
+    padding: "8px",
+    borderRadius: "5px",
+    border: "1px solid #ccc",
+    marginBottom: "15px"
+  };
+
+  // =========================
   // RENDER
   // =========================
 
   return (
-    <div className="form-container">
- 
+
+    <div
+      className="form-container"
+      style={{
+        maxWidth: "700px",
+        margin: "0 auto",
+        padding: "20px",
+        fontFamily: "Arial"
+      }}
+    >
+
       <h2>
         Control de Alimentos
       </h2>
@@ -103,9 +143,8 @@ function ControlAlimento() {
 
       <select
         value={movimiento}
-        onChange={(e) =>
-          setMovimiento(e.target.value)
-        }
+        onChange={handleMovimiento}
+        style={inputStyle}
       >
 
         <option value="">
@@ -122,20 +161,14 @@ function ControlAlimento() {
 
       </select>
 
-      <button
-        className="btn"
-        onClick={continuar}
-      >
-
-        Continuar
-
-      </button>
-
       {/* FORMULARIO */}
       {mostrarFormulario && (
 
-        <form onSubmit={guardar} className="form-alimentos">
-        
+        <form
+          onSubmit={guardar}
+          className="form-alimentos"
+        >
+
           {/* FECHA */}
           <label>
             Fecha
@@ -147,6 +180,7 @@ function ControlAlimento() {
             onChange={(e) =>
               setFecha(e.target.value)
             }
+            style={inputStyle}
           />
 
           {/* LOTE */}
@@ -159,6 +193,7 @@ function ControlAlimento() {
             onChange={(e) =>
               setLote(e.target.value)
             }
+            style={inputStyle}
           >
 
             <option value="REP-260401-1600">
@@ -177,6 +212,7 @@ function ControlAlimento() {
             onChange={(e) =>
               setTipoAlimento(e.target.value)
             }
+            style={inputStyle}
           >
 
             <option value="">
@@ -231,6 +267,7 @@ function ControlAlimento() {
                     e.target.value
                   )
                 }
+                style={inputStyle}
               />
 
             </div>
@@ -248,6 +285,7 @@ function ControlAlimento() {
             onChange={(e) =>
               setAditivo(e.target.value)
             }
+            style={inputStyle}
           >
 
             <option value="">
@@ -278,6 +316,7 @@ function ControlAlimento() {
                     e.target.value
                   )
                 }
+                style={inputStyle}
               />
 
             </div>
@@ -297,6 +336,7 @@ function ControlAlimento() {
                 e.target.value
               )
             }
+            style={inputStyle}
           >
 
             <option value="">
@@ -327,6 +367,7 @@ function ControlAlimento() {
                     e.target.value
                   )
                 }
+                style={inputStyle}
               />
 
             </div>
@@ -335,7 +376,14 @@ function ControlAlimento() {
           {/* BOTÓN */}
           <button
             type="submit"
-            className="btn"
+            style={{
+              padding: "10px 20px",
+              backgroundColor: "#1976d2",
+              color: "#fff",
+              border: "none",
+              borderRadius: "5px",
+              cursor: "pointer"
+            }}
           >
 
             Guardar
