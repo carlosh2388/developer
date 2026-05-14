@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 function Inventarios() {
 
@@ -130,111 +130,182 @@ function Inventarios() {
   };
 
   // =========================
+  // ESTILOS
+  // =========================
+
+  const inputStyle = {
+    width: "100%",
+    padding: "8px",
+    borderRadius: "5px",
+    border: "1px solid #ccc"
+  };
+
+  const rowStyle = {
+    display: "flex",
+    gap: "10px",
+    marginBottom: "15px",
+    alignItems: "flex-end"
+  };
+
+  // =========================
   // RENDER
   // =========================
 
   return (
 
-    <form onSubmit={handleSubmit}>
+    <form
+      onSubmit={handleSubmit}
+      style={{
+        maxWidth: "900px",
+        margin: "0 auto",
+        padding: "20px",
+        fontFamily: "Arial"
+      }}
+    >
 
       <h2>Registro de Producto</h2>
 
       {/* TIPO INVENTARIO */}
-      <label>Tipo de Inventario</label>
+      <div style={{ marginBottom: "20px" }}>
 
-      <select
-        value={tipoInventario}
-        onChange={handleTipo}
-      >
+        <label>Tipo de Inventario</label>
 
-        <option value="">
-          Seleccione
-        </option>
+        <select
+          value={tipoInventario}
+          onChange={handleTipo}
+          style={inputStyle}
+        >
 
-        <option value="PT">
-          Producto Terminado
-        </option>
+          <option value="">
+            Seleccione
+          </option>
 
-        <option value="INS">
-          Vacunas, Medicamentos y Aditivos
-        </option>
+          <option value="PT">
+            Producto Terminado
+          </option>
 
-      </select>
+          <option value="INS">
+            Vacunas, Medicamentos y Aditivos
+          </option>
+
+        </select>
+
+      </div>
 
       {/* CAMPOS GENERALES */}
       {mostrarGenerales && (
 
         <div>
 
-          <label>Id de Producto</label>
+          {/* FILA 1 */}
+          <div style={rowStyle}>
 
-          <input
-            type="text"
-            value={idProducto}
-            onChange={handleIdProducto}
-            placeholder="TT-TT-TTT"
-          />
+            {/* ID PRODUCTO */}
+            <div style={{ flex: 2 }}>
 
-          <small>{helpId}</small>
+              <label>Id de Producto</label>
 
-          <label>Nombre del Producto</label>
+              <input
+                type="text"
+                value={idProducto}
+                onChange={handleIdProducto}
+                placeholder="TT-TT-TTT"
+                style={inputStyle}
+              />
 
-          <input
-            type="text"
-            value={nombre}
-            onChange={(e) =>
-              setNombre(e.target.value)
-            }
-          />
+              <small>{helpId}</small>
 
-          <label>Unidad de Medida</label>
+            </div>
 
-          <select
-            value={unidad}
-            onChange={(e) =>
-              setUnidad(e.target.value)
-            }
-          >
+            {/* UNIDAD */}
+            <div style={{ flex: 1 }}>
 
-            <option value="">
-              Seleccione
-            </option>
+              <label>Unidad de Medida</label>
 
-            <option value="UN">
-              Unidad (UN)
-            </option>
+              <select
+                value={unidad}
+                onChange={(e) =>
+                  setUnidad(e.target.value)
+                }
+                style={inputStyle}
+              >
 
-          </select>
+                <option value="">
+                  Seleccione
+                </option>
 
-          <label>Estado</label>
+                <option value="UN">
+                  Unidad (UN)
+                </option>
 
-          <select
-            value={estado}
-            onChange={(e) =>
-              setEstado(e.target.value)
-            }
-          >
+              </select>
 
-            <option value="Activo">
-              Activo
-            </option>
+            </div>
 
-            <option value="Inactivo">
-              Inactivo
-            </option>
+            {/* ESTADO */}
+            <div style={{ flex: 1 }}>
 
-          </select>
+              <label>Estado</label>
 
-          <label>Existencia</label>
+              <select
+                value={estado}
+                onChange={(e) =>
+                  setEstado(e.target.value)
+                }
+                style={inputStyle}
+              >
 
-          <input
-            type="number"
-            value={existencia}
-            onChange={(e) =>
-              setExistencia(e.target.value)
-            }
-            placeholder="Calculado automáticamente"
-          />
+                <option value="Activo">
+                  Activo
+                </option>
+
+                <option value="Inactivo">
+                  Inactivo
+                </option>
+
+              </select>
+
+            </div>
+
+          </div>
+
+          {/* FILA 2 */}
+          <div style={rowStyle}>
+
+            {/* NOMBRE */}
+            <div style={{ flex: 4 }}>
+
+              <label>Nombre del Producto</label>
+
+              <input
+                type="text"
+                value={nombre}
+                onChange={(e) =>
+                  setNombre(e.target.value)
+                }
+                style={inputStyle}
+              />
+
+            </div>
+
+            {/* EXISTENCIA */}
+            <div style={{ flex: 1 }}>
+
+              <label>Existencia</label>
+
+              <input
+                type="number"
+                value={existencia}
+                onChange={(e) =>
+                  setExistencia(e.target.value)
+                }
+                placeholder="0"
+                style={inputStyle}
+              />
+
+            </div>
+
+          </div>
 
         </div>
       )}
@@ -244,78 +315,125 @@ function Inventarios() {
 
         <div>
 
-          <label>Costo</label>
+          {/* FILA 3 */}
+          <div style={rowStyle}>
 
-          <input
-            type="number"
-            step="0.01"
-            value={costo}
-            onChange={(e) =>
-              setCosto(e.target.value)
-            }
-          />
+            <div style={{ flex: 1 }}>
 
-          <label>Presentación</label>
+              <label>Costo</label>
 
-          <input
-            type="text"
-            value={presentacion}
-            onChange={(e) =>
-              setPresentacion(e.target.value)
-            }
-          />
+              <input
+                type="number"
+                step="0.01"
+                value={costo}
+                onChange={(e) =>
+                  setCosto(e.target.value)
+                }
+                style={inputStyle}
+              />
 
-          <label>Enfermedad</label>
+            </div>
 
-          <input
-            type="text"
-            value={enfermedad}
-            onChange={(e) =>
-              setEnfermedad(e.target.value)
-            }
-          />
+            <div style={{ flex: 1 }}>
 
-          <label>Dosis</label>
+              <label>Presentación</label>
 
-          <input
-            type="text"
-            value={dosis}
-            onChange={(e) =>
-              setDosis(e.target.value)
-            }
-          />
+              <input
+                type="text"
+                value={presentacion}
+                onChange={(e) =>
+                  setPresentacion(e.target.value)
+                }
+                style={inputStyle}
+              />
 
-          <label>Tipo</label>
+            </div>
 
-          <select
-            value={tipo}
-            onChange={(e) =>
-              setTipo(e.target.value)
-            }
-          >
+          </div>
 
-            <option value="">
-              Seleccione
-            </option>
+          {/* FILA 4 */}
+          <div style={rowStyle}>
 
-            <option value="Viva">
-              Viva
-            </option>
+            <div style={{ flex: 1 }}>
 
-            <option value="Oleosa">
-              Oleosa
-            </option>
+              <label>Enfermedad</label>
 
-          </select>
+              <input
+                type="text"
+                value={enfermedad}
+                onChange={(e) =>
+                  setEnfermedad(e.target.value)
+                }
+                style={inputStyle}
+              />
+
+            </div>
+
+            <div style={{ flex: 1 }}>
+
+              <label>Dosis</label>
+
+              <input
+                type="text"
+                value={dosis}
+                onChange={(e) =>
+                  setDosis(e.target.value)
+                }
+                style={inputStyle}
+              />
+
+            </div>
+
+            <div style={{ flex: 1 }}>
+
+              <label>Tipo</label>
+
+              <select
+                value={tipo}
+                onChange={(e) =>
+                  setTipo(e.target.value)
+                }
+                style={inputStyle}
+              >
+
+                <option value="">
+                  Seleccione
+                </option>
+
+                <option value="Viva">
+                  Viva
+                </option>
+
+                <option value="Oleosa">
+                  Oleosa
+                </option>
+
+              </select>
+
+            </div>
+
+          </div>
 
         </div>
       )}
 
       {/* BOTÓN */}
       {mostrarGuardar && (
-        <button type="submit">
+
+        <button
+          type="submit"
+          style={{
+            padding: "10px 20px",
+            backgroundColor: "#1976d2",
+            color: "#fff",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer"
+          }}
+        >
           Guardar
         </button>
+
       )}
 
     </form>
