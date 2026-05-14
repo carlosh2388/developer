@@ -18,14 +18,34 @@ function ControlPesoAves() {
 
   const [semana] = useState(1);
 
-  const [peso, setPeso] = useState("");
-
   const [uniformidad, setUniformidad] = useState("");
 
   const [etapas, setEtapas] = useState([]);
 
   // =========================
-  // FECHA AUTOMÁTICA + ETAPAS BASE
+  // PESOS HEMBRAS
+  // =========================
+
+  const [hembras, setHembras] = useState({
+    m1: "", m2: "", m3: "", m4: "",
+    m5: "", m6: "", m7: ""
+  });
+
+  const [promHembras, setPromHembras] = useState(0);
+
+  // =========================
+  // PESOS MACHOS
+  // =========================
+
+  const [machos, setMachos] = useState({
+    m1: "", m2: "", m3: "", m4: "",
+    m5: "", m6: "", m7: ""
+  });
+
+  const [promMachos, setPromMachos] = useState(0);
+
+  // =========================
+  // FECHA + ETAPAS BASE
   // =========================
 
   useEffect(() => {
@@ -45,8 +65,55 @@ function ControlPesoAves() {
   }, []);
 
   // =========================
-  // AGREGAR ETAPA
+  // CALCULAR PROMEDIOS
   // =========================
+
+  const calcularPromedio = (obj) => {
+
+    let suma = 0;
+    let count = 0;
+
+    Object.values(obj).forEach(v => {
+
+      const num = parseFloat(v);
+
+      if (!isNaN(num)) {
+        suma += num;
+        count++;
+      }
+
+    });
+
+    return count > 0
+      ? (suma / count).toFixed(2)
+      : 0;
+  };
+
+  useEffect(() => {
+    setPromHembras(calcularPromedio(hembras));
+  }, [hembras]);
+
+  useEffect(() => {
+    setPromMachos(calcularPromedio(machos));
+  }, [machos]);
+
+  // =========================
+  // HANDLERS
+  // =========================
+
+  const handleHembras = (e) => {
+    setHembras({
+      ...hembras,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleMachos = (e) => {
+    setMachos({
+      ...machos,
+      [e.target.name]: e.target.value
+    });
+  };
 
   const agregarEtapa = () => {
 
@@ -69,11 +136,13 @@ function ControlPesoAves() {
 
       fecha,
       lote,
-      sexo,
-      etapa,
       semana,
-      peso,
-      uniformidad
+      etapa,
+      uniformidad,
+      hembras,
+      promHembras,
+      machos,
+      promMachos
     };
 
     console.log(data);
@@ -82,126 +151,198 @@ function ControlPesoAves() {
   };
 
   // =========================
+  // ESTILOS
+  // =========================
+
+  const inputStyle = {
+    width: "100%",
+    padding: "8px",
+    borderRadius: "5px",
+    border: "1px solid #ccc"
+  };
+
+  const rowStyle = {
+    display: "flex",
+    gap: "10px",
+    marginBottom: "15px"
+  };
+
+  // =========================
   // RENDER
   // =========================
 
   return (
 
-    <div className="form-container">
+    <div
+      className="form-container"
+      style={{
+        maxWidth: "950px",
+        margin: "0 auto",
+        padding: "20px",
+        fontFamily: "Arial"
+      }}
+    >
 
       <h2>Registro de Pesos de Aves</h2>
 
-      {/* FECHA */}
-      <label>Fecha</label>
+      {/* =========================
+          FECHA + LOTE + SEMANA
+      ========================= */}
+      <div style={rowStyle}>
 
-      <input
-        type="date"
-        value={fecha}
-        onChange={(e) =>
-          setFecha(e.target.value)
-        }
-      />
+        <div style={{ flex: 1 }}>
+          <label>Fecha</label>
+          <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} style={inputStyle} />
+        </div>
 
-      {/* LOTE */}
-      <label># Lote</label>
+        <div style={{ flex: 1 }}>
+          <label># Lote</label>
+          <select disabled style={inputStyle}>
+            <option>{lote}</option>
+          </select>
+        </div>
 
-      <select value={lote} disabled>
-        <option>{lote}</option>
-      </select>
-
-      {/* SEXO */}
-      <label>Sexo</label>
-
-      <select
-        value={sexo}
-        onChange={(e) =>
-          setSexo(e.target.value)
-        }
-      >
-
-        <option>Macho</option>
-        <option>Hembra</option>
-
-      </select>
-
-      {/* ETAPA */}
-      <label>Etapa</label>
-
-      <div className="erp-row">
-
-        <select
-          value={etapa}
-          onChange={(e) =>
-            setEtapa(e.target.value)
-          }
-        >
-
-          <option value="">
-            Seleccione etapa
-          </option>
-
-          {etapas.map((e, i) => (
-            <option key={i} value={e}>
-              {e}
-            </option>
-          ))}
-
-        </select>
-
-        <input
-          type="text"
-          value={nuevaEtapa}
-          onChange={(e) =>
-            setNuevaEtapa(e.target.value)
-          }
-          placeholder="Nueva etapa"
-        />
-
-        <button
-          type="button"
-          className="erp-btn"
-          onClick={agregarEtapa}
-        >
-          ＋
-        </button>
+        <div style={{ flex: 1 }}>
+          <label>Semana</label>
+          <input type="number" value={semana} readOnly style={inputStyle} />
+        </div>
 
       </div>
 
-      {/* SEMANA */}
-      <label>Semana</label>
+      {/* =========================
+          ETAPA + UNIFORMIDAD
+      ========================= */}
+      <div style={rowStyle}>
 
-      <input
-        type="number"
-        value={semana}
-        readOnly
-      />
+        <div style={{ flex: 2 }}>
+          <label>Etapa</label>
 
-      {/* PESO */}
-      <label>Peso (g)</label>
+          <div style={{ display: "flex", gap: "10px" }}>
 
-      <input
-        type="number"
-        step="0.01"
-        value={peso}
-        onChange={(e) =>
-          setPeso(e.target.value)
-        }
-      />
+            <select
+              value={etapa}
+              onChange={(e) => setEtapa(e.target.value)}
+              style={inputStyle}
+            >
+              <option value="">Seleccione</option>
+              {etapas.map((e, i) => (
+                <option key={i} value={e}>{e}</option>
+              ))}
+            </select>
 
-      {/* UNIFORMIDAD */}
-      <label>% Uniformidad</label>
+            <input
+              type="text"
+              value={nuevaEtapa}
+              onChange={(e) => setNuevaEtapa(e.target.value)}
+              placeholder="Nueva etapa"
+              style={inputStyle}
+            />
 
-      <input
-        type="number"
-        step="0.01"
-        value={uniformidad}
-        onChange={(e) =>
-          setUniformidad(e.target.value)
-        }
-      />
+            <button type="button" onClick={agregarEtapa}>+</button>
+
+          </div>
+        </div>
+
+        <div style={{ flex: 1 }}>
+          <label>% Uniformidad</label>
+          <input
+            type="number"
+            value={uniformidad}
+            onChange={(e) => setUniformidad(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
+
+      </div>
+
+      {/* =========================
+          HEMBRAS
+      ========================= */}
+      <h3>Hembras</h3>
+
+      <div style={rowStyle}>
+        {[1,2,3,4].map(i => (
+          <div key={i} style={{ flex: 1 }}>
+            <label>Muestra {i}</label>
+            <input
+              name={`m${i}`}
+              type="number"
+              onChange={handleHembras}
+              style={inputStyle}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div style={rowStyle}>
+        {[5,6,7].map(i => (
+          <div key={i} style={{ flex: 1 }}>
+            <label>Muestra {i}</label>
+            <input
+              name={`m${i}`}
+              type="number"
+              onChange={handleHembras}
+              style={inputStyle}
+            />
+          </div>
+        ))}
+
+        <div style={{ flex: 1 }}>
+          <label>Promedio</label>
+          <input value={promHembras} readOnly style={inputStyle} />
+        </div>
+      </div>
+
+      {/* =========================
+          MACHOS
+      ========================= */}
+      <h3>Machos</h3>
+
+      <div style={rowStyle}>
+        {[1,2,3,4].map(i => (
+          <div key={i} style={{ flex: 1 }}>
+            <label>Muestra {i}</label>
+            <input
+              name={`m${i}`}
+              type="number"
+              onChange={handleMachos}
+              style={inputStyle}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div style={rowStyle}>
+        {[5,6,7].map(i => (
+          <div key={i} style={{ flex: 1 }}>
+            <label>Muestra {i}</label>
+            <input
+              name={`m${i}`}
+              type="number"
+              onChange={handleMachos}
+              style={inputStyle}
+            />
+          </div>
+        ))}
+
+        <div style={{ flex: 1 }}>
+          <label>Promedio</label>
+          <input value={promMachos} readOnly style={inputStyle} />
+        </div>
+      </div>
 
       {/* BOTÓN */}
-      <button onClick={guardar}>
+      <button
+        onClick={guardar}
+        style={{
+          padding: "10px 20px",
+          backgroundColor: "#1976d2",
+          color: "#fff",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer"
+        }}
+      >
         Guardar Registro
       </button>
 
