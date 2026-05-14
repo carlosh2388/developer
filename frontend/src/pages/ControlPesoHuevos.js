@@ -8,7 +8,8 @@ function ControlPesoHuevos() {
 
   const [fecha, setFecha] = useState("");
 
-  const [lote] = useState("REP-260401-1600");
+  const [lote] =
+    useState("REP-260401-1600");
 
   const [muestras, setMuestras] = useState({
     m1: "",
@@ -16,10 +17,12 @@ function ControlPesoHuevos() {
     m3: "",
     m4: "",
     m5: "",
-    m6: ""
+    m6: "",
+    m7: ""
   });
 
-  const [promedio, setPromedio] = useState(0);
+  const [promedio, setPromedio] =
+    useState(0);
 
   // =========================
   // FECHA AUTOMÁTICA
@@ -55,7 +58,9 @@ function ControlPesoHuevos() {
     });
 
     setPromedio(
-      count > 0 ? (suma / count).toFixed(2) : 0
+      count > 0
+        ? (suma / count).toFixed(2)
+        : 0
     );
 
   }, [muestras]);
@@ -88,7 +93,24 @@ function ControlPesoHuevos() {
 
     console.log(data);
 
-    alert("Registro de pesos de huevos guardado correctamente");
+    alert("Registro de pesos guardado correctamente");
+  };
+
+  // =========================
+  // ESTILOS
+  // =========================
+
+  const inputStyle = {
+    width: "100%",
+    padding: "8px",
+    borderRadius: "5px",
+    border: "1px solid #ccc"
+  };
+
+  const rowStyle = {
+    display: "flex",
+    gap: "10px",
+    marginBottom: "15px"
   };
 
   // =========================
@@ -97,100 +119,184 @@ function ControlPesoHuevos() {
 
   return (
 
-    <div className="form-container">
+    <div
+      className="form-container"
+      style={{
+        maxWidth: "800px",
+        margin: "0 auto",
+        padding: "20px",
+        fontFamily: "Arial"
+      }}
+    >
 
-      <h2>Registro de Pesos de Huevos</h2>
+      <h2>
+        Registro de Pesos de Huevos
+      </h2>
 
-      {/* FECHA */}
-      <label>Fecha</label>
+      {/* =========================
+          FECHA Y LOTE
+      ========================= */}
+      <div style={rowStyle}>
 
-      <input
-        type="date"
-        value={fecha}
-        onChange={(e) =>
-          setFecha(e.target.value)
-        }
-      />
+        <div style={{ flex: 1 }}>
 
-      {/* LOTE */}
-      <label># Lote</label>
+          <label>
+            Fecha
+          </label>
 
-      <select value={lote} disabled>
-        <option>{lote}</option>
-      </select>
+          <input
+            type="date"
+            value={fecha}
+            onChange={(e) =>
+              setFecha(e.target.value)
+            }
+            style={inputStyle}
+          />
 
-      {/* MUESTRAS */}
-      <label>Peso Muestra 1</label>
+        </div>
 
-      <input
-        name="m1"
-        type="number"
-        step="0.01"
-        value={muestras.m1}
-        onChange={handleChange}
-      />
+        <div style={{ flex: 1 }}>
 
-      <label>Peso Muestra 2 (opcional)</label>
+          <label>
+            # Lote
+          </label>
 
-      <input
-        name="m2"
-        type="number"
-        step="0.01"
-        value={muestras.m2}
-        onChange={handleChange}
-      />
+          <select
+            value={lote}
+            disabled
+            style={inputStyle}
+          >
 
-      <label>Peso Muestra 3 (opcional)</label>
+            <option>
+              {lote}
+            </option>
 
-      <input
-        name="m3"
-        type="number"
-        step="0.01"
-        value={muestras.m3}
-        onChange={handleChange}
-      />
+          </select>
 
-      <label>Peso Muestra 4 (opcional)</label>
+        </div>
 
-      <input
-        name="m4"
-        type="number"
-        step="0.01"
-        value={muestras.m4}
-        onChange={handleChange}
-      />
+      </div>
 
-      <label>Peso Muestra 5 (opcional)</label>
+      {/* =========================
+          MUESTRAS 1 - 4
+      ========================= */}
+      <div style={rowStyle}>
 
-      <input
-        name="m5"
-        type="number"
-        step="0.01"
-        value={muestras.m5}
-        onChange={handleChange}
-      />
+        <div style={{ flex: 1 }}>
+          <label>Peso Muestra 1</label>
+          <input
+            name="m1"
+            type="number"
+            step="0.01"
+            value={muestras.m1}
+            onChange={handleChange}
+            style={inputStyle}
+          />
+        </div>
 
-      <label>Peso Muestra 6 (opcional)</label>
+        <div style={{ flex: 1 }}>
+          <label>Peso Muestra 2</label>
+          <input
+            name="m2"
+            type="number"
+            step="0.01"
+            value={muestras.m2}
+            onChange={handleChange}
+            style={inputStyle}
+          />
+        </div>
 
-      <input
-        name="m6"
-        type="number"
-        step="0.01"
-        value={muestras.m6}
-        onChange={handleChange}
-      />
+        <div style={{ flex: 1 }}>
+          <label>Peso Muestra 3</label>
+          <input
+            name="m3"
+            type="number"
+            step="0.01"
+            value={muestras.m3}
+            onChange={handleChange}
+            style={inputStyle}
+          />
+        </div>
 
-      {/* PROMEDIO */}
-      <label>Peso Promedio</label>
+        <div style={{ flex: 1 }}>
+          <label>Peso Muestra 4</label>
+          <input
+            name="m4"
+            type="number"
+            step="0.01"
+            value={muestras.m4}
+            onChange={handleChange}
+            style={inputStyle}
+          />
+        </div>
 
-      <input
-        type="number"
-        value={promedio}
-        readOnly
-      />
+      </div>
+
+      {/* =========================
+          MUESTRAS 5 - 7 + PROMEDIO
+      ========================= */}
+      <div style={rowStyle}>
+
+        <div style={{ flex: 1 }}>
+          <label>Peso Muestra 5</label>
+          <input
+            name="m5"
+            type="number"
+            step="0.01"
+            value={muestras.m5}
+            onChange={handleChange}
+            style={inputStyle}
+          />
+        </div>
+
+        <div style={{ flex: 1 }}>
+          <label>Peso Muestra 6</label>
+          <input
+            name="m6"
+            type="number"
+            step="0.01"
+            value={muestras.m6}
+            onChange={handleChange}
+            style={inputStyle}
+          />
+        </div>
+
+        <div style={{ flex: 1 }}>
+          <label>Peso Muestra 7</label>
+          <input
+            name="m7"
+            type="number"
+            step="0.01"
+            value={muestras.m7}
+            onChange={handleChange}
+            style={inputStyle}
+          />
+        </div>
+
+        <div style={{ flex: 1 }}>
+          <label>Peso Promedio</label>
+          <input
+            type="number"
+            value={promedio}
+            readOnly
+            style={inputStyle}
+          />
+        </div>
+
+      </div>
 
       {/* BOTÓN */}
-      <button onClick={guardar}>
+      <button
+        onClick={guardar}
+        style={{
+          padding: "10px 20px",
+          backgroundColor: "#1976d2",
+          color: "#fff",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer"
+        }}
+      >
         Guardar Registro
       </button>
 

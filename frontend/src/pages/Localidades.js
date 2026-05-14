@@ -254,7 +254,7 @@ function Localidades() {
       {/* BODEGA */}
       <div style={{ marginBottom: "15px" }}>
 
-        <label>Nombre de la Bodega</label>
+        <label>Bodega a la que pertenece esta Localidad</label>
 
         <select
           value={bodega}

@@ -65,7 +65,6 @@ function Traslados() {
 
     setCausaInicial(value);
 
-    // VOLVER AL ESTADO INICIAL
     if (value === "") {
 
       setPaso(1);
@@ -73,7 +72,6 @@ function Traslados() {
       return;
     }
 
-    // MOSTRAR PASO 2
     setPaso(2);
   };
 
@@ -111,9 +109,7 @@ function Traslados() {
 
     console.log(data);
 
-    alert(
-      "Traslado registrado correctamente"
-    );
+    alert("Traslado registrado correctamente");
   };
 
   // =========================
@@ -124,8 +120,7 @@ function Traslados() {
     width: "100%",
     padding: "8px",
     borderRadius: "5px",
-    border: "1px solid #ccc",
-    marginBottom: "15px"
+    border: "1px solid #ccc"
   };
 
   const rowStyle = {
@@ -143,7 +138,7 @@ function Traslados() {
     <div
       className="form-container"
       style={{
-        maxWidth: "700px",
+        maxWidth: "750px",
         margin: "0 auto",
         padding: "20px",
         fontFamily: "Arial"
@@ -155,10 +150,9 @@ function Traslados() {
       </h2>
 
       {/* =========================
-          PASO 1
+          TIPO DE TRASLADO
       ========================= */}
-
-      <div>
+      <div style={{ marginBottom: "15px" }}>
 
         <label>
           Tipo de traslado
@@ -243,7 +237,7 @@ function Traslados() {
 
           </div>
 
-          {/* HEMBRAS Y MACHOS */}
+          {/* HEMBRAS, MACHOS Y TOTAL EN UNA LÍNEA */}
           <div style={rowStyle}>
 
             <div style={{ flex: 1 }}>
@@ -280,81 +274,83 @@ function Traslados() {
 
             </div>
 
+            <div style={{ flex: 1 }}>
+
+              <label>
+                Total
+              </label>
+
+              <input
+                type="number"
+                value={total}
+                readOnly
+                style={inputStyle}
+              />
+
+            </div>
+
           </div>
 
-          {/* TOTAL */}
-          <label>
-            Cantidad Total
-          </label>
+          {/* CAUSA FINAL */}
+          <div style={{ marginBottom: "15px" }}>
 
-          <input
-            type="number"
-            value={total}
-            readOnly
-            style={inputStyle}
-          />
+            <label>
+              Causa
+            </label>
 
-          {/* CAUSA */}
-          <label>
-            Causa
-          </label>
-
-          {/* SELECT + BOTÓN */}
-          <div
-            style={{
-              display: "flex",
-              gap: "10px",
-              alignItems: "center",
-              marginBottom: "15px"
-            }}
-          >
-
-            <select
-              value={causaFinal}
-              onChange={(e) =>
-                setCausaFinal(e.target.value)
-              }
+            <div
               style={{
-                ...inputStyle,
-                marginBottom: "0",
-                flex: 1
+                display: "flex",
+                gap: "10px",
+                alignItems: "center"
               }}
             >
 
-              <option value="">
-                Seleccione una causa
-              </option>
+              <select
+                value={causaFinal}
+                onChange={(e) =>
+                  setCausaFinal(e.target.value)
+                }
+                style={{
+                  ...inputStyle,
+                  marginBottom: 0,
+                  flex: 1
+                }}
+              >
 
-              {causas.map((c, i) => (
-
-                <option
-                  key={i}
-                  value={c}
-                >
-                  {c}
+                <option value="">
+                  Seleccione una causa
                 </option>
 
-              ))}
+                {causas.map((c, i) => (
 
-            </select>
+                  <option key={i} value={c}>
+                    {c}
+                  </option>
 
-            <button
-              type="button"
-              onClick={() =>
-                setMostrarNuevaCausa(true)
-              }
-              style={{
-                width: "35px",
-                height: "35px",
-                borderRadius: "5px",
-                border: "none",
-                backgroundColor: "#1976d2",
-                color: "#fff",
-                cursor: "pointer"
-              }}
-            >
-              +
-            </button>
+                ))}
+
+              </select>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setMostrarNuevaCausa(true)
+                }
+                style={{
+                  width: "35px",
+                  height: "35px",
+                  borderRadius: "5px",
+                  border: "none",
+                  backgroundColor: "#1976d2",
+                  color: "#fff",
+                  cursor: "pointer"
+                }}
+              >
+                +
+              </button>
+
+            </div>
 
           </div>
 
@@ -378,7 +374,7 @@ function Traslados() {
                 placeholder="Nueva causa"
                 style={{
                   ...inputStyle,
-                  marginBottom: "0",
+                  marginBottom: 0,
                   flex: 1
                 }}
               />
@@ -387,8 +383,7 @@ function Traslados() {
                 type="button"
                 onClick={() => {
 
-                  if (!nuevaCausa.trim())
-                    return;
+                  if (!nuevaCausa.trim()) return;
 
                   const nuevaLista = [
                     ...causas,
@@ -421,26 +416,29 @@ function Traslados() {
           )}
 
           {/* OBSERVACIONES */}
-          <label>
-            Observaciones adicionales
-          </label>
+          <div style={{ marginBottom: "20px" }}>
 
-          <textarea
-            value={observaciones}
-            onChange={(e) =>
-              setObservaciones(e.target.value)
-            }
-            style={{
-              width: "100%",
-              minHeight: "100px",
-              padding: "10px",
-              borderRadius: "5px",
-              border: "1px solid #ccc",
-              marginBottom: "20px"
-            }}
-          />
+            <label>
+              Observaciones adicionales
+            </label>
 
-          {/* BOTÓN */}
+            <textarea
+              value={observaciones}
+              onChange={(e) =>
+                setObservaciones(e.target.value)
+              }
+              style={{
+                width: "100%",
+                minHeight: "100px",
+                padding: "10px",
+                borderRadius: "5px",
+                border: "1px solid #ccc"
+              }}
+            />
+
+          </div>
+
+          {/* BOTÓN GUARDAR */}
           <button
             onClick={guardar}
             style={{
