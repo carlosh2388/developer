@@ -46,7 +46,7 @@ function ControlAlimento() {
 
     setMovimiento(value);
 
-    // SI REGRESA A "SELECCIONE"
+    // VOLVER A ESTADO INICIAL
     if (value === "") {
 
       setMostrarFormulario(false);
@@ -112,7 +112,12 @@ function ControlAlimento() {
     width: "100%",
     padding: "8px",
     borderRadius: "5px",
-    border: "1px solid #ccc",
+    border: "1px solid #ccc"
+  };
+
+  const rowStyle = {
+    display: "flex",
+    gap: "10px",
     marginBottom: "15px"
   };
 
@@ -144,7 +149,10 @@ function ControlAlimento() {
       <select
         value={movimiento}
         onChange={handleMovimiento}
-        style={inputStyle}
+        style={{
+          ...inputStyle,
+          marginBottom: "20px"
+        }}
       >
 
         <option value="">
@@ -169,38 +177,51 @@ function ControlAlimento() {
           className="form-alimentos"
         >
 
-          {/* FECHA */}
-          <label>
-            Fecha
-          </label>
+          {/* FECHA Y LOTE */}
+          <div style={rowStyle}>
 
-          <input
-            type="date"
-            value={fecha}
-            onChange={(e) =>
-              setFecha(e.target.value)
-            }
-            style={inputStyle}
-          />
+            {/* FECHA */}
+            <div style={{ flex: 1 }}>
 
-          {/* LOTE */}
-          <label>
-            # Lote
-          </label>
+              <label>
+                Fecha
+              </label>
 
-          <select
-            value={lote}
-            onChange={(e) =>
-              setLote(e.target.value)
-            }
-            style={inputStyle}
-          >
+              <input
+                type="date"
+                value={fecha}
+                onChange={(e) =>
+                  setFecha(e.target.value)
+                }
+                style={inputStyle}
+              />
 
-            <option value="REP-260401-1600">
-              REP-260401-1600
-            </option>
+            </div>
 
-          </select>
+            {/* LOTE */}
+            <div style={{ flex: 1 }}>
+
+              <label>
+                # Lote
+              </label>
+
+              <select
+                value={lote}
+                onChange={(e) =>
+                  setLote(e.target.value)
+                }
+                style={inputStyle}
+              >
+
+                <option value="REP-260401-1600">
+                  REP-260401-1600
+                </option>
+
+              </select>
+
+            </div>
+
+          </div>
 
           {/* TIPO ALIMENTO */}
           <label>
@@ -212,7 +233,10 @@ function ControlAlimento() {
             onChange={(e) =>
               setTipoAlimento(e.target.value)
             }
-            style={inputStyle}
+            style={{
+              ...inputStyle,
+              marginBottom: "15px"
+            }}
           >
 
             <option value="">
@@ -252,7 +276,7 @@ function ControlAlimento() {
           {/* CANTIDAD ALIMENTO */}
           {tipoAlimento && (
 
-            <div>
+            <div style={{ marginBottom: "15px" }}>
 
               <label>
                 Cantidad de Alimento
@@ -285,7 +309,10 @@ function ControlAlimento() {
             onChange={(e) =>
               setAditivo(e.target.value)
             }
-            style={inputStyle}
+            style={{
+              ...inputStyle,
+              marginBottom: "15px"
+            }}
           >
 
             <option value="">
@@ -301,7 +328,7 @@ function ControlAlimento() {
           {/* CANTIDAD ADITIVO */}
           {aditivo && (
 
-            <div>
+            <div style={{ marginBottom: "15px" }}>
 
               <label>
                 Cantidad de Aditivo
@@ -336,7 +363,10 @@ function ControlAlimento() {
                 e.target.value
               )
             }
-            style={inputStyle}
+            style={{
+              ...inputStyle,
+              marginBottom: "15px"
+            }}
           >
 
             <option value="">
@@ -352,7 +382,7 @@ function ControlAlimento() {
           {/* CANTIDAD MEDICAMENTO */}
           {medicamento && (
 
-            <div>
+            <div style={{ marginBottom: "20px" }}>
 
               <label>
                 Cantidad de Medicamento

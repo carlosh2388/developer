@@ -8,27 +8,38 @@ function Traslados() {
 
   const [paso, setPaso] = useState(1);
 
-  const [causaInicial, setCausaInicial] = useState("");
+  const [causaInicial, setCausaInicial] =
+    useState("");
 
-  const [fecha, setFecha] = useState("");
+  const [fecha, setFecha] =
+    useState("");
 
-  const [lote] = useState("REP-260401-1600");
+  const [lote] =
+    useState("REP-260401-1600");
 
-  const [hembras, setHembras] = useState("");
+  const [hembras, setHembras] =
+    useState("");
 
-  const [machos, setMachos] = useState("");
+  const [machos, setMachos] =
+    useState("");
 
-  const [total, setTotal] = useState(0);
+  const [total, setTotal] =
+    useState(0);
 
-  const [causaFinal, setCausaFinal] = useState("");
+  const [causaFinal, setCausaFinal] =
+    useState("");
 
-  const [nuevaCausa, setNuevaCausa] = useState("");
+  const [nuevaCausa, setNuevaCausa] =
+    useState("");
 
-  const [causas, setCausas] = useState([]);
+  const [causas, setCausas] =
+    useState([]);
 
-  const [observaciones, setObservaciones] = useState("");
+  const [observaciones, setObservaciones] =
+    useState("");
 
-  const [mostrarNuevaCausa, setMostrarNuevaCausa] = useState(false);
+  const [mostrarNuevaCausa, setMostrarNuevaCausa] =
+    useState(false);
 
   // =========================
   // FECHA AUTOMÁTICA
@@ -45,16 +56,24 @@ function Traslados() {
   }, []);
 
   // =========================
-  // PASO 2
+  // CAMBIO TIPO TRASLADO
   // =========================
 
-  const irPaso2 = () => {
+  const handleTipoTraslado = (e) => {
 
-    if (!causaInicial) {
-      alert("Seleccione una causa");
+    const value = e.target.value;
+
+    setCausaInicial(value);
+
+    // VOLVER AL ESTADO INICIAL
+    if (value === "") {
+
+      setPaso(1);
+
       return;
     }
 
+    // MOSTRAR PASO 2
     setPaso(2);
   };
 
@@ -65,6 +84,7 @@ function Traslados() {
   useEffect(() => {
 
     const h = parseInt(hembras) || 0;
+
     const m = parseInt(machos) || 0;
 
     setTotal(h + m);
@@ -91,7 +111,27 @@ function Traslados() {
 
     console.log(data);
 
-    alert("Traslado registrado correctamente");
+    alert(
+      "Traslado registrado correctamente"
+    );
+  };
+
+  // =========================
+  // ESTILOS
+  // =========================
+
+  const inputStyle = {
+    width: "100%",
+    padding: "8px",
+    borderRadius: "5px",
+    border: "1px solid #ccc",
+    marginBottom: "15px"
+  };
+
+  const rowStyle = {
+    display: "flex",
+    gap: "10px",
+    marginBottom: "15px"
   };
 
   // =========================
@@ -100,42 +140,59 @@ function Traslados() {
 
   return (
 
-    <div className="form-container">
+    <div
+      className="form-container"
+      style={{
+        maxWidth: "700px",
+        margin: "0 auto",
+        padding: "20px",
+        fontFamily: "Arial"
+      }}
+    >
 
-      <h2>Traslados (venta, mortandad, otros)</h2>
+      <h2>
+        Traslados (venta, mortandad, otros)
+      </h2>
 
       {/* =========================
           PASO 1
       ========================= */}
-      {paso === 1 && (
 
-        <div>
+      <div>
 
-          <label>Causa</label>
+        <label>
+          Tipo de traslado
+        </label>
 
-          <select
-            value={causaInicial}
-            onChange={(e) =>
-              setCausaInicial(e.target.value)
-            }
-          >
+        <select
+          value={causaInicial}
+          onChange={handleTipoTraslado}
+          style={inputStyle}
+        >
 
-            <option value="">Seleccione</option>
+          <option value="">
+            Seleccione
+          </option>
 
-            <option>Mortandad</option>
-            <option>Venta</option>
-            <option>Traslado</option>
-            <option>Otro</option>
+          <option value="Mortandad">
+            Mortandad
+          </option>
 
-          </select>
+          <option value="Venta">
+            Venta
+          </option>
 
-          <button onClick={irPaso2}>
-            Continuar
-          </button>
+          <option value="Traslado">
+            Traslado
+          </option>
 
-        </div>
+          <option value="Otro">
+            Otro
+          </option>
 
-      )}
+        </select>
+
+      </div>
 
       {/* =========================
           PASO 2
@@ -144,61 +201,124 @@ function Traslados() {
 
         <div>
 
-          <label>Fecha</label>
+          {/* FECHA Y LOTE */}
+          <div style={rowStyle}>
 
-          <input
-            type="date"
-            value={fecha}
-            onChange={(e) =>
-              setFecha(e.target.value)
-            }
-          />
+            <div style={{ flex: 1 }}>
 
-          <label># Lote</label>
+              <label>
+                Fecha
+              </label>
 
-          <select value={lote} disabled>
-            <option>{lote}</option>
-          </select>
+              <input
+                type="date"
+                value={fecha}
+                onChange={(e) =>
+                  setFecha(e.target.value)
+                }
+                style={inputStyle}
+              />
 
-          <label>Cantidad Hembras</label>
+            </div>
 
-          <input
-            type="number"
-            value={hembras}
-            onChange={(e) =>
-              setHembras(e.target.value)
-            }
-          />
+            <div style={{ flex: 1 }}>
 
-          <label>Cantidad Machos</label>
+              <label>
+                # Lote
+              </label>
 
-          <input
-            type="number"
-            value={machos}
-            onChange={(e) =>
-              setMachos(e.target.value)
-            }
-          />
+              <select
+                value={lote}
+                disabled
+                style={inputStyle}
+              >
 
-          <label>Cantidad Total</label>
+                <option>
+                  {lote}
+                </option>
+
+              </select>
+
+            </div>
+
+          </div>
+
+          {/* HEMBRAS Y MACHOS */}
+          <div style={rowStyle}>
+
+            <div style={{ flex: 1 }}>
+
+              <label>
+                Cantidad Hembras
+              </label>
+
+              <input
+                type="number"
+                value={hembras}
+                onChange={(e) =>
+                  setHembras(e.target.value)
+                }
+                style={inputStyle}
+              />
+
+            </div>
+
+            <div style={{ flex: 1 }}>
+
+              <label>
+                Cantidad Machos
+              </label>
+
+              <input
+                type="number"
+                value={machos}
+                onChange={(e) =>
+                  setMachos(e.target.value)
+                }
+                style={inputStyle}
+              />
+
+            </div>
+
+          </div>
+
+          {/* TOTAL */}
+          <label>
+            Cantidad Total
+          </label>
 
           <input
             type="number"
             value={total}
             readOnly
+            style={inputStyle}
           />
 
-          <label>Causa</label>
+          {/* CAUSA */}
+          <label>
+            Causa
+          </label>
 
-          {/* SELECT + BOTÓN EN UNA LÍNEA */}
-          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          {/* SELECT + BOTÓN */}
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              alignItems: "center",
+              marginBottom: "15px"
+            }}
+          >
 
             <select
               value={causaFinal}
               onChange={(e) =>
                 setCausaFinal(e.target.value)
               }
-              style={{ flex: 1 }}
+              style={{
+                ...inputStyle,
+                marginBottom: "0",
+                flex: 1
+              }}
             >
 
               <option value="">
@@ -206,9 +326,14 @@ function Traslados() {
               </option>
 
               {causas.map((c, i) => (
-                <option key={i} value={c}>
+
+                <option
+                  key={i}
+                  value={c}
+                >
                   {c}
                 </option>
+
               ))}
 
             </select>
@@ -219,12 +344,13 @@ function Traslados() {
                 setMostrarNuevaCausa(true)
               }
               style={{
-                width: "28px",
-                height: "28px",
-                padding: "0",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
+                width: "35px",
+                height: "35px",
+                borderRadius: "5px",
+                border: "none",
+                backgroundColor: "#1976d2",
+                color: "#fff",
+                cursor: "pointer"
               }}
             >
               +
@@ -235,7 +361,13 @@ function Traslados() {
           {/* NUEVA CAUSA */}
           {mostrarNuevaCausa && (
 
-            <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                marginBottom: "15px"
+              }}
+            >
 
               <input
                 type="text"
@@ -244,14 +376,19 @@ function Traslados() {
                   setNuevaCausa(e.target.value)
                 }
                 placeholder="Nueva causa"
-                style={{ flex: 1 }}
+                style={{
+                  ...inputStyle,
+                  marginBottom: "0",
+                  flex: 1
+                }}
               />
 
               <button
                 type="button"
                 onClick={() => {
 
-                  if (!nuevaCausa.trim()) return;
+                  if (!nuevaCausa.trim())
+                    return;
 
                   const nuevaLista = [
                     ...causas,
@@ -267,24 +404,54 @@ function Traslados() {
                   setMostrarNuevaCausa(false);
 
                 }}
+                style={{
+                  padding: "0 15px",
+                  border: "none",
+                  backgroundColor: "#388e3c",
+                  color: "#fff",
+                  borderRadius: "5px",
+                  cursor: "pointer"
+                }}
               >
-                Guardar nueva causa
+                Guardar
               </button>
 
             </div>
 
           )}
 
-          <label>Observaciones adicionales</label>
+          {/* OBSERVACIONES */}
+          <label>
+            Observaciones adicionales
+          </label>
 
           <textarea
             value={observaciones}
             onChange={(e) =>
               setObservaciones(e.target.value)
             }
+            style={{
+              width: "100%",
+              minHeight: "100px",
+              padding: "10px",
+              borderRadius: "5px",
+              border: "1px solid #ccc",
+              marginBottom: "20px"
+            }}
           />
 
-          <button onClick={guardar}>
+          {/* BOTÓN */}
+          <button
+            onClick={guardar}
+            style={{
+              padding: "10px 20px",
+              border: "none",
+              backgroundColor: "#1976d2",
+              color: "#fff",
+              borderRadius: "5px",
+              cursor: "pointer"
+            }}
+          >
             Guardar Traslado
           </button>
 
