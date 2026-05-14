@@ -117,7 +117,7 @@ function Bodegas() {
         {/* ID BODEGA */}
         <div style={{ flex: 1 }}>
 
-          <label>ID de la Bodega</label>
+          <label>Id Bodega</label>
 
           <input
             type="text"
@@ -126,18 +126,6 @@ function Bodegas() {
             placeholder="BA, BH, BGR, BI"
             style={inputStyle}
           />
-
-          <small>
-
-            BA = Bodega de Alimento <br />
-
-            BH = Bodega de Huevo <br />
-
-            BGR = Bodega de Granja de Reproducción <br />
-
-            BI = Bodega de Incubadora
-
-          </small>
 
         </div>
 
