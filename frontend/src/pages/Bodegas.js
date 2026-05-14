@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 function Bodegas() {
 
   // =========================
@@ -59,81 +60,142 @@ function Bodegas() {
   };
 
   // =========================
+  // ESTILOS
+  // =========================
+
+  const inputStyle = {
+    width: "100%",
+    padding: "8px",
+    borderRadius: "5px",
+    border: "1px solid #ccc"
+  };
+
+  const rowStyle = {
+    display: "flex",
+    gap: "10px",
+    marginBottom: "15px",
+    alignItems: "flex-end"
+  };
+
+  // =========================
   // RENDER
   // =========================
 
   return (
 
-    <form onSubmit={handleSubmit}>
+    <form
+      onSubmit={handleSubmit}
+      style={{
+        maxWidth: "900px",
+        margin: "0 auto",
+        padding: "20px",
+        fontFamily: "Arial"
+      }}
+    >
 
       <h2>Registro de Bodega</h2>
 
-      {/* FECHA */}
-      <label>Fecha</label>
+      {/* FILA 1 */}
+      <div style={rowStyle}>
 
-      <input
-        type="date"
-        value={fecha}
-        onChange={(e) =>
-          setFecha(e.target.value)
-        }
-      />
+        {/* FECHA */}
+        <div style={{ flex: 1 }}>
 
-      {/* ID BODEGA */}
-      <label>ID de la Bodega</label>
+          <label>Fecha</label>
 
-      <input
-        type="text"
-        value={idBodega}
-        onChange={handleIdBodega}
-        placeholder="BA, BH, BGR, BI"
-      />
+          <input
+            type="date"
+            value={fecha}
+            onChange={(e) =>
+              setFecha(e.target.value)
+            }
+            style={inputStyle}
+          />
 
-      <small>
+        </div>
 
-        BA = Bodega de Alimento <br />
+        {/* ID BODEGA */}
+        <div style={{ flex: 1 }}>
 
-        BH = Bodega de Huevo <br />
+          <label>ID de la Bodega</label>
 
-        BGR = Bodega de Granja de Reproducción <br />
+          <input
+            type="text"
+            value={idBodega}
+            onChange={handleIdBodega}
+            placeholder="BA, BH, BGR, BI"
+            style={inputStyle}
+          />
 
-        BI = Bodega de Incubadora <br />
+          <small>
 
-      </small>
+            BA = Bodega de Alimento <br />
+
+            BH = Bodega de Huevo <br />
+
+            BGR = Bodega de Granja de Reproducción <br />
+
+            BI = Bodega de Incubadora
+
+          </small>
+
+        </div>
+
+        {/* ESTADO */}
+        <div style={{ flex: 1 }}>
+
+          <label>Estado</label>
+
+          <select
+            value={estado}
+            onChange={(e) =>
+              setEstado(e.target.value)
+            }
+            style={inputStyle}
+          >
+
+            <option value="Activo">
+              Activo
+            </option>
+
+            <option value="Inactivo">
+              Inactivo
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
 
       {/* NOMBRE */}
-      <label>Nombre de la Bodega</label>
+      <div style={{ marginBottom: "20px" }}>
 
-      <input
-        type="text"
-        value={nombreBodega}
-        onChange={(e) =>
-          setNombreBodega(e.target.value)
-        }
-      />
+        <label>Nombre de la Bodega</label>
 
-      {/* ESTADO */}
-      <label>Estado</label>
+        <input
+          type="text"
+          value={nombreBodega}
+          onChange={(e) =>
+            setNombreBodega(e.target.value)
+          }
+          style={inputStyle}
+        />
 
-      <select
-        value={estado}
-        onChange={(e) =>
-          setEstado(e.target.value)
-        }
-      >
-
-        <option value="Activo">
-          Activo
-        </option>
-
-        <option value="Inactivo">
-          Inactivo
-        </option>
-
-      </select>
+      </div>
 
       {/* BOTÓN */}
-      <button type="submit">
+      <button
+        type="submit"
+        style={{
+          padding: "10px 20px",
+          backgroundColor: "#1976d2",
+          color: "#fff",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer"
+        }}
+      >
         Guardar
       </button>
 

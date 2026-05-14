@@ -1,309 +1,362 @@
-import { useEffect, useState } from "react";
+  import { useEffect, useState } from "react";
 
-function Lotes() {
+  function Lotes() {
 
-  // =========================
-  // STATES
-  // =========================
+    // =========================
+    // STATES
+    // =========================
 
-  const [lote, setLote] = useState("");
-  const [fecha, setFecha] = useState("");
-  const [variedades, setVariedades] = useState([]);
-  const [galeras, setGaleras] = useState([]);
+    const [lote, setLote] = useState("");
 
-  const [nuevaVariedad, setNuevaVariedad] = useState("");
-  const [nuevaGalera, setNuevaGalera] = useState("");
+    const [fecha, setFecha] = useState("");
 
-  const [variedad, setVariedad] = useState("");
-  const [galera, setGalera] = useState("");
+    const [variedades, setVariedades] = useState([]);
 
-  const [hembras, setHembras] = useState(0);
-  const [machos, setMachos] = useState(0);
+    const [galeras, setGaleras] = useState([]);
 
-  const [cantidadImportada, setCantidadImportada] = useState(0);
+    const [nuevaVariedad, setNuevaVariedad] = useState("");
 
-  const [costo, setCosto] = useState(0);
-  const [costoUnitario, setCostoUnitario] = useState(0);
+    const [nuevaGalera, setNuevaGalera] = useState("");
 
-  const [estado, setEstado] = useState("Activo");
+    const [variedad, setVariedad] = useState("");
 
-  // =========================
-  // UI STATES (TOGGLE INPUTS)
-  // =========================
+    const [galera, setGalera] = useState("");
 
-  const [showNuevaVariedad, setShowNuevaVariedad] = useState(false);
-  const [showNuevaGalera, setShowNuevaGalera] = useState(false);
+    const [hembras, setHembras] = useState(0);
 
-  // =========================
-  // GENERAR LOTE
-  // =========================
+    const [machos, setMachos] = useState(0);
 
-  const generarLote = () => {
-    const now = new Date();
+    const [cantidadImportada, setCantidadImportada] = useState(0);
 
-    const year = now.getFullYear().toString().slice(-2);
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    const hours = String(now.getHours()).padStart(2, "0");
-    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const [costo, setCosto] = useState(0);
 
-    return `REP-${year}${month}${day}-${hours}${minutes}`;
-  };
+    const [costoUnitario, setCostoUnitario] = useState(0);
 
-  // =========================
-  // FECHA ACTUAL
-  // =========================
+    const [estado, setEstado] = useState("Activo");
 
-  const setFechaActual = () => {
-    const today = new Date().toISOString().split("T")[0];
-    setFecha(today);
-  };
+    // =========================
+    // GENERAR LOTE
+    // =========================
 
-  // =========================
-  // INIT
-  // =========================
+    const generarLote = () => {
 
-  useEffect(() => {
-    setLote(generarLote());
-    setFechaActual();
-  }, []);
+      const now = new Date();
 
-  // =========================
-  // AGREGAR OPCIONES
-  // =========================
+      const year = now.getFullYear().toString().slice(-2);
 
-  const guardarVariedad = () => {
-    if (!nuevaVariedad.trim()) return;
+      const month = String(now.getMonth() + 1).padStart(2, "0");
 
-    setVariedades([...variedades, nuevaVariedad]);
-    setVariedad(nuevaVariedad);
+      const day = String(now.getDate()).padStart(2, "0");
 
-    setNuevaVariedad("");
-    setShowNuevaVariedad(false);
-  };
+      const hours = String(now.getHours()).padStart(2, "0");
 
-  const guardarGalera = () => {
-    if (!nuevaGalera.trim()) return;
+      const minutes = String(now.getMinutes()).padStart(2, "0");
 
-    setGaleras([...galeras, nuevaGalera]);
-    setGalera(nuevaGalera);
-
-    setNuevaGalera("");
-    setShowNuevaGalera(false);
-  };
-
-  // =========================
-  // TOTALES
-  // =========================
-
-  useEffect(() => {
-    const total = Number(hembras) + Number(machos);
-
-    setCantidadImportada(total);
-
-    if (total > 0) {
-      setCostoUnitario((Number(costo) / total).toFixed(2));
-    } else {
-      setCostoUnitario(0);
-    }
-  }, [hembras, machos, costo]);
-
-  // =========================
-  // SUBMIT
-  // =========================
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    const data = {
-      lote,
-      fecha,
-      estado,
-      variedad,
-      galera,
-      hembras,
-      machos,
-      cantidadImportada,
-      costo,
-      costoUnitario
+      return `REP-${year}${month}${day}-${hours}${minutes}`;
     };
 
-    console.log(data);
-    alert("Formulario guardado correctamente");
-  };
+    // =========================
+    // FECHA ACTUAL
+    // =========================
 
-  // =========================
-  // RENDER
-  // =========================
+    const setFechaActual = () => {
 
-  return (
-    <form onSubmit={handleSubmit}>
+      const today = new Date()
+        .toISOString()
+        .split("T")[0];
 
-      <h2>Registro de Lotes</h2>
+      setFecha(today);
+    };
 
-      {/* =========================
-          LINEA 1: FECHA + LOTE + ESTADO
-      ========================= */}
-      <div className="row">
+    // =========================
+    // AGREGAR OPCIÓN
+    // =========================
 
-        <div>
-          <label>Fecha</label>
-          <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
-        </div>
+    const agregarVariedad = () => {
 
-        <div>
-          <label># Lote</label>
-          <input type="text" value={lote} readOnly />
-        </div>
+      if (nuevaVariedad.trim() !== "") {
 
-        <div>
-          <label>Estado</label>
-          <select value={estado} onChange={(e) => setEstado(e.target.value)}>
-            <option value="Activo">Activo</option>
-            <option value="Inactivo">Inactivo</option>
-          </select>
-        </div>
+        setVariedades([
+          ...variedades,
+          nuevaVariedad
+        ]);
 
-      </div>
+        setNuevaVariedad("");
+      }
+    };
 
-      {/* =========================
-          LINEA 2: VARIEDAD + GALERA
-      ========================= */}
-      <div className="row">
+    const agregarGalera = () => {
+
+      if (nuevaGalera.trim() !== "") {
+
+        setGaleras([
+          ...galeras,
+          nuevaGalera
+        ]);
+
+        setNuevaGalera("");
+      }
+    };
+
+    // =========================
+    // CALCULAR TOTALES
+    // =========================
+
+    useEffect(() => {
+
+      const total =
+        Number(hembras) + Number(machos);
+
+      setCantidadImportada(total);
+
+      if (total > 0) {
+
+        setCostoUnitario(
+          (Number(costo) / total).toFixed(2)
+        );
+
+      } else {
+
+        setCostoUnitario(0);
+      }
+
+    }, [hembras, machos, costo]);
+
+    // =========================
+    // INIT
+    // =========================
+
+    useEffect(() => {
+
+      setLote(generarLote());
+
+      setFechaActual();
+
+    }, []);
+
+    // =========================
+    // SUBMIT
+    // =========================
+
+    const handleSubmit = (e) => {
+
+      e.preventDefault();
+
+      const data = {
+        lote,
+        fecha,
+        variedad,
+        galera,
+        hembras,
+        machos,
+        cantidadImportada,
+        costo,
+        costoUnitario,
+        estado
+      };
+
+      console.log(data);
+
+      alert("Formulario guardado correctamente");
+    };
+
+    // =========================
+    // RENDER
+    // =========================
+
+    return (
+
+      <form onSubmit={handleSubmit}>
+
+        <h2>---Registro de Lotes---</h2>
+
+        {/* LOTE */}
+        <label># Lote</label>
+
+        <input
+          type="text"
+          value={lote}
+          readOnly
+          className="full"
+        />
+
+        {/* FECHA */}
+        <label>Fecha</label>
+
+        <input
+          type="date"
+          value={fecha}
+          onChange={(e) => setFecha(e.target.value)}
+          className="full"
+        />
 
         {/* VARIEDAD */}
-        <div style={{ flex: 1 }}>
-          <label>Variedad</label>
+        <label>Variedad</label>
 
-          <div className="row">
+        <div className="row">
 
-            {!showNuevaVariedad ? (
-              <>
-                <select
-                  value={variedad}
-                  onChange={(e) => setVariedad(e.target.value)}
-                >
-                  <option value="">Seleccione</option>
-                  {variedades.map((v, i) => (
-                    <option key={i} value={v}>{v}</option>
-                  ))}
-                </select>
+          <select
+            value={variedad}
+            onChange={(e) => setVariedad(e.target.value)}
+          >
 
-                <button
-                  type="button"
-                  style={{ width: "5ch" }}
-                  onClick={() => setShowNuevaVariedad(true)}
-                >
-                  +
-                </button>
-              </>
-            ) : (
-              <>
-                <input
-                  type="text"
-                  value={nuevaVariedad}
-                  onChange={(e) => setNuevaVariedad(e.target.value)}
-                  placeholder="Nueva variedad"
-                />
+            <option value="">
+              Seleccione
+            </option>
 
-                <button type="button" onClick={guardarVariedad}>
-                  Guardar
-                </button>
-              </>
-            )}
+            {variedades.map((v, index) => (
 
-          </div>
+              <option key={index} value={v}>
+                {v}
+              </option>
+
+            ))}
+
+          </select>
+
+          <input
+            type="text"
+            placeholder="Nueva variedad"
+            value={nuevaVariedad}
+            onChange={(e) =>
+              setNuevaVariedad(e.target.value)
+            }
+          />
+
+          <button
+            type="button"
+            onClick={agregarVariedad}
+          >
+            +
+          </button>
+
         </div>
 
         {/* GALERA */}
-        <div style={{ flex: 1 }}>
-          <label>Galera</label>
+        <label>Galera</label>
 
-          <div className="row">
+        <div className="row">
 
-            {!showNuevaGalera ? (
-              <>
-                <select
-                  value={galera}
-                  onChange={(e) => setGalera(e.target.value)}
-                >
-                  <option value="">Seleccione</option>
-                  {galeras.map((g, i) => (
-                    <option key={i} value={g}>{g}</option>
-                  ))}
-                </select>
+          <select
+            value={galera}
+            onChange={(e) => setGalera(e.target.value)}
+          >
 
-                <button
-                  type="button"
-                  style={{ width: "5ch" }}
-                  onClick={() => setShowNuevaGalera(true)}
-                >
-                  +
-                </button>
-              </>
-            ) : (
-              <>
-                <input
-                  type="text"
-                  value={nuevaGalera}
-                  onChange={(e) => setNuevaGalera(e.target.value)}
-                  placeholder="Nueva galera"
-                />
+            <option value="">
+              Seleccione
+            </option>
 
-                <button type="button" onClick={guardarGalera}>
-                  Guardar
-                </button>
-              </>
-            )}
+            {galeras.map((g, index) => (
 
-          </div>
+              <option key={index} value={g}>
+                {g}
+              </option>
+
+            ))}
+
+          </select>
+
+          <input
+            type="text"
+            placeholder="Nueva galera"
+            value={nuevaGalera}
+            onChange={(e) =>
+              setNuevaGalera(e.target.value)
+            }
+          />
+
+          <button
+            type="button"
+            onClick={agregarGalera}
+          >
+            +
+          </button>
+
         </div>
 
-      </div>
+        {/* HEMBRAS */}
+        <label>Cantidad Hembras</label>
 
-      {/* =========================
-          LINEA 3: HEMBRAS + MACHOS + TOTAL
-      ========================= */}
-      <div className="row">
+        <input
+          type="number"
+          value={hembras}
+          onChange={(e) =>
+            setHembras(e.target.value)
+          }
+          className="full"
+        />
 
-        <div>
-          <label>Hembras</label>
-          <input type="number" value={hembras} onChange={(e) => setHembras(e.target.value)} />
-        </div>
+        {/* MACHOS */}
+        <label>Cantidad Machos</label>
 
-        <div>
-          <label>Machos</label>
-          <input type="number" value={machos} onChange={(e) => setMachos(e.target.value)} />
-        </div>
+        <input
+          type="number"
+          value={machos}
+          onChange={(e) =>
+            setMachos(e.target.value)
+          }
+          className="full"
+        />
 
-        <div>
-          <label>Total</label>
-          <input type="number" value={cantidadImportada} readOnly />
-        </div>
+        {/* TOTAL */}
+        <label>Cantidad Importada</label>
 
-      </div>
+        <input
+          type="number"
+          value={cantidadImportada}
+          readOnly
+          className="full"
+        />
 
-      {/* =========================
-          LINEA 4: COSTOS
-      ========================= */}
-      <div className="row">
+        {/* COSTO */}
+        <label>Costo (Q)</label>
 
-        <div>
-          <label>Costo (Q)</label>
-          <input type="number" value={costo} onChange={(e) => setCosto(e.target.value)} />
-        </div>
+        <input
+          type="number"
+          value={costo}
+          onChange={(e) =>
+            setCosto(e.target.value)
+          }
+          className="full"
+        />
 
-        <div>
-          <label>Costo Unitario</label>
-          <input type="number" value={costoUnitario} readOnly />
-        </div>
+        {/* COSTO UNITARIO */}
+        <label>Costo Unitario</label>
 
-      </div>
+        <input
+          type="number"
+          value={costoUnitario}
+          readOnly
+          className="full"
+        />
 
-      <button type="submit">Guardar</button>
+        {/* ESTADO */}
+        <label>Estado</label>
 
-    </form>
-  );
-}
+        <select
+          value={estado}
+          onChange={(e) =>
+            setEstado(e.target.value)
+          }
+          className="full"
+        >
+          <option value="Activo">
+            Activo
+          </option>
 
-export default Lotes;
+          <option value="Inactivo">
+            Inactivo
+          </option>
+
+        </select>
+
+        {/* BOTÓN */}
+        <button type="submit" className="full">
+          Guardar
+        </button>
+
+      </form>
+    );
+  }
+
+  export default Lotes;

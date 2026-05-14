@@ -56,7 +56,7 @@ function Inventarios() {
         setMostrarInsumos(true);
 
         setHelpId(
-          "Ej: VC-NOM-COR, MD-NOM-COR, AD-NOM-COR"
+          ""
         );
 
       } else {
@@ -64,7 +64,7 @@ function Inventarios() {
         setMostrarInsumos(false);
 
         setHelpId(
-          "Ej: PT-HU-MED, PT-HU-GRD"
+          ""
         );
       }
 
@@ -163,7 +163,7 @@ function Inventarios() {
       }}
     >
 
-      <h2>Registro de Producto</h2>
+      <h2>Registro de Productos (Inventario)</h2>
 
       {/* TIPO INVENTARIO */}
       <div style={{ marginBottom: "20px" }}>
@@ -209,7 +209,7 @@ function Inventarios() {
                 type="text"
                 value={idProducto}
                 onChange={handleIdProducto}
-                placeholder="TT-TT-TTT"
+                placeholder=""
                 style={inputStyle}
               />
 
