@@ -8,7 +8,7 @@ import Sidebar from "./components/Sidebar";
 import Lotes from "./pages/Lotes";
 import Bodegas from "./pages/Bodegas";
 import Localidades from "./pages/Localidades";
-import Inventarios from "./pages/Inventarios";
+import Productos from "./pages/Productos";
 import Clientes from "./pages/Clientes";
 
 import ControlAlimento from "./pages/ControlAlimento";
@@ -36,8 +36,8 @@ function App() {
 	    case "localidades":
         return <Localidades />;
 
-	    case "inventarios":
-        return <Inventarios />;
+	    case "productos":
+        return <Productos />;
         
 	    case "clientes":
         return <Clientes />;

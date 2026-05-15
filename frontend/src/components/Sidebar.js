@@ -7,9 +7,9 @@ function Sidebar({ setVista }) {
 
       <ul className="menu">
 
-        {/* ADMINISTRATIVO */}
+        {/* CONFIGURACION */}
         <li className="menu-item">
-          Administrativo
+          Configuración del Sistema
           <ul>
             <li onClick={() => setVista("lotes")}>
               Lotes
@@ -20,11 +20,14 @@ function Sidebar({ setVista }) {
       			<li onClick={() => setVista("localidades")}>
               Localidades
             </li>
-      			<li onClick={() => setVista("inventarios")}>
-              Inventarios
+      			<li onClick={() => setVista("productos")}>
+              Productos
             </li>
       			<li onClick={() => setVista("clientes")}>
               Clientes
+            </li>
+            <li>
+              Usuarios
             </li>
           </ul>
         </li>

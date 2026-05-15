@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-function Inventarios() {
+function Productos() {
 
   // =========================
   // STATES
@@ -440,4 +440,4 @@ function Inventarios() {
   );
 }
 
-export default Inventarios;
+export default Productos;

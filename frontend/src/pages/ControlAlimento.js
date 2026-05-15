@@ -88,7 +88,13 @@ function ControlAlimento() {
 
       movimiento,
       fecha,
-      lote,
+
+      // SOLO ENVÍA LOTE SI ES SALIDA
+      lote:
+        movimiento === "salida"
+          ? lote
+          : "",
+
       tipoAlimento,
       cantidadAlimento,
       aditivo,
@@ -198,28 +204,32 @@ function ControlAlimento() {
 
             </div>
 
-            {/* LOTE */}
-            <div style={{ flex: 1 }}>
+            {/* LOTE SOLO PARA SALIDA */}
+            {movimiento === "salida" && (
 
-              <label>
-                # Lote
-              </label>
+              <div style={{ flex: 1 }}>
 
-              <select
-                value={lote}
-                onChange={(e) =>
-                  setLote(e.target.value)
-                }
-                style={inputStyle}
-              >
+                <label>
+                  # Lote
+                </label>
 
-                <option value="REP-260401-1600">
-                  REP-260401-1600
-                </option>
+                <select
+                  value={lote}
+                  onChange={(e) =>
+                    setLote(e.target.value)
+                  }
+                  style={inputStyle}
+                >
 
-              </select>
+                  <option value="REP-260401-1600">
+                    REP-260401-1600
+                  </option>
 
-            </div>
+                </select>
+
+              </div>
+
+            )}
 
           </div>
 
