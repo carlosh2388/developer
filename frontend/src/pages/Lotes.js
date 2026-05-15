@@ -10,7 +10,8 @@ function Lotes() {
 
   const [fecha, setFecha] = useState("");
 
-  const [Linea, setLinea] = useState([
+  // LISTAS
+  const [lineas, setLineas] = useState([
     "Hy-Line Brown (marrón)",
     "SL / 30 Super Nick (blanco)"
   ]);
@@ -20,26 +21,23 @@ function Lotes() {
     "Galera 2"
   ]);
 
-  const [nuevaLinea, setNuevaLinea] = useState("");
+  // SELECCIÓN
+  const [linea, setLinea] = useState("");
+  const [galera, setGalera] = useState("");
 
+  // NUEVOS
+  const [nuevaLinea, setNuevaLinea] = useState("");
   const [nuevaGalera, setNuevaGalera] = useState("");
 
   const [mostrarNuevaLinea, setMostrarNuevaLinea] = useState(false);
-
   const [mostrarNuevaGalera, setMostrarNuevaGalera] = useState(false);
 
-  const [Linea, setLinea] = useState("");
-
-  const [galera, setGalera] = useState("");
-
+  // PRODUCCIÓN
   const [hembras, setHembras] = useState(0);
-
   const [machos, setMachos] = useState(0);
-
   const [cantidadImportada, setCantidadImportada] = useState(0);
 
   const [costo, setCosto] = useState(0);
-
   const [costoUnitario, setCostoUnitario] = useState(0);
 
   const [estado, setEstado] = useState("Activo");
@@ -53,13 +51,9 @@ function Lotes() {
     const now = new Date();
 
     const year = now.getFullYear().toString().slice(-2);
-
     const month = String(now.getMonth() + 1).padStart(2, "0");
-
     const day = String(now.getDate()).padStart(2, "0");
-
     const hours = String(now.getHours()).padStart(2, "0");
-
     const minutes = String(now.getMinutes()).padStart(2, "0");
 
     return `REP-${year}${month}${day}-${hours}${minutes}`;
@@ -79,26 +73,20 @@ function Lotes() {
   };
 
   // =========================
-  // AGREGAR LINEA
+  // AGREGAR LÍNEA
   // =========================
 
   const agregarLinea = () => {
 
-    if (nuevaLinea.trim() !== "") {
+    if (!nuevaLinea.trim()) return;
 
-      const nueva = nuevaLinea.trim();
+    const nueva = nuevaLinea.trim();
 
-      setLinea([
-        ...Linea,
-        nueva
-      ]);
+    setLineas([...lineas, nueva]);
+    setLinea(nueva);
 
-      setLinea(nueva);
-
-      setNuevaLinea("");
-
-      setMostrarNuevaLinea(false);
-    }
+    setNuevaLinea("");
+    setMostrarNuevaLinea(false);
   };
 
   // =========================
@@ -107,25 +95,19 @@ function Lotes() {
 
   const agregarGalera = () => {
 
-    if (nuevaGalera.trim() !== "") {
+    if (!nuevaGalera.trim()) return;
 
-      const nueva = nuevaGalera.trim();
+    const nueva = nuevaGalera.trim();
 
-      setGaleras([
-        ...galeras,
-        nueva
-      ]);
+    setGaleras([...galeras, nueva]);
+    setGalera(nueva);
 
-      setGalera(nueva);
-
-      setNuevaGalera("");
-
-      setMostrarNuevaGalera(false);
-    }
+    setNuevaGalera("");
+    setMostrarNuevaGalera(false);
   };
 
   // =========================
-  // CALCULAR TOTALES
+  // CÁLCULOS
   // =========================
 
   useEffect(() => {
@@ -135,10 +117,10 @@ function Lotes() {
 
     setCantidadImportada(total);
 
-    if (total > 0) {
+    if (total > 0 && Number(costo) > 0) {
 
       setCostoUnitario(
-        (Number(costo) / total).toFixed(2)
+        Number(costo) / total
       );
 
     } else {
@@ -155,7 +137,6 @@ function Lotes() {
   useEffect(() => {
 
     setLote(generarLote());
-
     setFechaActual();
 
   }, []);
@@ -169,6 +150,7 @@ function Lotes() {
     e.preventDefault();
 
     const data = {
+
       lote,
       fecha,
       linea,
@@ -187,7 +169,7 @@ function Lotes() {
   };
 
   // =========================
-  // STYLES
+  // ESTILOS
   // =========================
 
   const styles = {
@@ -256,10 +238,7 @@ function Lotes() {
 
   return (
 
-    <form
-      onSubmit={handleSubmit}
-      style={styles.form}
-    >
+    <form onSubmit={handleSubmit} style={styles.form}>
 
       <h2>Registro de Lotes</h2>
 
@@ -267,244 +246,120 @@ function Lotes() {
       <div style={styles.row}>
 
         <div style={styles.field}>
-
           <label># Lote</label>
-
-          <input
-            type="text"
-            value={lote}
-            readOnly
-            style={styles.input}
-          />
-
+          <input value={lote} readOnly style={styles.input} />
         </div>
 
         <div style={styles.field}>
-
           <label>Fecha</label>
-
-          <input
-            type="date"
-            value={fecha}
-            onChange={(e) =>
-              setFecha(e.target.value)
-            }
-            style={styles.input}
-          />
-
+          <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} style={styles.input} />
         </div>
 
         <div style={styles.field}>
-
           <label>Estado</label>
-
-          <select
-            value={estado}
-            onChange={(e) =>
-              setEstado(e.target.value)
-            }
-            style={styles.input}
-          >
-
-            <option value="Activo">
-              Activo
-            </option>
-
-            <option value="Inactivo">
-              Inactivo
-            </option>
-
+          <select value={estado} onChange={(e) => setEstado(e.target.value)} style={styles.input}>
+            <option>Activo</option>
+            <option>Inactivo</option>
           </select>
-
         </div>
 
       </div>
 
-      {/* LINEA Y GALERA */}
+      {/* LÍNEA Y GALERA */}
       <div style={styles.row}>
 
-        {/* LINEA */}
+        {/* LÍNEA */}
         <div style={styles.field}>
-
-          <label>Linea</label>
+          <label>Línea</label>
 
           <div style={styles.row}>
-
             <select
               value={linea}
-              onChange={(e) =>
-                setLinea(e.target.value)
-              }
+              onChange={(e) => setLinea(e.target.value)}
               style={styles.input}
             >
-
-              <option value="">
-                Seleccione
-              </option>
-
-              {Linea.map((v, index) => (
-
-                <option
-                  key={index}
-                  value={v}
-                >
-                  {v}
-                </option>
-
+              <option value="">Seleccione</option>
+              {lineas.map((v, i) => (
+                <option key={i} value={v}>{v}</option>
               ))}
-
             </select>
 
             {mostrarNuevaLinea && (
-
               <input
-                type="text"
-                placeholder="Nueva línea"
                 value={nuevaLinea}
-                onChange={(e) =>
-                  setNuevaLinea(e.target.value)
-                }
+                onChange={(e) => setNuevaLinea(e.target.value)}
                 style={styles.input}
+                placeholder="Nueva línea"
               />
-
             )}
 
             <button
               type="button"
-              onClick={() => {
-
-                if (mostrarNuevaLinea) {
-
-                  agregarLinea();
-
-                } else {
-
-                  setMostrarNuevaLinea(true);
-                }
-              }}
+              onClick={() =>
+                mostrarNuevaLinea ? agregarLinea() : setMostrarNuevaLinea(true)
+              }
               style={styles.addButton}
             >
               +
             </button>
-
           </div>
-
         </div>
 
         {/* GALERA */}
         <div style={styles.field}>
-
           <label>Galera</label>
 
           <div style={styles.row}>
-
             <select
               value={galera}
-              onChange={(e) =>
-                setGalera(e.target.value)
-              }
+              onChange={(e) => setGalera(e.target.value)}
               style={styles.input}
             >
-
-              <option value="">
-                Seleccione
-              </option>
-
-              {galeras.map((g, index) => (
-
-                <option
-                  key={index}
-                  value={g}
-                >
-                  {g}
-                </option>
-
+              <option value="">Seleccione</option>
+              {galeras.map((g, i) => (
+                <option key={i} value={g}>{g}</option>
               ))}
-
             </select>
 
             {mostrarNuevaGalera && (
-
               <input
-                type="text"
-                placeholder="Nueva galera"
                 value={nuevaGalera}
-                onChange={(e) =>
-                  setNuevaGalera(e.target.value)
-                }
+                onChange={(e) => setNuevaGalera(e.target.value)}
                 style={styles.input}
+                placeholder="Nueva galera"
               />
-
             )}
 
             <button
               type="button"
-              onClick={() => {
-
-                if (mostrarNuevaGalera) {
-
-                  agregarGalera();
-
-                } else {
-
-                  setMostrarNuevaGalera(true);
-                }
-              }}
+              onClick={() =>
+                mostrarNuevaGalera ? agregarGalera() : setMostrarNuevaGalera(true)
+              }
               style={styles.addButton}
             >
               +
             </button>
-
           </div>
-
         </div>
 
       </div>
 
-      {/* HEMBRAS - MACHOS - TOTAL */}
+      {/* HEMBRAS MACHOS */}
       <div style={styles.row}>
 
         <div style={styles.field}>
-
           <label>Cantidad Hembras</label>
-
-          <input
-            type="number"
-            value={hembras}
-            onChange={(e) =>
-              setHembras(e.target.value)
-            }
-            style={styles.input}
-          />
-
+          <input type="number" value={hembras} onChange={(e) => setHembras(e.target.value)} style={styles.input} />
         </div>
 
         <div style={styles.field}>
-
           <label>Cantidad Machos</label>
-
-          <input
-            type="number"
-            value={machos}
-            onChange={(e) =>
-              setMachos(e.target.value)
-            }
-            style={styles.input}
-          />
-
+          <input type="number" value={machos} onChange={(e) => setMachos(e.target.value)} style={styles.input} />
         </div>
 
         <div style={styles.field}>
-
-          <label>Cantidad Importada</label>
-
-          <input
-            type="number"
-            value={cantidadImportada}
-            readOnly
-            style={styles.input}
-          />
-
+          <label>Total Importada</label>
+          <input value={cantidadImportada} readOnly style={styles.input} />
         </div>
 
       </div>
@@ -513,40 +368,18 @@ function Lotes() {
       <div style={styles.row}>
 
         <div style={styles.field}>
-
-          <label>Costo Lote</label>
-
-          <input
-            type="number"
-            value={costo}
-            onChange={(e) =>
-              setCosto(e.target.value)
-            }
-            style={styles.input}
-          />
-
+          <label>Costo</label>
+          <input type="number" value={costo} onChange={(e) => setCosto(e.target.value)} style={styles.input} />
         </div>
 
         <div style={styles.field}>
-
           <label>Costo Unitario</label>
-
-          <input
-            type="number"
-            value={costoUnitario}
-            readOnly
-            style={styles.input}
-          />
-
+          <input value={costoUnitario} readOnly style={styles.input} />
         </div>
 
       </div>
 
-      {/* BOTÓN */}
-      <button
-        type="submit"
-        style={styles.button}
-      >
+      <button type="submit" style={styles.button}>
         Guardar
       </button>
 
