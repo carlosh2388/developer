@@ -378,7 +378,8 @@ function EgresoHuevos() {
     height: "28px",
     padding: "0",
     fontSize: "16px",
-    lineHeight: "1"
+    lineHeight: "1",
+    cursor: "pointer"
   };
 
   // =========================
@@ -398,46 +399,35 @@ function EgresoHuevos() {
     return (
 
       <div style={{
-        marginBottom: "20px"
+        marginBottom: "12px"
       }}>
 
         {/* HEADER */}
 
         <div style={{
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent: "flex-start",
           alignItems: "center",
+          gap: "20px",
           background: "#f5f5f5",
           padding: "8px 10px",
           borderRadius: "6px"
         }}>
 
-          {/* IZQUIERDA */}
-
           <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "15px"
+            width: "150px",
+            textTransform: "capitalize",
+            fontSize: "18px"
           }}>
-
-            <h3 style={{
-              margin: 0,
-              fontWeight: "400",
-              textTransform: "capitalize",
-              fontSize: "18px"
-            }}>
-              {grupo}
-            </h3>
-
-            <div style={{
-              fontWeight: "bold"
-            }}>
-              Total: {total}
-            </div>
-
+            {grupo}
           </div>
 
-          {/* DERECHA */}
+          <div style={{
+            width: "120px",
+            fontWeight: "bold"
+          }}>
+            Total: {total}
+          </div>
 
           <button
             type="button"
@@ -463,7 +453,10 @@ function EgresoHuevos() {
         {lote.open[grupo] && (
 
           <div style={{
-            marginTop: "12px"
+            marginTop: "12px",
+            padding: "10px",
+            border: "1px solid #eee",
+            borderRadius: "6px"
           }}>
 
             <div style={{
@@ -1017,14 +1010,21 @@ function EgresoHuevos() {
               display: "grid",
 
               gridTemplateColumns:
-                "1fr auto auto",
+                "220px repeat(5, 120px) auto auto",
 
-              gap: "10px",
+              gap: "15px",
 
               alignItems: "center",
 
-              marginBottom: "20px"
+              marginBottom: "20px",
+
+              borderBottom:
+                "1px solid #ddd",
+
+              paddingBottom: "15px"
             }}>
+
+              {/* LOTE */}
 
               <div>
 
@@ -1043,7 +1043,122 @@ function EgresoHuevos() {
 
               </div>
 
-              {/* BOTÓN EXPANDIR */}
+              {/* INCUBABLE */}
+
+              <div style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center"
+              }}>
+
+                <span>
+                  incubable
+                </span>
+
+                <strong>
+                  Total: {
+                    calcularTotal(
+                      loteItem,
+                      "incubable"
+                    )
+                  }
+                </strong>
+
+              </div>
+
+              {/* COMERCIAL */}
+
+              <div style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center"
+              }}>
+
+                <span>
+                  comercial
+                </span>
+
+                <strong>
+                  Total: {
+                    calcularTotal(
+                      loteItem,
+                      "comercial"
+                    )
+                  }
+                </strong>
+
+              </div>
+
+              {/* SUCIO */}
+
+              <div style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center"
+              }}>
+
+                <span>
+                  sucio
+                </span>
+
+                <strong>
+                  Total: {
+                    calcularTotal(
+                      loteItem,
+                      "sucio"
+                    )
+                  }
+                </strong>
+
+              </div>
+
+              {/* QUEBRADO */}
+
+              <div style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center"
+              }}>
+
+                <span>
+                  quebrado
+                </span>
+
+                <strong>
+                  Total: {
+                    calcularTotal(
+                      loteItem,
+                      "quebrado"
+                    )
+                  }
+                </strong>
+
+              </div>
+
+              {/* OTROS */}
+
+              <div style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center"
+              }}>
+
+                <span>
+                  otros
+                </span>
+
+                <strong>
+                  Total: {
+                    calcularTotal(
+                      loteItem,
+                      "otros"
+                    )
+                  }
+                </strong>
+
+              </div>
+
+              {/* EXPANDIR */}
 
               <button
                 type="button"
@@ -1061,7 +1176,7 @@ function EgresoHuevos() {
                   : "-"}
               </button>
 
-              {/* BOTÓN ELIMINAR */}
+              {/* ELIMINAR */}
 
               <button
                 type="button"
