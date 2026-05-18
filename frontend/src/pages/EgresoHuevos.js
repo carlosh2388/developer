@@ -205,7 +205,7 @@ function EgresoHuevos() {
   };
 
   // =========================
-  // TOTAL
+  // TOTAL POR GRUPO
   // =========================
 
   const calcularTotal = (
@@ -221,6 +221,19 @@ function EgresoHuevos() {
       (parseInt(g.mediano) || 0) +
       (parseInt(g.grande) || 0) +
       (parseInt(g.extra) || 0)
+    );
+  };
+
+  // =========================
+  // TOTAL GENERAL LOTE
+  // =========================
+
+  const calcularTotalLote = (lote) => {
+
+    return grupos.reduce(
+      (acc, grupo) =>
+        acc + calcularTotal(lote, grupo),
+      0
     );
   };
 
@@ -1010,7 +1023,7 @@ function EgresoHuevos() {
               display: "grid",
 
               gridTemplateColumns:
-                "220px repeat(5, 120px) auto auto",
+                "220px 180px auto auto",
 
               gap: "15px",
 
@@ -1043,115 +1056,28 @@ function EgresoHuevos() {
 
               </div>
 
-              {/* INCUBABLE */}
+              {/* TOTAL GENERAL */}
 
               <div style={{
                 display: "flex",
                 flexDirection: "column",
-                alignItems: "center"
+                alignItems: "center",
+                justifyContent: "center"
               }}>
 
-                <span>
-                  incubable
+                <span style={{
+                  fontSize: "14px",
+                  color: "#666"
+                }}>
+                  Total General
                 </span>
 
-                <strong>
-                  Total: {
-                    calcularTotal(
-                      loteItem,
-                      "incubable"
-                    )
-                  }
-                </strong>
-
-              </div>
-
-              {/* COMERCIAL */}
-
-              <div style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center"
-              }}>
-
-                <span>
-                  comercial
-                </span>
-
-                <strong>
-                  Total: {
-                    calcularTotal(
-                      loteItem,
-                      "comercial"
-                    )
-                  }
-                </strong>
-
-              </div>
-
-              {/* SUCIO */}
-
-              <div style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center"
-              }}>
-
-                <span>
-                  sucio
-                </span>
-
-                <strong>
-                  Total: {
-                    calcularTotal(
-                      loteItem,
-                      "sucio"
-                    )
-                  }
-                </strong>
-
-              </div>
-
-              {/* QUEBRADO */}
-
-              <div style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center"
-              }}>
-
-                <span>
-                  quebrado
-                </span>
-
-                <strong>
-                  Total: {
-                    calcularTotal(
-                      loteItem,
-                      "quebrado"
-                    )
-                  }
-                </strong>
-
-              </div>
-
-              {/* OTROS */}
-
-              <div style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center"
-              }}>
-
-                <span>
-                  otros
-                </span>
-
-                <strong>
-                  Total: {
-                    calcularTotal(
-                      loteItem,
-                      "otros"
+                <strong style={{
+                  fontSize: "22px"
+                }}>
+                  {
+                    calcularTotalLote(
+                      loteItem
                     )
                   }
                 </strong>
