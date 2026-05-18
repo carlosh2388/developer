@@ -12,8 +12,6 @@ function EgresoHuevos() {
 
   const [hora, setHora] = useState("");
 
-  const [lote] = useState("REP-260401-1600");
-
   // =========================
   // BODEGAS
   // =========================
@@ -55,7 +53,7 @@ function EgresoHuevos() {
   ]);
 
   // =========================
-  // GRUPOS (UN SOLO NIVEL)
+  // GRUPOS
   // =========================
 
   const grupos = [
@@ -65,20 +63,6 @@ function EgresoHuevos() {
     "quebrado",
     "otros"
   ];
-
-  const tipos = ["blanco", "rojo"];
-
-  // =========================
-  // OPEN STATE (SIMPLIFICADO)
-  // =========================
-
-  const [open, setOpen] = useState({
-    incubable: false,
-    comercial: false,
-    sucio: false,
-    quebrado: false,
-    otros: false
-  });
 
   // =========================
   // CREAR GRUPO
@@ -94,16 +78,38 @@ function EgresoHuevos() {
   });
 
   // =========================
-  // CANTIDADES (SIN BLANCO/ROJO)
+  // CREAR LOTE
   // =========================
 
-  const [cantidades, setCantidades] = useState({
-    incubable: crearGrupo(),
-    comercial: crearGrupo(),
-    sucio: crearGrupo(),
-    quebrado: crearGrupo(),
-    otros: crearGrupo()
+  const crearLote = (codigo = "") => ({
+    id: Date.now() + Math.random(),
+
+    lote: codigo,
+
+    cantidades: {
+      incubable: crearGrupo(),
+      comercial: crearGrupo(),
+      sucio: crearGrupo(),
+      quebrado: crearGrupo(),
+      otros: crearGrupo()
+    },
+
+    open: {
+      incubable: false,
+      comercial: false,
+      sucio: false,
+      quebrado: false,
+      otros: false
+    }
   });
+
+  // =========================
+  // LOTES
+  // =========================
+
+  const [lotes, setLotes] = useState([
+    crearLote("REP-260401-1600")
+  ]);
 
   // =========================
   // FECHA + HORA
@@ -124,18 +130,31 @@ function EgresoHuevos() {
   // =========================
 
   const handleCantidad = (
+    loteId,
     grupo,
     campo,
     value
   ) => {
 
-    setCantidades(prev => ({
-      ...prev,
-      [grupo]: {
-        ...prev[grupo],
-        [campo]: value
-      }
-    }));
+    setLotes(prev =>
+      prev.map(l =>
+        l.id === loteId
+          ? {
+              ...l,
+
+              cantidades: {
+                ...l.cantidades,
+
+                [grupo]: {
+                  ...l.cantidades[grupo],
+
+                  [campo]: value
+                }
+              }
+            }
+          : l
+      )
+    );
   };
 
   // =========================
@@ -143,26 +162,42 @@ function EgresoHuevos() {
   // =========================
 
   const handleOrigen = (
+    loteId,
     grupo,
     value
   ) => {
 
-    setCantidades(prev => ({
-      ...prev,
-      [grupo]: {
-        ...prev[grupo],
-        origen: value
-      }
-    }));
+    setLotes(prev =>
+      prev.map(l =>
+        l.id === loteId
+          ? {
+              ...l,
+
+              cantidades: {
+                ...l.cantidades,
+
+                [grupo]: {
+                  ...l.cantidades[grupo],
+
+                  origen: value
+                }
+              }
+            }
+          : l
+      )
+    );
   };
 
   // =========================
   // TOTAL
   // =========================
 
-  const calcularTotal = (grupo) => {
+  const calcularTotal = (
+    lote,
+    grupo
+  ) => {
 
-    const g = cantidades[grupo];
+    const g = lote.cantidades[grupo];
 
     return (
       (parseInt(g.pewee) || 0) +
@@ -177,12 +212,70 @@ function EgresoHuevos() {
   // TOGGLE
   // =========================
 
-  const toggle = (grupo) => {
+  const toggle = (
+    loteId,
+    grupo
+  ) => {
 
-    setOpen(prev => ({
+    setLotes(prev =>
+      prev.map(l =>
+        l.id === loteId
+          ? {
+              ...l,
+
+              open: {
+                ...l.open,
+
+                [grupo]: !l.open[grupo]
+              }
+            }
+          : l
+      )
+    );
+  };
+
+  // =========================
+  // AGREGAR LOTE
+  // =========================
+
+  const agregarLote = () => {
+
+    setLotes(prev => [
       ...prev,
-      [grupo]: !prev[grupo]
-    }));
+      crearLote("")
+    ]);
+  };
+
+  // =========================
+  // ELIMINAR LOTE
+  // =========================
+
+  const eliminarLote = (id) => {
+
+    setLotes(prev =>
+      prev.filter(l => l.id !== id)
+    );
+  };
+
+  // =========================
+  // HANDLE LOTE
+  // =========================
+
+  const handleLote = (
+    id,
+    value
+  ) => {
+
+    setLotes(prev =>
+      prev.map(l =>
+        l.id === id
+          ? {
+              ...l,
+              lote: value
+            }
+          : l
+      )
+    );
   };
 
   // =========================
@@ -229,12 +322,11 @@ function EgresoHuevos() {
       egreso,
       fecha,
       hora,
-      lote,
       bodegaSalida,
       bodegaDestino,
       placa,
       piloto,
-      cantidades
+      lotes
     };
 
     console.log(data);
@@ -243,7 +335,7 @@ function EgresoHuevos() {
   };
 
   // =========================
-  // STYLES (BOTÓN IGUAL INCUBABLE)
+  // STYLE BOTONES
   // =========================
 
   const smallButton = {
@@ -258,9 +350,15 @@ function EgresoHuevos() {
   // RENDER GRUPO
   // =========================
 
-  const renderGrupo = (grupo) => {
+  const renderGrupo = (
+    lote,
+    grupo
+  ) => {
 
-    const total = calcularTotal(grupo);
+    const total = calcularTotal(
+      lote,
+      grupo
+    );
 
     return (
 
@@ -283,15 +381,17 @@ function EgresoHuevos() {
 
           <button
             type="button"
-            onClick={() => toggle(grupo)}
+            onClick={() =>
+              toggle(lote.id, grupo)
+            }
             style={smallButton}
           >
-            {open[grupo] ? "-" : "+"}
+            {lote.open[grupo] ? "-" : "+"}
           </button>
 
         </div>
 
-        {open[grupo] && (
+        {lote.open[grupo] && (
 
           <div>
 
@@ -309,9 +409,15 @@ function EgresoHuevos() {
 
                   <input
                     type="number"
-                    value={cantidades[grupo][k]}
+                    value={lote.cantidades[grupo][k]}
+
                     onChange={(e) =>
-                      handleCantidad(grupo, k, e.target.value)
+                      handleCantidad(
+                        lote.id,
+                        grupo,
+                        k,
+                        e.target.value
+                      )
                     }
                   />
 
@@ -329,47 +435,86 @@ function EgresoHuevos() {
             }}>
 
               <div>
+
                 <label>Grande</label>
+
                 <input
                   type="number"
-                  value={cantidades[grupo].grande}
+                  value={lote.cantidades[grupo].grande}
+
                   onChange={(e) =>
-                    handleCantidad(grupo, "grande", e.target.value)
+                    handleCantidad(
+                      lote.id,
+                      grupo,
+                      "grande",
+                      e.target.value
+                    )
                   }
                 />
+
               </div>
 
               <div>
+
                 <label>Extra</label>
+
                 <input
                   type="number"
-                  value={cantidades[grupo].extra}
+                  value={lote.cantidades[grupo].extra}
+
                   onChange={(e) =>
-                    handleCantidad(grupo, "extra", e.target.value)
+                    handleCantidad(
+                      lote.id,
+                      grupo,
+                      "extra",
+                      e.target.value
+                    )
                   }
                 />
+
               </div>
 
               <div>
+
                 <label>Total</label>
-                <input type="number" value={total} readOnly />
+
+                <input
+                  type="number"
+                  value={total}
+                  readOnly
+                />
+
               </div>
 
             </div>
 
             <div style={{ marginTop: "10px" }}>
+
               <label>Origen</label>
 
               <select
-                value={cantidades[grupo].origen}
+                value={lote.cantidades[grupo].origen}
+
                 onChange={(e) =>
-                  handleOrigen(grupo, e.target.value)
+                  handleOrigen(
+                    lote.id,
+                    grupo,
+                    e.target.value
+                  )
                 }
               >
 
-                <option value="">Seleccione</option>
-                <option value="Nido">Nido</option>
-                <option value="Piso">Piso</option>
+                <option value="">
+                  Seleccione
+                </option>
+
+                <option value="Nido">
+                  Nido
+                </option>
+
+                <option value="Piso">
+                  Piso
+                </option>
 
               </select>
 
@@ -395,6 +540,7 @@ function EgresoHuevos() {
       <h2>Egreso de Huevos</h2>
 
       {/* FILA 1 */}
+
       <div style={{
         display: "grid",
         gridTemplateColumns: "repeat(3, 1fr)",
@@ -402,61 +548,109 @@ function EgresoHuevos() {
       }}>
 
         <div>
+
           <label># Egreso</label>
-          <input value={egreso} onChange={(e) => setEgreso(e.target.value)} />
+
+          <input
+            value={egreso}
+            onChange={(e) =>
+              setEgreso(e.target.value)
+            }
+          />
+
         </div>
 
         <div>
+
           <label>Fecha</label>
-          <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+
+          <input
+            type="date"
+            value={fecha}
+
+            onChange={(e) =>
+              setFecha(e.target.value)
+            }
+          />
+
         </div>
 
         <div>
+
           <label>Hora</label>
-          <input type="time" value={hora} onChange={(e) => setHora(e.target.value)} />
+
+          <input
+            type="time"
+            value={hora}
+
+            onChange={(e) =>
+              setHora(e.target.value)
+            }
+          />
+
         </div>
 
       </div>
 
       {/* FILA 2 */}
+
       <div style={{
         display: "grid",
-        gridTemplateColumns: "repeat(3, 1fr)",
+        gridTemplateColumns: "repeat(2, 1fr)",
         gap: "10px",
         marginTop: "10px"
       }}>
 
         <div>
-          <label># Lote</label>
-          <select disabled>
-            <option>{lote}</option>
-          </select>
-        </div>
 
-        <div>
           <label>Bodega Salida</label>
-          <select value={bodegaSalida} onChange={(e) => setBodegaSalida(e.target.value)}>
+
+          <select
+            value={bodegaSalida}
+
+            onChange={(e) =>
+              setBodegaSalida(e.target.value)
+            }
+          >
+
             <option>BA</option>
             <option>BH</option>
             <option>BGR</option>
             <option>BI</option>
+
           </select>
+
         </div>
 
         <div>
+
           <label>Bodega Destino</label>
-          <select value={bodegaDestino} onChange={(e) => setBodegaDestino(e.target.value)}>
-            <option value="">Sin Bodega</option>
+
+          <select
+            value={bodegaDestino}
+
+            onChange={(e) =>
+              setBodegaDestino(e.target.value)
+            }
+          >
+
+            <option value="">
+              Sin Bodega
+            </option>
+
             <option>BA</option>
             <option>BH</option>
             <option>BGR</option>
             <option>BI</option>
+
           </select>
+
         </div>
 
       </div>
 
       {/* FILA 3 */}
+
       <div style={{
         display: "grid",
         gridTemplateColumns: "1fr 1fr",
@@ -465,77 +659,294 @@ function EgresoHuevos() {
       }}>
 
         {/* PLACA */}
+
         <div>
+
           <label>Placa Camión</label>
 
-          <div style={{ display: "flex", gap: "8px" }}>
-            <select value={placa} onChange={(e) => setPlaca(e.target.value)}>
-              <option value="">Seleccione</option>
+          <div style={{
+            display: "flex",
+            gap: "8px"
+          }}>
+
+            <select
+              value={placa}
+
+              onChange={(e) =>
+                setPlaca(e.target.value)
+              }
+            >
+
+              <option value="">
+                Seleccione
+              </option>
+
               {placas.map((p, i) => (
-                <option key={i} value={p}>{p}</option>
+
+                <option
+                  key={i}
+                  value={p}
+                >
+                  {p}
+                </option>
+
               ))}
+
             </select>
 
             <button
               type="button"
-              onClick={() => setMostrarNuevaPlaca(true)}
+
+              onClick={() =>
+                setMostrarNuevaPlaca(true)
+              }
+
               style={smallButton}
             >
               +
             </button>
+
           </div>
 
           {mostrarNuevaPlaca && (
-            <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-              <input value={nuevaPlaca} onChange={(e) => setNuevaPlaca(e.target.value)} />
-              <button type="button" onClick={agregarPlaca}>Guardar</button>
+
+            <div style={{
+              display: "flex",
+              gap: "8px",
+              marginTop: "8px"
+            }}>
+
+              <input
+                value={nuevaPlaca}
+
+                onChange={(e) =>
+                  setNuevaPlaca(e.target.value)
+                }
+              />
+
+              <button
+                type="button"
+                onClick={agregarPlaca}
+              >
+                Guardar
+              </button>
+
             </div>
+
           )}
+
         </div>
 
         {/* PILOTO */}
+
         <div>
+
           <label>Piloto</label>
 
-          <div style={{ display: "flex", gap: "8px" }}>
-            <select value={piloto} onChange={(e) => setPiloto(e.target.value)}>
-              <option value="">Seleccione</option>
+          <div style={{
+            display: "flex",
+            gap: "8px"
+          }}>
+
+            <select
+              value={piloto}
+
+              onChange={(e) =>
+                setPiloto(e.target.value)
+              }
+            >
+
+              <option value="">
+                Seleccione
+              </option>
+
               {pilotos.map((p, i) => (
-                <option key={i} value={p}>{p}</option>
+
+                <option
+                  key={i}
+                  value={p}
+                >
+                  {p}
+                </option>
+
               ))}
+
             </select>
 
             <button
               type="button"
-              onClick={() => setMostrarNuevoPiloto(true)}
+
+              onClick={() =>
+                setMostrarNuevoPiloto(true)
+              }
+
               style={smallButton}
             >
               +
             </button>
+
           </div>
 
           {mostrarNuevoPiloto && (
-            <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-              <input value={nuevoPiloto} onChange={(e) => setNuevoPiloto(e.target.value)} />
-              <button type="button" onClick={agregarPiloto}>Guardar</button>
+
+            <div style={{
+              display: "flex",
+              gap: "8px",
+              marginTop: "8px"
+            }}>
+
+              <input
+                value={nuevoPiloto}
+
+                onChange={(e) =>
+                  setNuevoPiloto(e.target.value)
+                }
+              />
+
+              <button
+                type="button"
+                onClick={agregarPiloto}
+              >
+                Guardar
+              </button>
+
             </div>
+
           )}
+
         </div>
 
       </div>
 
-      {/* SOLO GRUPOS (UNA VEZ) */}
-      {grupos.map(renderGrupo)}
+      {/* LOTES DINÁMICOS */}
+
+      <div style={{ marginTop: "25px" }}>
+
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "20px"
+        }}>
+
+          <h2 style={{ margin: 0 }}>
+            Lotes
+          </h2>
+
+          <button
+            type="button"
+            onClick={agregarLote}
+            style={smallButton}
+          >
+            +
+          </button>
+
+        </div>
+
+        {lotes.map((loteItem) => (
+
+          <div
+            key={loteItem.id}
+
+            style={{
+              border: "1px solid #ccc",
+              padding: "15px",
+              borderRadius: "8px",
+              marginBottom: "20px"
+            }}
+          >
+
+            {/* HEADER LOTE */}
+
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto",
+              gap: "10px",
+              alignItems: "center",
+              marginBottom: "20px"
+            }}>
+
+              <div>
+
+                <label># Lote</label>
+
+                <input
+                  value={loteItem.lote}
+
+                  onChange={(e) =>
+                    handleLote(
+                      loteItem.id,
+                      e.target.value
+                    )
+                  }
+                />
+
+              </div>
+
+              <button
+                type="button"
+
+                onClick={() =>
+                  eliminarLote(loteItem.id)
+                }
+
+                style={{
+                  ...smallButton,
+                  background: "#d9534f",
+                  color: "#fff",
+                  border: "none"
+                }}
+              >
+                -
+              </button>
+
+            </div>
+
+            {/* SUBGRUPOS */}
+
+            {grupos.map(grupo =>
+              renderGrupo(
+                loteItem,
+                grupo
+              )
+            )}
+
+          </div>
+
+        ))}
+
+      </div>
 
       {/* FECHA PRODUCCIÓN */}
-      <label>Fecha Producción</label>
-      <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
 
-      <button onClick={guardar}>
+      <div style={{ marginTop: "20px" }}>
+
+        <label>Fecha Producción</label>
+
+        <input
+          type="date"
+          value={fecha}
+
+          onChange={(e) =>
+            setFecha(e.target.value)
+          }
+        />
+
+      </div>
+
+      {/* BOTÓN */}
+
+      <button
+        onClick={guardar}
+        style={{
+          marginTop: "20px"
+        }}
+      >
         Registrar Egreso
       </button>
 
     </div>
+
   );
 }
 
