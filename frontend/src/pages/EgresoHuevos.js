@@ -60,6 +60,23 @@ function EgresoHuevos() {
   ]);
 
   // =========================
+  // LOTES DISPONIBLES
+  // =========================
+
+  const lotesDisponibles = [
+    "Lote 1",
+    "Lote 2",
+    "Lote 3",
+    "Lote 4",
+    "Lote 5",
+    "Lote 6",
+    "Lote 7",
+    "Lote 8",
+    "Lote 9",
+    "Lote 10"
+  ];
+
+  // =========================
   // GRUPOS
   // =========================
 
@@ -88,7 +105,9 @@ function EgresoHuevos() {
   // CREAR LOTE
   // =========================
 
-  const crearLote = (codigo = "") => ({
+  const crearLote = (
+    codigo = "Lote 1"
+  ) => ({
     id: Date.now() + Math.random(),
 
     lote: codigo,
@@ -117,7 +136,7 @@ function EgresoHuevos() {
   // =========================
 
   const [lotes, setLotes] = useState([
-    crearLote("REP-260401-1600")
+    crearLote()
   ]);
 
   // =========================
@@ -289,7 +308,7 @@ function EgresoHuevos() {
 
     setLotes(prev => [
       ...prev,
-      crearLote("")
+      crearLote()
     ]);
   };
 
@@ -418,46 +437,58 @@ function EgresoHuevos() {
         {/* HEADER */}
 
         <div style={{
-          display: "flex",
-          justifyContent: "flex-start",
+          display: "grid",
+          gridTemplateColumns:
+            "180px 180px 1fr",
           alignItems: "center",
-          gap: "20px",
           background: "#f5f5f5",
           padding: "8px 10px",
           borderRadius: "6px"
         }}>
 
+          {/* NOMBRE */}
+
           <div style={{
-            width: "150px",
             textTransform: "capitalize",
             fontSize: "18px"
           }}>
             {grupo}
           </div>
 
+          {/* TOTAL */}
+
           <div style={{
-            width: "120px",
-            fontWeight: "bold"
+            fontWeight: "bold",
+            fontSize: "18px"
           }}>
             Total: {total}
           </div>
 
-          <button
-            type="button"
+          {/* BOTÓN */}
 
-            onClick={() =>
-              toggleGrupo(
-                lote.id,
-                grupo
-              )
-            }
+          <div style={{
+            display: "flex",
+            justifyContent: "flex-end"
+          }}>
 
-            style={smallButton}
-          >
-            {lote.open[grupo]
-              ? "-"
-              : "+"}
-          </button>
+            <button
+              type="button"
+
+              onClick={() =>
+                toggleGrupo(
+                  lote.id,
+                  grupo
+                )
+              }
+
+              style={smallButton}
+            >
+              {lote.open[grupo]
+                ? "-"
+                : "+"}
+            </button>
+
+          </div>
 
         </div>
 
@@ -1023,11 +1054,11 @@ function EgresoHuevos() {
               display: "grid",
 
               gridTemplateColumns:
-                "220px 180px auto auto",
-
-              gap: "15px",
+                "220px 180px 1fr",
 
               alignItems: "center",
+
+              gap: "20px",
 
               marginBottom: "20px",
 
@@ -1043,7 +1074,7 @@ function EgresoHuevos() {
 
                 <label># Lote</label>
 
-                <input
+                <select
                   value={loteItem.lote}
 
                   onChange={(e) =>
@@ -1052,77 +1083,83 @@ function EgresoHuevos() {
                       e.target.value
                     )
                   }
-                />
+                >
+
+                  {lotesDisponibles.map(
+                    (lote, index) => (
+
+                      <option
+                        key={index}
+                        value={lote}
+                      >
+                        {lote}
+                      </option>
+
+                    )
+                  )}
+
+                </select>
 
               </div>
 
               {/* TOTAL GENERAL */}
 
               <div style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center"
+                fontWeight: "bold",
+                fontSize: "18px"
               }}>
-
-                <span style={{
-                  fontSize: "14px",
-                  color: "#666"
-                }}>
-                  Total General
-                </span>
-
-                <strong style={{
-                  fontSize: "22px"
-                }}>
-                  {
-                    calcularTotalLote(
-                      loteItem
-                    )
-                  }
-                </strong>
-
+                Total: {
+                  calcularTotalLote(
+                    loteItem
+                  )
+                }
               </div>
 
-              {/* EXPANDIR */}
+              {/* BOTONES */}
 
-              <button
-                type="button"
+              <div style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px"
+              }}>
 
-                onClick={() =>
-                  toggleLote(
-                    loteItem.id
-                  )
-                }
+                <button
+                  type="button"
 
-                style={smallButton}
-              >
-                {loteItem.collapsed
-                  ? "+"
-                  : "-"}
-              </button>
+                  onClick={() =>
+                    toggleLote(
+                      loteItem.id
+                    )
+                  }
 
-              {/* ELIMINAR */}
+                  style={smallButton}
+                >
+                  {loteItem.collapsed
+                    ? "+"
+                    : "-"}
+                </button>
 
-              <button
-                type="button"
+                <button
+                  type="button"
 
-                onClick={() =>
-                  eliminarLote(
-                    loteItem.id
-                  )
-                }
+                  onClick={() =>
+                    eliminarLote(
+                      loteItem.id
+                    )
+                  }
 
-                style={{
-                  ...smallButton,
-                  background:
-                    "#d9534f",
-                  color: "#fff",
-                  border: "none"
-                }}
-              >
-                x
-              </button>
+                  style={{
+                    ...smallButton,
+                    background:
+                      "#d9534f",
+                    color: "#fff",
+                    border: "none"
+                  }}
+                >
+                  x
+                </button>
+
+              </div>
 
             </div>
 
