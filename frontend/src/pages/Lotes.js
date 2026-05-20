@@ -12,13 +12,17 @@ function Lotes() {
 
   // LISTAS
   const [lineas, setLineas] = useState([
-    "Hy-Line Brown (marrón)",
-    "SL / 30 Super Nick (blanco)"
+    "LIN-ISA	ISA Brown (Marrón)",
+    "LIN-SPN Super Nick (Blanco)"
   ]);
 
   const [galeras, setGaleras] = useState([
     "Galera 1",
-    "Galera 2"
+    "Galera 2",
+    "Galera 3",
+    "Galera 4",
+    "Galera 5",
+    "Galera de Crianza"
   ]);
 
   // SELECCIÓN
@@ -368,7 +372,7 @@ function Lotes() {
       <div style={styles.row}>
 
         <div style={styles.field}>
-          <label>Costo</label>
+          <label>Costo Total</label>
           <input type="number" value={costo} onChange={(e) => setCosto(e.target.value)} style={styles.input} />
         </div>
 
