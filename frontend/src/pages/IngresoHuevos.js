@@ -301,15 +301,31 @@ function IngresoHuevos() {
             }}
           >
 
-            {/* TITULO */}
-            <h3
-              style={{
-                margin: 0,
-                fontWeight: "400"
-              }}
-            >
-              Clasificación #{index + 1}
-            </h3>
+
+              {/* CLASIFICACIÓN */}
+              <div>
+                <label>Clasificación</label>
+
+                <select
+                  value={grupo.tipo}
+                  onChange={(e) =>
+                    actualizarGrupo(
+                      grupo.id,
+                      "tipo",
+                      e.target.value
+                    )
+                  }
+                >
+                  <option value="">Seleccione</option>
+
+                  {opcionesGrupo.map(op => (
+                    <option key={op} value={op}>
+                      {op}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
 
             {/* LOTE */}
             <div>
@@ -409,7 +425,7 @@ function IngresoHuevos() {
           <>
 
             {/* =========================
-                FILA SUPERIOR (CLASIFICACIÓN + PERSONAS)
+                FILA SUPERIOR (PERSONAS)
             ========================= */}
 
             <div
@@ -421,30 +437,6 @@ function IngresoHuevos() {
                 alignItems: "end"
               }}
             >
-
-              {/* CLASIFICACIÓN */}
-              <div>
-                <label>Clasificación</label>
-
-                <select
-                  value={grupo.tipo}
-                  onChange={(e) =>
-                    actualizarGrupo(
-                      grupo.id,
-                      "tipo",
-                      e.target.value
-                    )
-                  }
-                >
-                  <option value="">Seleccione</option>
-
-                  {opcionesGrupo.map(op => (
-                    <option key={op} value={op}>
-                      {op}
-                    </option>
-                  ))}
-                </select>
-              </div>
 
               {/* RECOLECTOR */}
               <div>
