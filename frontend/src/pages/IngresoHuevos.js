@@ -206,33 +206,54 @@ function IngresoHuevos() {
   // TOTAL POR FILA
   // =========================
 
-  const calcularTotalFila = (fila) => {
-
-    const n360 = (fila?.nido360 || 0) * factores.nido360;
-    const n30 = (fila?.nido30 || 0) * factores.nido30;
-    const n1 = (fila?.nido1 || 0) * factores.nido1;
-
-    const p360 = (fila?.piso360 || 0) * factores.piso360;
-    const p30 = (fila?.piso30 || 0) * factores.piso30;
-    const p1 = (fila?.piso1 || 0) * factores.piso1;
-
-    return n360 + n30 + n1 + p360 + p30 + p1;
+  const calcularTotalFila = (fila, tipo) => {
+  
+    // =========================
+    // INCUBABLE (4x6)
+    // =========================
+  
+    if (tipo === "incubable") {
+  
+      return (
+        (fila?.nido336 || 0) * 336 +
+        (fila?.nido360 || 0) * 360 +
+        (fila?.piso336 || 0) * 336 +
+        (fila?.piso360 || 0) * 360
+      );
+    }
+  
+    // =========================
+    // OTROS (10x6)
+    // =========================
+  
+    return (
+      (fila?.nido360 || 0) * 360 +
+      (fila?.nido30 || 0) * 30 +
+      (fila?.nido1 || 0) * 1 +
+      (fila?.piso360 || 0) * 360 +
+      (fila?.piso30 || 0) * 30 +
+      (fila?.piso1 || 0) * 1
+    );
   };
-
+  
   // =========================
   // TOTAL GRUPO
   // =========================
 
   const calcularTotalGrupo = (grupo) => {
-
+  
     const tipos = grupo.datos || {};
-
     let total = 0;
-
+  
     Object.keys(tipos).forEach(k => {
-      total += calcularTotalFila(tipos[k]);
+  
+      total += calcularTotalFila(
+        tipos[k],
+        grupo.tipo
+      );
+  
     });
-
+  
     return total;
   };
 
@@ -589,7 +610,7 @@ function IngresoHuevos() {
 
               {/* TOTAL UNIDADES */}
               <td>
-                {total}
+                {calcularTotalFila(fila, "incubable")}
               </td>
 
             </tr>
@@ -661,7 +682,7 @@ function IngresoHuevos() {
               ))}
 
               <td>
-                {calcularTotalFila(fila)}
+               {calcularTotalFila(fila, "normal")}
               </td>
 
             </tr>
