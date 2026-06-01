@@ -3,13 +3,23 @@ import { useEffect, useState } from "react";
 function IngresoHuevos() {
 
   // =========================
-  // STATES BASE
+  // FECHA
   // =========================
 
   const [fecha, setFecha] = useState("");
 
   // =========================
-  // OPCIONES
+  // LOTES
+  // =========================
+
+  const lotes = [
+    "REP-260401-1600",
+    "REP-260401-1601",
+    "REP-260401-1602"
+  ];
+
+  // =========================
+  // OPCIONES CLASIFICACIÓN
   // =========================
 
   const opcionesGrupo = [
@@ -20,10 +30,25 @@ function IngresoHuevos() {
     "otros"
   ];
 
+  // =========================
+  // PERSONAS
+  // =========================
+
   const personas = [
     "Tomas Pérez",
     "María Gomez"
   ];
+
+  // =========================
+  // CREAR FILA
+  // =========================
+
+  const crearFila = () => ({
+    nido336: "",
+    nido360: "",
+    piso336: "",
+    piso360: ""
+  });
 
   // =========================
   // CREAR CLASIFICACIÓN
@@ -32,23 +57,27 @@ function IngresoHuevos() {
   const crearGrupo = () => ({
     id: Date.now() + Math.random(),
 
-    tipo: "",
-
-    lote: "REP-260401-1600",
-
     abierto: true,
 
-    pequeno: 0,
-    mediano: 0,
-    grande: 0,
-    otrosClasificacion: 0,
+    tipo: "",
+
+    lote: lotes[0],
 
     recolector: "",
-    clasificador: ""
+
+    clasificador: "",
+
+    grande: crearFila(),
+
+    mediano: crearFila(),
+
+    pequeno: crearFila(),
+
+    otros: crearFila()
   });
 
   // =========================
-  // LISTA DE CLASIFICACIONES
+  // CLASIFICACIONES
   // =========================
 
   const [grupos, setGrupos] = useState([
@@ -70,7 +99,7 @@ function IngresoHuevos() {
   }, []);
 
   // =========================
-  // AGREGAR CLASIFICACIÓN
+  // AGREGAR
   // =========================
 
   const agregarGrupo = () => {
@@ -83,7 +112,7 @@ function IngresoHuevos() {
   };
 
   // =========================
-  // ELIMINAR CLASIFICACIÓN
+  // ELIMINAR
   // =========================
 
   const eliminarGrupo = (id) => {
@@ -97,7 +126,7 @@ function IngresoHuevos() {
   };
 
   // =========================
-  // EXPANDIR / OCULTAR
+  // TOGGLE
   // =========================
 
   const toggleGrupo = (id) => {
@@ -116,7 +145,7 @@ function IngresoHuevos() {
   };
 
   // =========================
-  // ACTUALIZAR CAMPO
+  // ACTUALIZAR CAMPO SIMPLE
   // =========================
 
   const actualizarGrupo = (
@@ -139,16 +168,97 @@ function IngresoHuevos() {
   };
 
   // =========================
-  // TOTAL POR CLASIFICACIÓN
+  // ACTUALIZAR TABLA
   // =========================
 
-  const calcularTotal = (grupo) => {
+  const actualizarFila = (
+    grupoId,
+    categoria,
+    campo,
+    valor
+  ) => {
+
+    setGrupos(prev =>
+      prev.map(grupo => {
+
+        if (
+          grupo.id !== grupoId
+        ) {
+          return grupo;
+        }
+
+        return {
+          ...grupo,
+
+          [categoria]: {
+            ...grupo[categoria],
+            [campo]: valor
+          }
+        };
+
+      })
+    );
+
+  };
+
+  // =========================
+  // TOTAL FILA
+  // =========================
+
+  const calcularTotalFila = (
+    fila
+  ) => {
+
+    const n336 =
+      parseInt(
+        fila.nido336
+      ) || 0;
+
+    const n360 =
+      parseInt(
+        fila.nido360
+      ) || 0;
+
+    const p336 =
+      parseInt(
+        fila.piso336
+      ) || 0;
+
+    const p360 =
+      parseInt(
+        fila.piso360
+      ) || 0;
 
     return (
-      (parseInt(grupo.pequeno) || 0) +
-      (parseInt(grupo.mediano) || 0) +
-      (parseInt(grupo.grande) || 0) +
-      (parseInt(grupo.otrosClasificacion) || 0)
+      (n336 * 336) +
+      (n360 * 360) +
+      (p336 * 336) +
+      (p360 * 360)
+    );
+
+  };
+
+  // =========================
+  // TOTAL GENERAL
+  // =========================
+
+  const calcularTotalGrupo = (
+    grupo
+  ) => {
+
+    return (
+      calcularTotalFila(
+        grupo.grande
+      ) +
+      calcularTotalFila(
+        grupo.mediano
+      ) +
+      calcularTotalFila(
+        grupo.pequeno
+      ) +
+      calcularTotalFila(
+        grupo.otros
+      )
     );
 
   };
@@ -161,7 +271,8 @@ function IngresoHuevos() {
 
     const data = {
       fecha,
-      clasificaciones: grupos
+      clasificaciones:
+        grupos
     };
 
     console.log(data);
@@ -173,16 +284,12 @@ function IngresoHuevos() {
   };
 
   // =========================
-  // RENDER CLASIFICACIÓN
+  // RENDER GRUPO
   // =========================
 
-  const renderGrupo = (
-    grupo,
-    index
-  ) => {
+  const renderGrupo = (grupo, index) => {
 
-    const total =
-      calcularTotal(grupo);
+    const totalGrupo = calcularTotalGrupo(grupo);
 
     return (
 
@@ -196,18 +303,21 @@ function IngresoHuevos() {
         }}
       >
 
-        {/* HEADER */}
+        {/* =========================
+            HEADER
+        ========================= */}
 
         <div
           style={{
             display: "flex",
-            justifyContent:
-              "space-between",
+            justifyContent: "space-between",
             alignItems: "center",
-            gap: "15px"
+            gap: "10px",
+            flexWrap: "wrap"
           }}
         >
 
+          {/* IZQUIERDA */}
           <div
             style={{
               display: "flex",
@@ -223,33 +333,41 @@ function IngresoHuevos() {
                 fontWeight: "400"
               }}
             >
-              Clasificación #
-              {index + 1}
+              Clasificación #{index + 1}
             </h3>
 
+            {/* LOTE */}
             <div>
 
-              <label>
-                Lote
-              </label>
+              <label>Lote</label>
 
-              <input
-                type="text"
+              <select
                 value={grupo.lote}
-                readOnly
-              />
+                onChange={(e) =>
+                  actualizarGrupo(
+                    grupo.id,
+                    "lote",
+                    e.target.value
+                  )
+                }
+              >
+                {lotes.map(l => (
+                  <option key={l} value={l}>
+                    {l}
+                  </option>
+                ))}
+              </select>
 
             </div>
 
+            {/* TOTAL GENERAL */}
             <div>
 
-              <label>
-                Total
-              </label>
+              <label>Total</label>
 
               <input
                 type="number"
-                value={total}
+                value={totalGrupo}
                 readOnly
               />
 
@@ -257,46 +375,40 @@ function IngresoHuevos() {
 
           </div>
 
+          {/* DERECHA BOTONES */}
           <div
             style={{
               display: "flex",
-              gap: "5px"
+              gap: "6px"
             }}
           >
 
             <button
               type="button"
               onClick={() =>
-                toggleGrupo(
-                  grupo.id
-                )
+                toggleGrupo(grupo.id)
               }
               style={{
                 width: "30px",
-                height: "30px"
+                height: "30px",
+                fontSize: "16px"
               }}
             >
-              {grupo.abierto
-                ? "-"
-                : "+"}
+              {grupo.abierto ? "-" : "+"}
             </button>
 
             <button
               type="button"
               onClick={() =>
-                eliminarGrupo(
-                  grupo.id
-                )
+                eliminarGrupo(grupo.id)
               }
               style={{
                 width: "30px",
                 height: "30px",
-                background:
-                  "#dc3545",
-                color: "#fff",
+                background: "red",
+                color: "white",
                 border: "none",
-                cursor:
-                  "pointer"
+                cursor: "pointer"
               }}
             >
               X
@@ -306,28 +418,24 @@ function IngresoHuevos() {
 
         </div>
 
-        {/* BODY */}
+        {/* =========================
+            BODY (EXPANDIBLE)
+        ========================= */}
 
         {grupo.abierto && (
 
           <>
 
-            {/* CLASIFICACIÓN */}
+            {/* =========================
+                CLASIFICACIÓN
+            ========================= */}
 
-            <div
-              style={{
-                marginTop: "15px"
-              }}
-            >
+            <div style={{ marginTop: "15px" }}>
 
-              <label>
-                Clasificación
-              </label>
+              <label>Clasificación</label>
 
               <select
-                value={
-                  grupo.tipo
-                }
+                value={grupo.tipo}
                 onChange={(e) =>
                   actualizarGrupo(
                     grupo.id,
@@ -336,266 +444,394 @@ function IngresoHuevos() {
                   )
                 }
               >
+
                 <option value="">
                   Seleccione
                 </option>
 
-                {opcionesGrupo.map(
-                  opcion => (
-                    <option
-                      key={
-                        opcion
-                      }
-                      value={
-                        opcion
-                      }
-                    >
-                      {opcion
-                        .charAt(
-                          0
-                        )
-                        .toUpperCase() +
-                        opcion.slice(
-                          1
-                        )}
-                    </option>
-                  )
-                )}
+                {opcionesGrupo.map(op => (
+                  <option key={op} value={op}>
+                    {op.charAt(0).toUpperCase() + op.slice(1)}
+                  </option>
+                ))}
 
               </select>
 
             </div>
 
-            {/* TAMAÑOS */}
+            {/* =========================
+                TABLA 4x6
+            ========================= */}
+
+            <div
+              style={{
+                marginTop: "15px",
+                overflowX: "auto"
+              }}
+            >
+
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  textAlign: "center"
+                }}
+              >
+
+                <thead>
+                  <tr>
+                    <th>Categoria</th>
+                    <th>Nido 336</th>
+                    <th>Nido 360</th>
+                    <th>Piso 336</th>
+                    <th>Piso 360</th>
+                    <th>Total Unidades</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+
+                  {/* GRANDE */}
+                  <tr>
+                    <td>Grande</td>
+
+                    <td>
+                      <input
+                        type="number"
+                        value={grupo.grande.nido336}
+                        onChange={(e) =>
+                          actualizarFila(
+                            grupo.id,
+                            "grande",
+                            "nido336",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      <input
+                        type="number"
+                        value={grupo.grande.nido360}
+                        onChange={(e) =>
+                          actualizarFila(
+                            grupo.id,
+                            "grande",
+                            "nido360",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      <input
+                        type="number"
+                        value={grupo.grande.piso336}
+                        onChange={(e) =>
+                          actualizarFila(
+                            grupo.id,
+                            "grande",
+                            "piso336",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      <input
+                        type="number"
+                        value={grupo.grande.piso360}
+                        onChange={(e) =>
+                          actualizarFila(
+                            grupo.id,
+                            "grande",
+                            "piso360",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      {calcularTotalFila(grupo.grande)}
+                    </td>
+                  </tr>
+
+                  {/* MEDIANO */}
+                  <tr>
+                    <td>Mediano</td>
+
+                    <td>
+                      <input
+                        type="number"
+                        value={grupo.mediano.nido336}
+                        onChange={(e) =>
+                          actualizarFila(
+                            grupo.id,
+                            "mediano",
+                            "nido336",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      <input
+                        type="number"
+                        value={grupo.mediano.nido360}
+                        onChange={(e) =>
+                          actualizarFila(
+                            grupo.id,
+                            "mediano",
+                            "nido360",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      <input
+                        type="number"
+                        value={grupo.mediano.piso336}
+                        onChange={(e) =>
+                          actualizarFila(
+                            grupo.id,
+                            "mediano",
+                            "piso336",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      <input
+                        type="number"
+                        value={grupo.mediano.piso360}
+                        onChange={(e) =>
+                          actualizarFila(
+                            grupo.id,
+                            "mediano",
+                            "piso360",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      {calcularTotalFila(grupo.mediano)}
+                    </td>
+                  </tr>
+
+                  {/* PEQUEÑO */}
+                  <tr>
+                    <td>Pequeño</td>
+
+                    <td>
+                      <input
+                        type="number"
+                        value={grupo.pequeno.nido336}
+                        onChange={(e) =>
+                          actualizarFila(
+                            grupo.id,
+                            "pequeno",
+                            "nido336",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      <input
+                        type="number"
+                        value={grupo.pequeno.nido360}
+                        onChange={(e) =>
+                          actualizarFila(
+                            grupo.id,
+                            "pequeno",
+                            "nido360",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      <input
+                        type="number"
+                        value={grupo.pequeno.piso336}
+                        onChange={(e) =>
+                          actualizarFila(
+                            grupo.id,
+                            "pequeno",
+                            "piso336",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      <input
+                        type="number"
+                        value={grupo.pequeno.piso360}
+                        onChange={(e) =>
+                          actualizarFila(
+                            grupo.id,
+                            "pequeno",
+                            "piso360",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      {calcularTotalFila(grupo.pequeno)}
+                    </td>
+                  </tr>
+
+                  {/* OTROS (LIJADO, DEFORME, PRUEBAS) */}
+                  <tr>
+                    <td>Otros (lijado, deforme, pruebas)</td>
+
+                    <td>
+                      <input
+                        type="number"
+                        value={grupo.otros.nido336}
+                        onChange={(e) =>
+                          actualizarFila(
+                            grupo.id,
+                            "otros",
+                            "nido336",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      <input
+                        type="number"
+                        value={grupo.otros.nido360}
+                        onChange={(e) =>
+                          actualizarFila(
+                            grupo.id,
+                            "otros",
+                            "nido360",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      <input
+                        type="number"
+                        value={grupo.otros.piso336}
+                        onChange={(e) =>
+                          actualizarFila(
+                            grupo.id,
+                            "otros",
+                            "piso336",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      <input
+                        type="number"
+                        value={grupo.otros.piso360}
+                        onChange={(e) =>
+                          actualizarFila(
+                            grupo.id,
+                            "otros",
+                            "piso360",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </td>
+
+                    <td>
+                      {calcularTotalFila(grupo.otros)}
+                    </td>
+                  </tr>
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+            {/* =========================
+                RECOLECTOR / CLASIFICADOR
+            ========================= */}
 
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns:
-                  "repeat(3, 1fr)",
+                gridTemplateColumns: "1fr 1fr",
                 gap: "10px",
-                marginTop:
-                  "15px"
+                marginTop: "15px"
               }}
             >
 
               <div>
 
-                <label>
-                  Pequeño
-                </label>
-
-                <input
-                  type="number"
-                  value={
-                    grupo.pequeno
-                  }
-                  onChange={(
-                    e
-                  ) =>
-                    actualizarGrupo(
-                      grupo.id,
-                      "pequeno",
-                      e
-                        .target
-                        .value
-                    )
-                  }
-                />
-
-              </div>
-
-              <div>
-
-                <label>
-                  Mediano
-                </label>
-
-                <input
-                  type="number"
-                  value={
-                    grupo.mediano
-                  }
-                  onChange={(
-                    e
-                  ) =>
-                    actualizarGrupo(
-                      grupo.id,
-                      "mediano",
-                      e
-                        .target
-                        .value
-                    )
-                  }
-                />
-
-              </div>
-
-              <div>
-
-                <label>
-                  Grande
-                </label>
-
-                <input
-                  type="number"
-                  value={
-                    grupo.grande
-                  }
-                  onChange={(
-                    e
-                  ) =>
-                    actualizarGrupo(
-                      grupo.id,
-                      "grande",
-                      e
-                        .target
-                        .value
-                    )
-                  }
-                />
-
-              </div>
-
-            </div>
-
-            {/* OTROS */}
-
-            <div
-              style={{
-                marginTop:
-                  "10px"
-              }}
-            >
-
-              <label>
-                Otros (lijado,
-                deforme,
-                pruebas)
-              </label>
-
-              <input
-                type="number"
-                value={
-                  grupo.otrosClasificacion
-                }
-                onChange={(
-                  e
-                ) =>
-                  actualizarGrupo(
-                    grupo.id,
-                    "otrosClasificacion",
-                    e.target
-                      .value
-                  )
-                }
-              />
-
-            </div>
-
-            {/* RECOLECTOR Y CLASIFICADOR */}
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "1fr 1fr",
-                gap: "10px",
-                marginTop:
-                  "15px"
-              }}
-            >
-
-              <div>
-
-                <label>
-                  Recolector
-                </label>
+                <label>Recolector</label>
 
                 <select
-                  value={
-                    grupo.recolector
-                  }
-                  onChange={(
-                    e
-                  ) =>
+                  value={grupo.recolector}
+                  onChange={(e) =>
                     actualizarGrupo(
                       grupo.id,
                       "recolector",
-                      e
-                        .target
-                        .value
+                      e.target.value
                     )
                   }
                 >
-                  <option value="">
-                    Seleccione
-                  </option>
+                  <option value="">Seleccione</option>
 
-                  {personas.map(
-                    persona => (
-                      <option
-                        key={
-                          persona
-                        }
-                        value={
-                          persona
-                        }
-                      >
-                        {
-                          persona
-                        }
-                      </option>
-                    )
-                  )}
-
+                  {personas.map(p => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
                 </select>
 
               </div>
 
               <div>
 
-                <label>
-                  Clasificador
-                </label>
+                <label>Clasificador</label>
 
                 <select
-                  value={
-                    grupo.clasificador
-                  }
-                  onChange={(
-                    e
-                  ) =>
+                  value={grupo.clasificador}
+                  onChange={(e) =>
                     actualizarGrupo(
                       grupo.id,
                       "clasificador",
-                      e
-                        .target
-                        .value
+                      e.target.value
                     )
                   }
                 >
-                  <option value="">
-                    Seleccione
-                  </option>
+                  <option value="">Seleccione</option>
 
-                  {personas.map(
-                    persona => (
-                      <option
-                        key={
-                          persona
-                        }
-                        value={
-                          persona
-                        }
-                      >
-                        {
-                          persona
-                        }
-                      </option>
-                    )
-                  )}
-
+                  {personas.map(p => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
                 </select>
 
               </div>
@@ -609,59 +845,41 @@ function IngresoHuevos() {
       </div>
 
     );
-
   };
 
   // =========================
-  // RENDER
+  // RENDER PRINCIPAL
   // =========================
 
   return (
 
-    <div
-      className="form-container"
-    >
+    <div className="form-container">
 
-      <h2>
-        Ingreso de Huevos
-        (Clasificación)
-      </h2>
+      <h2>Ingreso de Huevos (Clasificación)</h2>
 
       {/* FECHA */}
 
-      <label>
-        Fecha
-      </label>
+      <label>Fecha</label>
 
       <input
         type="date"
         value={fecha}
         onChange={(e) =>
-          setFecha(
-            e.target.value
-          )
+          setFecha(e.target.value)
         }
       />
 
-      {/* AGREGAR */}
+      {/* AGREGAR CLASIFICACIÓN */}
 
-      <div
-        style={{
-          margin:
-            "15px 0"
-        }}
-      >
+      <div style={{ margin: "15px 0" }}>
 
         <button
           type="button"
-          onClick={
-            agregarGrupo
-          }
+          onClick={agregarGrupo}
           style={{
             width: "40px",
             height: "40px",
-            fontSize:
-              "22px"
+            fontSize: "22px"
           }}
         >
           +
@@ -669,24 +887,18 @@ function IngresoHuevos() {
 
       </div>
 
-      {/* CLASIFICACIONES */}
+      {/* LISTA */}
 
-      {grupos.map(
-        renderGrupo
-      )}
+      {grupos.map(renderGrupo)}
 
       {/* GUARDAR */}
 
-      <button
-        onClick={guardar}
-      >
+      <button onClick={guardar}>
         Guardar
       </button>
 
     </div>
-
   );
-
 }
 
 export default IngresoHuevos;
