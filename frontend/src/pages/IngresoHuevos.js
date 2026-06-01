@@ -458,149 +458,145 @@ function IngresoHuevos() {
 
             </div>
 
-            {/* =========================
-                TABLA INCUBABLE (4x6)
-            ========================= */}
+{/* =========================
+    TABLA SEGÚN TIPO
+========================= */}
 
-            {grupo.tipo === "incubable" ? (
+{!grupo.tipo ? null : grupo.tipo === "incubable" ? (
 
-              <div style={{ marginTop: "15px", overflowX: "auto" }}>
+  /* =========================
+      TABLA 4x6 INCUBABLE
+  ========================= */
 
-                <table
-                  style={{
-                    width: "100%",
-                    borderCollapse: "collapse"
-                  }}
-                >
+  <div style={{ marginTop: "15px", overflowX: "auto" }}>
 
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: "left" }}>Tamaño</th>
-                      <th>Nido 360</th>
-                      <th>Nido 30</th>
-                      <th>Nido 1</th>
-                      <th>Piso 360</th>
-                      <th>Piso 30</th>
-                      <th>Piso 1</th>
-                      <th>Total Unidades</th>
-                    </tr>
-                  </thead>
+    <table style={{ width: "100%", borderCollapse: "collapse" }}>
 
-                  <tbody>
-                    {["Grande", "Mediano", "Pequeño", "Otros"].map(t => {
+      <thead>
+        <tr>
+          <th style={{ textAlign: "left" }}>Tamaño</th>
+          <th>Nido 360</th>
+          <th>Nido 30</th>
+          <th>Nido 1</th>
+          <th>Piso 360</th>
+          <th>Piso 30</th>
+          <th>Piso 1</th>
+          <th>Total Unidades</th>
+        </tr>
+      </thead>
 
-                      const fila = grupo.datos?.[t] || crearFila();
+      <tbody>
+        {["Grande", "Mediano", "Pequeño", "Otros"].map(t => {
 
-                      return (
-                        <tr key={t}>
-                          <td style={{ textAlign: "left" }}>{t}</td>
+          const fila = grupo.datos?.[t] || crearFila();
 
-                          {["nido360", "nido30", "nido1", "piso360", "piso30", "piso1"].map(campo => (
-                            <td key={campo}>
-                              <input
-                                type="number"
-                                value={fila[campo]}
-                                onChange={(e) =>
-                                  actualizarTabla(
-                                    grupo.id,
-                                    t,
-                                    campo,
-                                    e.target.value
-                                  )
-                                }
-                              />
-                            </td>
-                          ))}
+          return (
+            <tr key={t}>
+              <td style={{ textAlign: "left" }}>{t}</td>
 
-                          <td>
-                            {calcularTotalFila(fila)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
+              {["nido360", "nido30", "nido1", "piso360", "piso30", "piso1"].map(campo => (
+                <td key={campo}>
+                  <input
+                    type="number"
+                    value={fila[campo]}
+                    onChange={(e) =>
+                      actualizarTabla(
+                        grupo.id,
+                        t,
+                        campo,
+                        e.target.value
+                      )
+                    }
+                  />
+                </td>
+              ))}
 
-                </table>
+              <td>
+                {calcularTotalFila(fila)}
+              </td>
 
-              </div>
+            </tr>
+          );
+        })}
+      </tbody>
 
-            ) : (
+    </table>
 
-              /* =========================
-                  TABLA COMPLETA (NO INCUBABLE)
-              ========================= */
+  </div>
 
-              <div style={{ marginTop: "15px", overflowX: "auto" }}>
+) : (
 
-                <table
-                  style={{
-                    width: "100%",
-                    borderCollapse: "collapse"
-                  }}
-                >
+  /* =========================
+      TABLA 10x8 COMPLETA
+  ========================= */
 
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: "left" }}>Tamaño</th>
-                      <th>Nido 360</th>
-                      <th>Nido 30</th>
-                      <th>Nido 1</th>
-                      <th>Piso 360</th>
-                      <th>Piso 30</th>
-                      <th>Piso 1</th>
-                      <th>Total Unidades</th>
-                    </tr>
-                  </thead>
+  <div style={{ marginTop: "15px", overflowX: "auto" }}>
 
-                  <tbody>
-                    {[
-                      "Extra Grande",
-                      "Grande",
-                      "Mediano",
-                      "Pequeño",
-                      "Pewee",
-                      "Sucio",
-                      "Quebrado",
-                      "Pálido",
-                      "Otros"
-                    ].map(t => {
+    <table style={{ width: "100%", borderCollapse: "collapse" }}>
 
-                      const fila = grupo.datos?.[t] || crearFila();
+      <thead>
+        <tr>
+          <th style={{ textAlign: "left" }}>Tamaño</th>
+          <th>Nido 360</th>
+          <th>Nido 30</th>
+          <th>Nido 1</th>
+          <th>Piso 360</th>
+          <th>Piso 30</th>
+          <th>Piso 1</th>
+          <th>Total Unidades</th>
+        </tr>
+      </thead>
 
-                      return (
-                        <tr key={t}>
-                          <td style={{ textAlign: "left" }}>{t}</td>
+      <tbody>
+        {[
+          "Extra Grande",
+          "Grande",
+          "Mediano",
+          "Pequeño",
+          "Pewee",
+          "Sucio",
+          "Quebrado",
+          "Pálido",
+          "Otros"
+        ].map(t => {
 
-                          {["nido360", "nido30", "nido1", "piso360", "piso30", "piso1"].map(campo => (
-                            <td key={campo}>
-                              <input
-                                type="number"
-                                value={fila[campo]}
-                                onChange={(e) =>
-                                  actualizarTabla(
-                                    grupo.id,
-                                    t,
-                                    campo,
-                                    e.target.value
-                                  )
-                                }
-                              />
-                            </td>
-                          ))}
+          const fila = grupo.datos?.[t] || crearFila();
 
-                          <td>
-                            {calcularTotalFila(fila)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
+          return (
+            <tr key={t}>
+              <td style={{ textAlign: "left" }}>{t}</td>
 
-                </table>
+              {["nido360", "nido30", "nido1", "piso360", "piso30", "piso1"].map(campo => (
+                <td key={campo}>
+                  <input
+                    type="number"
+                    value={fila[campo]}
+                    onChange={(e) =>
+                      actualizarTabla(
+                        grupo.id,
+                        t,
+                        campo,
+                        e.target.value
+                      )
+                    }
+                  />
+                </td>
+              ))}
 
-              </div>
+              <td>
+                {calcularTotalFila(fila)}
+              </td>
 
-            )}
+            </tr>
+          );
+        })}
+      </tbody>
+
+    </table>
+
+  </div>
+
+)}
 
             {/* =========================
                 AJUSTES DE ESTILO (ALINEACIÓN)
