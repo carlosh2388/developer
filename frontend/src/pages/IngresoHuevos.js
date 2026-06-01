@@ -462,10 +462,11 @@ function IngresoHuevos() {
     TABLA SEGÚN TIPO
 ========================= */}
 
-{!grupo.tipo ? null : {grupo.tipo === "incubable" ? (
+
+{!grupo.tipo ? null : grupo.tipo === "incubable" ? (
 
   /* =========================
-      TABLA 4x6 INCUBABLE (CORRECTA)
+      TABLA 4x6 INCUBABLE
   ========================= */
 
   <div style={{ marginTop: "15px", overflowX: "auto" }}>
