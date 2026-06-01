@@ -755,11 +755,8 @@ function IngresoHuevos() {
       <h2>Ingreso de Huevos (Clasificación Avanzada)</h2>
 
       {/* FECHA */}
-
-      <div style={{ marginBottom: "10px" }}>
-        <label>Fecha</label>
-
-      <div style={{ minWidth: "160px" }}>
+      <div style={{ minWidth: "160px", flexShrink: 0 }}>
+ 
         <label>Fecha</label>
       
         <input
@@ -768,7 +765,7 @@ function IngresoHuevos() {
           onChange={(e) => setFecha(e.target.value)}
         />
       </div>
-      </div>
+
 
       {/* AGREGAR GRUPO */}
 
