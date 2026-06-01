@@ -316,11 +316,31 @@ function IngresoHuevos() {
             <div>
               <label>Total Unidades</label>
 
-              <input
-                type="number"
-                value={totalGrupo}
-                readOnly
-              />
+            <div
+  style={{
+    display: "flex",
+    flexDirection: "column"
+  }}
+>
+
+  <label>Total</label>
+
+  <div
+    style={{
+      padding: "6px 10px",
+      border: "1px solid #ccc",
+      borderRadius: "4px",
+      minWidth: "80px",
+      textAlign: "center",
+      background: "#f8f8f8",
+      fontWeight: "500"
+    }}
+  >
+    {totalGrupo}
+  </div>
+
+</div>
+    
             </div>
 
           </div>
