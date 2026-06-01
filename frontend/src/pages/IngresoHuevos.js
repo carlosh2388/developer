@@ -759,11 +759,15 @@ function IngresoHuevos() {
       <div style={{ marginBottom: "10px" }}>
         <label>Fecha</label>
 
+      <div style={{ minWidth: "160px" }}>
+        <label>Fecha</label>
+      
         <input
           type="date"
           value={fecha}
           onChange={(e) => setFecha(e.target.value)}
         />
+      </div>
       </div>
 
       {/* AGREGAR GRUPO */}
