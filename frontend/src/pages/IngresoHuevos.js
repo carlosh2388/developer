@@ -462,10 +462,10 @@ function IngresoHuevos() {
     TABLA SEGÚN TIPO
 ========================= */}
 
-{!grupo.tipo ? null : grupo.tipo === "incubable" ? (
+{!grupo.tipo ? null : {grupo.tipo === "incubable" ? (
 
   /* =========================
-      TABLA 4x6 INCUBABLE
+      TABLA 4x6 INCUBABLE (CORRECTA)
   ========================= */
 
   <div style={{ marginTop: "15px", overflowX: "auto" }}>
@@ -475,12 +475,10 @@ function IngresoHuevos() {
       <thead>
         <tr>
           <th style={{ textAlign: "left" }}>Tamaño</th>
+          <th>Nido 336</th>
           <th>Nido 360</th>
-          <th>Nido 30</th>
-          <th>Nido 1</th>
+          <th>Piso 336</th>
           <th>Piso 360</th>
-          <th>Piso 30</th>
-          <th>Piso 1</th>
           <th>Total Unidades</th>
         </tr>
       </thead>
@@ -488,31 +486,94 @@ function IngresoHuevos() {
       <tbody>
         {["Grande", "Mediano", "Pequeño", "Otros"].map(t => {
 
-          const fila = grupo.datos?.[t] || crearFila();
+          const fila = grupo.datos?.[t] || {
+            nido336: 0,
+            nido360: 0,
+            piso336: 0,
+            piso360: 0
+          };
+
+          const total =
+            (Number(fila.nido336) || 0) * 336 +
+            (Number(fila.nido360) || 0) * 360 +
+            (Number(fila.piso336) || 0) * 336 +
+            (Number(fila.piso360) || 0) * 360;
 
           return (
             <tr key={t}>
-              <td style={{ textAlign: "left" }}>{t}</td>
 
-              {["nido360", "nido30", "nido1", "piso360", "piso30", "piso1"].map(campo => (
-                <td key={campo}>
-                  <input
-                    type="number"
-                    value={fila[campo]}
-                    onChange={(e) =>
-                      actualizarTabla(
-                        grupo.id,
-                        t,
-                        campo,
-                        e.target.value
-                      )
-                    }
-                  />
-                </td>
-              ))}
+              {/* TAMAÑO */}
+              <td style={{ textAlign: "left" }}>
+                {t}
+              </td>
 
+              {/* NIDO 336 */}
               <td>
-                {calcularTotalFila(fila)}
+                <input
+                  type="number"
+                  value={fila.nido336}
+                  onChange={(e) =>
+                    actualizarTabla(
+                      grupo.id,
+                      t,
+                      "nido336",
+                      e.target.value
+                    )
+                  }
+                />
+              </td>
+
+              {/* NIDO 360 */}
+              <td>
+                <input
+                  type="number"
+                  value={fila.nido360}
+                  onChange={(e) =>
+                    actualizarTabla(
+                      grupo.id,
+                      t,
+                      "nido360",
+                      e.target.value
+                    )
+                  }
+                />
+              </td>
+
+              {/* PISO 336 */}
+              <td>
+                <input
+                  type="number"
+                  value={fila.piso336}
+                  onChange={(e) =>
+                    actualizarTabla(
+                      grupo.id,
+                      t,
+                      "piso336",
+                      e.target.value
+                    )
+                  }
+                />
+              </td>
+
+              {/* PISO 360 */}
+              <td>
+                <input
+                  type="number"
+                  value={fila.piso360}
+                  onChange={(e) =>
+                    actualizarTabla(
+                      grupo.id,
+                      t,
+                      "piso360",
+                      e.target.value
+                    )
+                  }
+                />
+              </td>
+
+              {/* TOTAL UNIDADES */}
+              <td>
+                {total}
               </td>
 
             </tr>
