@@ -32,12 +32,9 @@ function IngresoHuevos() {
   // CREAR FILA
   // =========================
   const crearFila = () => ({
-    nido360: 0,
-    nido30: 0,
-    nido1: 0,
-    piso360: 0,
-    piso30: 0,
-    piso1: 0
+    cajaC360: 0,
+    carton30: 0,
+    unidades: 0
   });
 
   // =========================
@@ -126,14 +123,11 @@ function IngresoHuevos() {
       );
     }
   
-    // COMERCIAL (se queda igual que antes)
+    // COMERCIAL
     return (
-      (fila?.nido360 || 0) * 360 +
-      (fila?.nido30 || 0) * 30 +
-      (fila?.nido1 || 0) * 1 +
-      (fila?.piso360 || 0) * 360 +
-      (fila?.piso30 || 0) * 30 +
-      (fila?.piso1 || 0) * 1
+      (fila?.cajaC360 || 0) * 360 +
+      (fila?.carton30 || 0) * 30 +
+      (fila?.unidades || 0) * 1     
     );
   };
 
@@ -417,12 +411,9 @@ function IngresoHuevos() {
       <thead>
         <tr>
           <th>Tamaño</th>
-          <th>Nido 360</th>
-          <th>Nido 30</th>
-          <th>Nido 1</th>
-          <th>Piso 360</th>
-          <th>Piso 30</th>
-          <th>Piso 1</th>
+          <th>Caja C 360</th>
+          <th>Cartón 30</th>
+          <th>Unidades</th>
           <th>Total Unidades</th>
         </tr>
       </thead>
@@ -445,7 +436,7 @@ function IngresoHuevos() {
             <tr key={t}>
               <td>{t}</td>
 
-              {["nido360", "nido30", "nido1", "piso360", "piso30", "piso1"].map(campo => (
+              {["cajaC360", "carton30", "unidades"].map(campo => (
                 <td key={campo}>
                   <input
                     type="number"
