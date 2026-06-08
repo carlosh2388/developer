@@ -261,7 +261,7 @@ function IngresoHuevos() {
                   </thead>
 
                   <tbody>
-                    {["Grande", "Mediano", "Pequeño", "Otros"].map(t => {
+                    {["Grande (Nido)", "Mediano (Nido)", "Pequeño (Nido)", "Otros* (Nido)", "Otros* (Piso)"].map(t => {
                       const fila = grupo.datos?.[t] || crearFila();
 
                       return (
@@ -288,8 +288,8 @@ function IngresoHuevos() {
                 </table>
 
                 {/* 👇 NOTA FINAL */}
-                <div style={{ marginTop: 10, fontWeight: "bold" }}>
-                  Otros = Pruebas, Lijado, Deforme y Traslucido
+                <div style={{ marginTop: 10}}>
+                  Otros* = Pruebas, Lijado, Deforme y Traslucido
                 </div>
               </div>
             )}
