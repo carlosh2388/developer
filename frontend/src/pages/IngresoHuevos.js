@@ -41,7 +41,7 @@ function IngresoHuevos() {
   });
 
   // =========================
-  // CREAR CLASIFICACIÓN (ACTUALIZADO)
+  // CREAR CLASIFICACIÓN
   // =========================
   const crearGrupo = () => ({
     id: Date.now() + Math.random(),
@@ -50,7 +50,7 @@ function IngresoHuevos() {
     lote: lotes[0],
     recolector: "",
     clasificador: "",
-    peso: 0, // 👈 NUEVO CAMPO
+    peso: 0, 
     datos: {}
   });
 
@@ -245,7 +245,8 @@ function IngresoHuevos() {
         {/* BODY */}
         {grupo.abierto && (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            {grupo.tipo && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
 
               {/* RECOLECTOR */}
               <div>
@@ -290,11 +291,20 @@ function IngresoHuevos() {
                 </div>
               )}
             </div>
+           )}
 
 {/* ========================= TABLA SEGÚN TIPO ========================= */}
 {!grupo.tipo ? null : grupo.tipo === "Incubable" ? (
 
   /* ========================= INCUBABLE ========================= */
+  
+  
+  
+  
+  
+  
+  
+  
   <div style={{ marginTop: "15px", overflowX: "auto" }}>
     <table style={{ width: "100%", borderCollapse: "collapse" }}>
       <thead>
