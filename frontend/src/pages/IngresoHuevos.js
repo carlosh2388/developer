@@ -186,12 +186,49 @@ function IngresoHuevos() {
           </div>
 
           {/* BOTONES */}
-          <div>
-            <button onClick={() => toggleGrupo(grupo.id)}>
-              {grupo.abierto ? "-" : "+"}
-            </button>
-            <button onClick={() => eliminarGrupo(grupo.id)}>X</button>
-          </div>
+            <div style={{ display: "flex", gap: "6px" }}>
+            
+              {/* BOTÓN TOGGLE (+ / -) */}
+              <button
+                type="button"
+                onClick={() => toggleGrupo(grupo.id)}
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "6px",
+                  border: "none",
+                  cursor: "pointer",
+                  background: grupo.abierto ? "#f0ad4e" : "#5bc0de",
+                  color: "white",
+                  fontWeight: "bold",
+                  fontSize: "16px"
+                }}
+                title={grupo.abierto ? "Colapsar" : "Expandir"}
+              >
+                {grupo.abierto ? "−" : "+"}
+              </button>
+            
+              {/* BOTÓN ELIMINAR (X) */}
+              <button
+                type="button"
+                onClick={() => eliminarGrupo(grupo.id)}
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "6px",
+                  border: "none",
+                  cursor: "pointer",
+                  background: "#d9534f",
+                  color: "white",
+                  fontWeight: "bold",
+                  fontSize: "16px"
+                }}
+                title="Eliminar grupo"
+              >
+                X
+              </button>
+            
+            </div>
         </div>
 
         {/* BODY */}
@@ -252,68 +289,93 @@ function IngresoHuevos() {
       <thead>
         <tr>
           <th>Tamaño</th>
-          <th>Nido 336</th>
-          <th>Nido 360</th>
-          <th>Piso 336</th>
-          <th>Piso 360</th>
+          <th>Caja B 336</th>
+          <th>Caja C 360</th>
+          <th>Bandeja 84</th>
+          <th>Cartón 30</th>
+          <th>Unidades</th>
           <th>Total Unidades</th>
         </tr>
       </thead>
-
+      
       <tbody>
-        {["Grande", "Mediano", "Pequeño", "Otros"].map(t => {
+        {["Grande (Nido)", "Mediano (Nido)", "Pequeño (Nido)", "Otros* (Nido)", "Otros* (Piso)"].map(t => {
           const fila = grupo.datos?.[t] || {
-            nido336: 0,
-            nido360: 0,
-            piso336: 0,
-            piso360: 0
+            cajaB336: 0,
+            cajaC360: 0,
+            bandeja84: 0,
+            carton30: 0,
+            unidades: 0
           };
-
+      
+          const total =
+            (Number(fila.cajaB336) || 0) * 336 +
+            (Number(fila.cajaC360) || 0) * 360 +
+            (Number(fila.bandeja84) || 0) * 84 +
+            (Number(fila.carton30) || 0) * 30 +
+            (Number(fila.unidades) || 0) * 1;
+      
           return (
             <tr key={t}>
               <td>{t}</td>
-
+      
+              {/* Caja B 336 */}
               <td>
                 <input
                   type="number"
-                  value={fila.nido336}
+                  value={fila.cajaB336}
                   onChange={(e) =>
-                    actualizarTabla(grupo.id, t, "nido336", e.target.value)
+                    actualizarTabla(grupo.id, t, "cajaB336", e.target.value)
                   }
                 />
               </td>
-
+      
+              {/* Caja C 360 */}
               <td>
                 <input
                   type="number"
-                  value={fila.nido360}
+                  value={fila.cajaC360}
                   onChange={(e) =>
-                    actualizarTabla(grupo.id, t, "nido360", e.target.value)
+                    actualizarTabla(grupo.id, t, "cajaC360", e.target.value)
                   }
                 />
               </td>
-
+      
+              {/* Bandeja 84 */}
               <td>
                 <input
                   type="number"
-                  value={fila.piso336}
+                  value={fila.bandeja84}
                   onChange={(e) =>
-                    actualizarTabla(grupo.id, t, "piso336", e.target.value)
+                    actualizarTabla(grupo.id, t, "bandeja84", e.target.value)
                   }
                 />
               </td>
-
+      
+              {/* Cartón 30 */}
               <td>
                 <input
                   type="number"
-                  value={fila.piso360}
+                  value={fila.carton30}
                   onChange={(e) =>
-                    actualizarTabla(grupo.id, t, "piso360", e.target.value)
+                    actualizarTabla(grupo.id, t, "carton30", e.target.value)
                   }
                 />
               </td>
-
-              <td>{calcularTotalFila(fila, "incubable")}</td>
+      
+              {/* Unidades */}
+              <td>
+                <input
+                  type="number"
+                  value={fila.unidades}
+                  onChange={(e) =>
+                    actualizarTabla(grupo.id, t, "unidades", e.target.value)
+                  }
+                />
+              </td>
+      
+              {/* Total */}
+              <td>{total}</td>
             </tr>
           );
         })}
