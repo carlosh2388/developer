@@ -243,63 +243,148 @@ function IngresoHuevos() {
               )}
             </div>
 
-            {/* TABLA INCUBABLE */}
-            {grupo.tipo === "Incubable" && (
-              <div style={{ marginTop: 15, overflowX: "auto" }}>
-                <table style={{ width: "100%" }}>
-                  <thead>
-                    <tr>
-                      <th>Tamaño</th>
-                      <th>Nido 360</th>
-                      <th>Nido 30</th>
-                      <th>Nido 1</th>
-                      <th>Piso 360</th>
-                      <th>Piso 30</th>
-                      <th>Piso 1</th>
-                      <th>Total</th>
-                    </tr>
-                  </thead>
+{/* ========================= TABLA SEGÚN TIPO ========================= */}
+{!grupo.tipo ? null : grupo.tipo === "Incubable" ? (
 
-                  <tbody>
-                    {["Grande (Nido)", "Mediano (Nido)", "Pequeño (Nido)", "Otros* (Nido)", "Otros* (Piso)"].map(t => {
-                      const fila = grupo.datos?.[t] || crearFila();
+  /* ========================= INCUBABLE ========================= */
+  <div style={{ marginTop: "15px", overflowX: "auto" }}>
+    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <thead>
+        <tr>
+          <th>Tamaño</th>
+          <th>Nido 336</th>
+          <th>Nido 360</th>
+          <th>Piso 336</th>
+          <th>Piso 360</th>
+          <th>Total Unidades</th>
+        </tr>
+      </thead>
 
-                      return (
-                        <tr key={t}>
-                          <td>{t}</td>
+      <tbody>
+        {["Grande", "Mediano", "Pequeño", "Otros"].map(t => {
+          const fila = grupo.datos?.[t] || {
+            nido336: 0,
+            nido360: 0,
+            piso336: 0,
+            piso360: 0
+          };
 
-                          {["nido360","nido30","nido1","piso360","piso30","piso1"].map(campo => (
-                            <td key={campo}>
-                              <input
-                                type="number"
-                                value={fila[campo]}
-                                onChange={(e) =>
-                                  actualizarTabla(grupo.id, t, campo, e.target.value)
-                                }
-                              />
-                            </td>
-                          ))}
+          return (
+            <tr key={t}>
+              <td>{t}</td>
 
-                          <td>{calcularTotalFila(fila)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <td>
+                <input
+                  type="number"
+                  value={fila.nido336}
+                  onChange={(e) =>
+                    actualizarTabla(grupo.id, t, "nido336", e.target.value)
+                  }
+                />
+              </td>
 
-                {/* 👇 NOTA FINAL */}
-                <div style={{ marginTop: 10}}>
-                  Otros* = Pruebas, Lijado, Deforme y Traslucido
-                </div>
-              </div>
-            )}
+              <td>
+                <input
+                  type="number"
+                  value={fila.nido360}
+                  onChange={(e) =>
+                    actualizarTabla(grupo.id, t, "nido360", e.target.value)
+                  }
+                />
+              </td>
 
-            {/* COMERCIAL (sin tabla por ahora) */}
-            {grupo.tipo === "Comercial" && (
-              <div style={{ marginTop: 10 }}>
-                <b>Clasificación Comercial sin desglose de tabla</b>
-              </div>
-            )}
+              <td>
+                <input
+                  type="number"
+                  value={fila.piso336}
+                  onChange={(e) =>
+                    actualizarTabla(grupo.id, t, "piso336", e.target.value)
+                  }
+                />
+              </td>
+
+              <td>
+                <input
+                  type="number"
+                  value={fila.piso360}
+                  onChange={(e) =>
+                    actualizarTabla(grupo.id, t, "piso360", e.target.value)
+                  }
+                />
+              </td>
+
+              <td>{calcularTotalFila(fila, "incubable")}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+
+    {/* NOTA FINAL */}
+    <div style={{ marginTop: 10, fontWeight: "bold" }}>
+      Otros = Pruebas, Lijado, Deforme y Traslúcido
+    </div>
+  </div>
+
+) : (
+
+  /* ========================= COMERCIAL (ANTES “OTROS”) ========================= */
+  <div style={{ marginTop: "15px", overflowX: "auto" }}>
+    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <thead>
+        <tr>
+          <th>Tamaño</th>
+          <th>Nido 360</th>
+          <th>Nido 30</th>
+          <th>Nido 1</th>
+          <th>Piso 360</th>
+          <th>Piso 30</th>
+          <th>Piso 1</th>
+          <th>Total Unidades</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {[
+          "Extra Grande",
+          "Grande",
+          "Mediano",
+          "Pequeño",
+          "Pewee",
+          "Sucio",
+          "Quebrado",
+          "Pálido",
+          "Otros"
+        ].map(t => {
+          const fila = grupo.datos?.[t] || crearFila();
+
+          return (
+            <tr key={t}>
+              <td>{t}</td>
+
+              {["nido360", "nido30", "nido1", "piso360", "piso30", "piso1"].map(campo => (
+                <td key={campo}>
+                  <input
+                    type="number"
+                    value={fila[campo]}
+                    onChange={(e) =>
+                      actualizarTabla(grupo.id, t, campo, e.target.value)
+                    }
+                  />
+                </td>
+              ))}
+
+              <td>{calcularTotalFila(fila, "normal")}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+)}
+
+
+                
           </>
         )}
       </div>
