@@ -1031,33 +1031,37 @@ return (
 
         {/* ESTILOS */}
 
-        <style>
-          {`
-            th {
-              text-align:center;
-              padding:6px;
-              font-weight:600;
-            }
+<style>
+  {`
+    table {
+      width: 100%;
+    }
 
-            td {
-              padding:4px;
-              text-align:center;
-            }
+    th {
+      text-align: center;
+      padding: 6px;
+      font-weight: 600;
+    }
 
-            td:first-child {
-              text-align:left;
-              font-weight:500;
-            }
+    td {
+      padding: 4px;
+      text-align: center;
+    }
 
-            input {
-              width:70px;
-            }
+    td:first-child {
+      text-align: left;
+      font-weight: 500;
+    }
 
-            select {
-              width:100%;
-            }
-          `}
-        </style>
+    input {
+      width: 70px;
+    }
+
+    select {
+      width: 100%;
+    }
+  `}
+</style>
 
       </>
 
