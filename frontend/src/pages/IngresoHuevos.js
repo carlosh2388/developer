@@ -147,7 +147,9 @@ function IngresoHuevos() {
   // =========================
   const renderGrupo = (grupo) => {
     const totalGrupo = calcularTotalGrupo(grupo);
-
+    const totalNido = calcularSubTotal(grupo, "(Nido)");
+    const totalPiso = calcularSubTotal(grupo, "(Piso)");
+    
     return (
       <div key={grupo.id} style={{ border: "1px solid #ddd", padding: 15, marginBottom: 15 }}>
 
@@ -183,11 +185,54 @@ function IngresoHuevos() {
               </select>
             </div>
 
+            const filasComercial = [
+  "Extra-Grande-Mediano (Nido)",
+  "Pequeño (Nido)",
+  "Pewee (Nido)",
+  "Sucio (Nido)",
+  "Quebrado (Nido)",
+  "Pálido Rojo (Nido)",
+  "Con Sangre (Nido)",
+  "Sucio (Piso)",
+  "Quebrado (Piso)",
+  "Bueno (Piso)"
+];
+
+const calcularSubTotal = (grupo, filtro) => {
+  const tipos = grupo.datos || {};
+  let total = 0;
+
+  Object.keys(tipos).forEach(k => {
+    if (k.includes(filtro)) {
+      total += calcularTotalFila(tipos[k], "Comercial");
+    }
+  });
+
+  return total;
+};
+
             {/* TOTAL */}
             <div>
               <label>Total</label>
               <div>{totalGrupo}</div>
             </div>
+
+            {/* NIDO (solo Comercial) */}
+            {grupo.tipo === "Comercial" && (
+              <div>
+                <label>Nido</label>
+                <div>{totalNido}</div>
+              </div>
+            )}
+            
+            {/* PISO (solo Comercial) */}
+            {grupo.tipo === "Comercial" && (
+              <div>
+                <label>Piso</label>
+                <div>{totalPiso}</div>
+              </div>
+            )}
+            
           </div>
 
           {/* BOTONES */}
