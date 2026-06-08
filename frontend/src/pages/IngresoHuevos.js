@@ -270,7 +270,7 @@ function IngresoHuevos() {
                 </select>
               </div>
 
-              {/* 👇 NUEVO: PESO (solo Incubable) */}
+              {/* PESO (solo Incubable) */}
               {grupo.tipo === "Incubable" && (
                 <div>
                   <label>Peso (gramos)</label>
@@ -291,14 +291,7 @@ function IngresoHuevos() {
 {!grupo.tipo ? null : grupo.tipo === "Incubable" ? (
 
   /* ========================= INCUBABLE ========================= */
-  
-  
-  
-  
-  
-  
-  
-  
+ 
   <div style={{ marginTop: "15px", overflowX: "auto" }}>
     <table style={{ width: "100%", borderCollapse: "collapse" }}>
       <thead>
@@ -405,7 +398,7 @@ function IngresoHuevos() {
 
 ) : (
 
-  /* ========================= COMERCIAL (ANTES “OTROS”) ========================= */
+  /* ========================= COMERCIAL ========================= */
   <div style={{ marginTop: "15px", overflowX: "auto" }}>
     <table style={{ width: "100%", borderCollapse: "collapse" }}>
       <thead>
@@ -420,15 +413,13 @@ function IngresoHuevos() {
 
       <tbody>
         {[
-          "Extra Grande",
-          "Grande",
-          "Mediano",
-          "Pequeño",
-          "Pewee",
-          "Sucio",
-          "Quebrado",
-          "Pálido",
-          "Otros"
+          "Extra-Grande-Mediano (Nido)",
+          "Pequeño (Nido)",
+          "Pewee (Nido)",
+          "Sucio (Nido)",
+          "Quebrado (Nido)",
+          "Pálido Rojo (Nido)",
+          "Con Sangre (Nido)"
         ].map(t => {
           const fila = grupo.datos?.[t] || crearFila();
 
