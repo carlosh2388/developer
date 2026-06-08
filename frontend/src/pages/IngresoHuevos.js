@@ -419,7 +419,10 @@ function IngresoHuevos() {
           "Sucio (Nido)",
           "Quebrado (Nido)",
           "Pálido Rojo (Nido)",
-          "Con Sangre (Nido)"
+          "Con Sangre (Nido)",
+          "Sucio (Piso)",
+          "Quebrado (Piso)",    
+          "Bueno (Piso)"
         ].map(t => {
           const fila = grupo.datos?.[t] || crearFila();
 
