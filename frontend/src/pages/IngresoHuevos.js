@@ -146,9 +146,6 @@ function IngresoHuevos() {
   // RENDER GRUPO
   // =========================
   const renderGrupo = (grupo) => {
-    const totalGrupo = calcularTotalGrupo(grupo);
-    const totalNido = calcularSubTotal(grupo, "(Nido)");
-    const totalPiso = calcularSubTotal(grupo, "(Piso)");
 
     const filasComercial = [
   "Extra-Grande-Mediano (Nido)",
@@ -175,6 +172,12 @@ const calcularSubTotal = (grupo, filtro) => {
 
   return total;
 };
+    
+    
+    const totalGrupo = calcularTotalGrupo(grupo);
+    const totalNido = calcularSubTotal(grupo, "(Nido)");
+    const totalPiso = calcularSubTotal(grupo, "(Piso)");
+
 
     
     
