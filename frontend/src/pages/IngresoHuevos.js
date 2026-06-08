@@ -116,6 +116,17 @@ function IngresoHuevos() {
   // TOTAL
   // =========================
   const calcularTotalFila = (fila, tipo) => {
+    if (tipo === "Incubable") {
+      return (
+        (Number(fila?.cajaB336) || 0) * 336 +
+        (Number(fila?.cajaC360) || 0) * 360 +
+        (Number(fila?.bandeja84) || 0) * 84 +
+        (Number(fila?.carton30) || 0) * 30 +
+        (Number(fila?.unidades) || 0) * 1
+      );
+    }
+  
+    // COMERCIAL (se queda igual que antes)
     return (
       (fila?.nido360 || 0) * 360 +
       (fila?.nido30 || 0) * 30 +
@@ -129,11 +140,11 @@ function IngresoHuevos() {
   const calcularTotalGrupo = (grupo) => {
     const tipos = grupo.datos || {};
     let total = 0;
-
+  
     Object.keys(tipos).forEach(k => {
       total += calcularTotalFila(tipos[k], grupo.tipo);
     });
-
+  
     return total;
   };
 
