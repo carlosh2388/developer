@@ -202,10 +202,7 @@ function Productos() {
                 style={inputStyle}
               />
 
-              <small>
-                {helpId}
-              </small>
-            </div>
+               </div>
 
             {/* UNIDAD */}
             <div style={{ flex: 1 }}>
