@@ -135,7 +135,7 @@ function Productos() {
       }}
     >
       <h2>
-        Registro de Productos
+        Productos
       </h2>
 
       {/* TIPO INVENTARIO */}
