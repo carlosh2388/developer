@@ -29,21 +29,20 @@ function App() {
 
       case "lotes":
         return <Lotes />;
-
+	
+	  case "localidades":
+        return <Localidades />;
+			
       case "bodegas":
         return <Bodegas />;
-	
-	    case "localidades":
-        return <Localidades />;
 
-	    case "productos":
+	  case "productos":
         return <Productos />;
         
-	    case "clientes":
+	  case "clientes":
         return <Clientes />;
 
-
-	    case "controlAlimento":
+	  case "controlAlimento":
         return <ControlAlimento />;
 
       case "controlPesoAves":
@@ -52,8 +51,7 @@ function App() {
       case "controlPesoHuevos":
         return <ControlPesoHuevos />;
       
-
-	    case "ingresoHuevos":
+	  case "ingresoHuevos":
         return <IngresoHuevos />;
 
       case "egresoHuevos":
