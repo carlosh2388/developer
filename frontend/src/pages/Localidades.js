@@ -1,91 +1,36 @@
 import { useEffect, useState } from "react";
 
 function Localidades() {
-
   // =========================
   // STATES
   // =========================
 
   const [fecha, setFecha] = useState("");
-
-  const [bodega, setBodega] = useState("");
-
   const [idLocalidad, setIdLocalidad] = useState("");
-
   const [nombreLocalidad, setNombreLocalidad] = useState("");
-
   const [estatus, setEstatus] = useState("Activo");
+  const [descripcion, setDescripcion] = useState("");
 
-  const [placeholder, setPlaceholder] =
-    useState("Ej: TRA, INV, HIN...");
-
-  // =========================
-  // CATÁLOGOS
-  // =========================
-
-  const localidadesBI = [
-    "TRA",
-    "HIN",
-    "HCO",
-    "VYA",
-    "PB1",
-    "PB2",
-    "PBV",
-    "PBD",
-    "PR1",
-    "PR2",
-    "PRV",
-    "PRD",
-    "VMA"
-  ];
-
-  const localidadesGenerales = [
-    "TRA",
-    "INV"
-  ];
+  const [placeholder] =
+    useState("LOC-XXX");
 
   // =========================
   // FECHA AUTOMÁTICA
   // =========================
 
   useEffect(() => {
-
     const hoy = new Date()
       .toISOString()
       .split("T")[0];
 
     setFecha(hoy);
-
   }, []);
-
-  // =========================
-  // CAMBIO BODEGA
-  // =========================
-
-  const handleBodega = (e) => {
-
-    const value = e.target.value;
-
-    setBodega(value);
-
-    if (value === "BI") {
-
-      setPlaceholder(
-        "TRA, HIN, HCO, VYA..."
-      );
-
-    } else {
-
-      setPlaceholder("TRA o INV");
-    }
-  };
 
   // =========================
   // NORMALIZAR LOCALIDAD
   // =========================
 
   const handleIdLocalidad = (e) => {
-
     setIdLocalidad(
       e.target.value.toUpperCase()
     );
@@ -96,44 +41,21 @@ function Localidades() {
   // =========================
 
   const handleSubmit = (e) => {
-
     e.preventDefault();
-
-    let valido = false;
-
-    if (bodega === "BI") {
-
-      valido =
-        localidadesBI.includes(idLocalidad);
-
-    } else {
-
-      valido =
-        localidadesGenerales.includes(
-          idLocalidad
-        );
-    }
-
-    if (!valido) {
-
-      alert(
-        "Localidad no válida para la bodega seleccionada"
-      );
-
-      return;
-    }
 
     const data = {
       fecha,
-      bodega,
       idLocalidad,
       nombreLocalidad,
-      estatus
+      estatus,
+      descripcion
     };
 
     console.log(data);
 
-    alert("Localidad guardada correctamente");
+    alert(
+      "Localidad guardada correctamente"
+    );
   };
 
   // =========================
@@ -159,7 +81,6 @@ function Localidades() {
   // =========================
 
   return (
-
     <form
       onSubmit={handleSubmit}
       style={{
@@ -169,15 +90,14 @@ function Localidades() {
         fontFamily: "Arial"
       }}
     >
-
-      <h2>Registro de Localidades</h2>
+      <h2>
+        Registro de Localidades
+      </h2>
 
       {/* FILA 1 */}
       <div style={rowStyle}>
-
         {/* FECHA */}
         <div style={{ flex: 1 }}>
-
           <label>Fecha</label>
 
           <input
@@ -188,13 +108,13 @@ function Localidades() {
             }
             style={inputStyle}
           />
-
         </div>
 
         {/* ID LOCALIDAD */}
         <div style={{ flex: 1 }}>
-
-          <label>ID de Localidad</label>
+          <label>
+            ID de Localidad
+          </label>
 
           <input
             type="text"
@@ -203,12 +123,10 @@ function Localidades() {
             placeholder={placeholder}
             style={inputStyle}
           />
-
         </div>
 
         {/* ESTATUS */}
         <div style={{ flex: 1 }}>
-
           <label>Estatus</label>
 
           <select
@@ -218,7 +136,6 @@ function Localidades() {
             }
             style={inputStyle}
           >
-
             <option value="Activo">
               Activo
             </option>
@@ -226,17 +143,15 @@ function Localidades() {
             <option value="Inactivo">
               Inactivo
             </option>
-
           </select>
-
         </div>
-
       </div>
 
       {/* NOMBRE LOCALIDAD */}
       <div style={{ marginBottom: "15px" }}>
-
-        <label>Nombre de la Localidad</label>
+        <label>
+          Nombre de la Localidad
+        </label>
 
         <input
           type="text"
@@ -248,44 +163,25 @@ function Localidades() {
           }
           style={inputStyle}
         />
-
       </div>
 
-      {/* BODEGA */}
+      {/* DESCRIPCIÓN */}
       <div style={{ marginBottom: "15px" }}>
+        <label>
+          Descripción (opcional)
+        </label>
 
-        <label>Bodega a la que pertenece esta Localidad</label>
-
-        <select
-          value={bodega}
-          onChange={handleBodega}
+        <input
+          type="text"
+          value={descripcion}
+          onChange={(e) =>
+            setDescripcion(
+              e.target.value
+            )
+          }
           style={inputStyle}
-        >
-
-          <option value="">
-            Seleccione
-          </option>
-
-          <option value="BI">
-            BI - Bodega de Incubadora
-          </option>
-
-          <option value="BA">
-            BA - Bodega de Alimento
-          </option>
-
-          <option value="BH">
-            BH - Bodega de Huevo
-          </option>
-
-          <option value="BGR">
-            BGR - Bodega de Granja de Reproducción
-          </option>
-
-        </select>
-
+        />
       </div>
-
 
       <br />
       <br />
@@ -304,7 +200,6 @@ function Localidades() {
       >
         Guardar
       </button>
-
     </form>
   );
 }
