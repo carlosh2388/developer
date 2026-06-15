@@ -1,39 +1,28 @@
 import { useState } from "react";
 
 function Productos() {
-
   // =========================
   // STATES
   // =========================
 
   const [tipoInventario, setTipoInventario] = useState("");
-
   const [idProducto, setIdProducto] = useState("");
-
   const [nombre, setNombre] = useState("");
-
   const [unidad, setUnidad] = useState("");
-
   const [estado, setEstado] = useState("Activo");
-
+  const [precio, setPrecio] = useState("");
   const [existencia, setExistencia] = useState("");
 
   const [costo, setCosto] = useState("");
-
   const [presentacion, setPresentacion] = useState("");
-
   const [enfermedad, setEnfermedad] = useState("");
-
   const [dosis, setDosis] = useState("");
-
   const [tipo, setTipo] = useState("");
 
   const [mostrarGenerales, setMostrarGenerales] = useState(false);
-
   const [mostrarInsumos, setMostrarInsumos] = useState(false);
 
   const [helpId, setHelpId] = useState("");
-
   const [mostrarGuardar, setMostrarGuardar] = useState(false);
 
   // =========================
@@ -41,38 +30,36 @@ function Productos() {
   // =========================
 
   const handleTipo = (e) => {
-
     const value = e.target.value;
 
     setTipoInventario(value);
 
-    if (value) {
+    const prefijos = {
+      ADI: "ADI-XXX",
+      ALI: "ALI-XXX",
+      HCO: "HCO-XXX",
+      HIC: "HIC-XXX",
+      MAT: "MAT-XXX",
+      MED: "MED-XXX",
+      VAC: "VAC-XXX"
+    };
 
+    if (value) {
       setMostrarGenerales(true);
       setMostrarGuardar(true);
 
-      if (value === "INS") {
+      setHelpId(prefijos[value] || "");
 
+      if (value === "MED" || value === "VAC") {
         setMostrarInsumos(true);
-
-        setHelpId(
-          ""
-        );
-
       } else {
-
         setMostrarInsumos(false);
-
-        setHelpId(
-          ""
-        );
       }
-
     } else {
-
       setMostrarGenerales(false);
       setMostrarInsumos(false);
       setMostrarGuardar(false);
+      setHelpId("");
     }
   };
 
@@ -81,24 +68,9 @@ function Productos() {
   // =========================
 
   const handleIdProducto = (e) => {
-
-    let value = e.target.value
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, "");
-
-    if (value.length > 2)
-      value =
-        value.slice(0, 2) +
-        "-" +
-        value.slice(2);
-
-    if (value.length > 5)
-      value =
-        value.slice(0, 5) +
-        "-" +
-        value.slice(5, 8);
-
-    setIdProducto(value);
+    setIdProducto(
+      e.target.value.toUpperCase()
+    );
   };
 
   // =========================
@@ -106,16 +78,15 @@ function Productos() {
   // =========================
 
   const handleSubmit = (e) => {
-
     e.preventDefault();
 
     const data = {
-
       tipoInventario,
       idProducto,
       nombre,
       unidad,
       estado,
+      precio,
       existencia,
       costo,
       presentacion,
@@ -126,7 +97,9 @@ function Productos() {
 
     console.log(data);
 
-    alert("Producto guardado correctamente");
+    alert(
+      "Producto guardado correctamente"
+    );
   };
 
   // =========================
@@ -152,7 +125,6 @@ function Productos() {
   // =========================
 
   return (
-
     <form
       onSubmit={handleSubmit}
       style={{
@@ -162,99 +134,135 @@ function Productos() {
         fontFamily: "Arial"
       }}
     >
-
-      <h2>Registro de Productos (Inventario)</h2>
+      <h2>
+        Registro de Productos
+      </h2>
 
       {/* TIPO INVENTARIO */}
       <div style={{ marginBottom: "20px" }}>
-
-        <label>Tipo de Inventario</label>
+        <label>
+          Tipo de Inventario
+        </label>
 
         <select
           value={tipoInventario}
           onChange={handleTipo}
           style={inputStyle}
         >
-
           <option value="">
             Seleccione
           </option>
 
-          <option value="PT">
-            Producto Terminado
+          <option value="ADI">
+            Aditivos
           </option>
 
-          <option value="INS">
-            Vacunas, Medicamentos y Aditivos
+          <option value="ALI">
+            Alimento Balanceado
           </option>
 
+          <option value="HCO">
+            Huevo Comercial
+          </option>
+
+          <option value="HIC">
+            Huevo Incubable
+          </option>
+
+          <option value="MAT">
+            Materiales
+          </option>
+
+          <option value="MED">
+            Medicamentos
+          </option>
+
+          <option value="VAC">
+            Vacunas
+          </option>
         </select>
-
       </div>
 
       {/* CAMPOS GENERALES */}
       {mostrarGenerales && (
-
         <div>
-
           {/* FILA 1 */}
           <div style={rowStyle}>
-
             {/* ID PRODUCTO */}
             <div style={{ flex: 2 }}>
-
-              <label>Id de Producto</label>
+              <label>
+                Id de Producto
+              </label>
 
               <input
                 type="text"
                 value={idProducto}
                 onChange={handleIdProducto}
-                placeholder=""
+                placeholder={helpId}
                 style={inputStyle}
               />
 
-              <small>{helpId}</small>
-
+              <small>
+                {helpId}
+              </small>
             </div>
 
             {/* UNIDAD */}
             <div style={{ flex: 1 }}>
-
-              <label>Unidad de Medida</label>
+              <label>
+                Unidad de Medida
+              </label>
 
               <select
                 value={unidad}
                 onChange={(e) =>
-                  setUnidad(e.target.value)
+                  setUnidad(
+                    e.target.value
+                  )
                 }
                 style={inputStyle}
               >
-
                 <option value="">
                   Seleccione
                 </option>
 
-                <option value="UN">
-                  Unidad (UN)
+                <option value="Caja">
+                  Caja
                 </option>
 
-              </select>
+                <option value="Gramo">
+                  Gramo
+                </option>
 
+                <option value="Kilogramo">
+                  Kilogramo
+                </option>
+
+                <option value="Libra">
+                  Libra
+                </option>
+
+                <option value="Quintal">
+                  Quintal
+                </option>
+              </select>
             </div>
 
             {/* ESTADO */}
             <div style={{ flex: 1 }}>
-
-              <label>Estado</label>
+              <label>
+                Estado
+              </label>
 
               <select
                 value={estado}
                 onChange={(e) =>
-                  setEstado(e.target.value)
+                  setEstado(
+                    e.target.value
+                  )
                 }
                 style={inputStyle}
               >
-
                 <option value="Activo">
                   Activo
                 </option>
@@ -262,140 +270,164 @@ function Productos() {
                 <option value="Inactivo">
                   Inactivo
                 </option>
-
               </select>
-
             </div>
-
           </div>
 
           {/* FILA 2 */}
           <div style={rowStyle}>
-
             {/* NOMBRE */}
-            <div style={{ flex: 4 }}>
-
-              <label>Nombre del Producto</label>
+            <div style={{ flex: 3 }}>
+              <label>
+                Nombre del Producto
+              </label>
 
               <input
                 type="text"
                 value={nombre}
                 onChange={(e) =>
-                  setNombre(e.target.value)
+                  setNombre(
+                    e.target.value
+                  )
                 }
                 style={inputStyle}
               />
+            </div>
 
+            {/* PRECIO */}
+            <div style={{ flex: 1 }}>
+              <label>
+                Precio
+              </label>
+
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={precio}
+                onChange={(e) =>
+                  setPrecio(
+                    e.target.value
+                  )
+                }
+                placeholder="0.00"
+                style={inputStyle}
+              />
             </div>
 
             {/* EXISTENCIA */}
             <div style={{ flex: 1 }}>
-
-              <label>Existencia</label>
+              <label>
+                Existencia
+              </label>
 
               <input
                 type="number"
                 value={existencia}
                 onChange={(e) =>
-                  setExistencia(e.target.value)
+                  setExistencia(
+                    e.target.value
+                  )
                 }
                 placeholder="0"
                 style={inputStyle}
               />
-
             </div>
-
           </div>
-
         </div>
       )}
 
-      {/* CAMPOS INSUMOS */}
+      {/* CAMPOS MEDICAMENTOS Y VACUNAS */}
       {mostrarInsumos && (
-
         <div>
-
           {/* FILA 3 */}
           <div style={rowStyle}>
-
             <div style={{ flex: 1 }}>
-
-              <label>Costo</label>
+              <label>
+                Costo
+              </label>
 
               <input
                 type="number"
                 step="0.01"
                 value={costo}
                 onChange={(e) =>
-                  setCosto(e.target.value)
+                  setCosto(
+                    e.target.value
+                  )
                 }
                 style={inputStyle}
               />
-
             </div>
 
             <div style={{ flex: 1 }}>
-
-              <label>Presentación</label>
+              <label>
+                Presentación
+              </label>
 
               <input
                 type="text"
                 value={presentacion}
                 onChange={(e) =>
-                  setPresentacion(e.target.value)
+                  setPresentacion(
+                    e.target.value
+                  )
                 }
                 style={inputStyle}
               />
-
             </div>
-
           </div>
 
           {/* FILA 4 */}
           <div style={rowStyle}>
-
             <div style={{ flex: 1 }}>
-
-              <label>Enfermedad</label>
+              <label>
+                Enfermedad
+              </label>
 
               <input
                 type="text"
                 value={enfermedad}
                 onChange={(e) =>
-                  setEnfermedad(e.target.value)
+                  setEnfermedad(
+                    e.target.value
+                  )
                 }
                 style={inputStyle}
               />
-
             </div>
 
             <div style={{ flex: 1 }}>
-
-              <label>Dosis</label>
+              <label>
+                Dosis
+              </label>
 
               <input
                 type="text"
                 value={dosis}
                 onChange={(e) =>
-                  setDosis(e.target.value)
+                  setDosis(
+                    e.target.value
+                  )
                 }
                 style={inputStyle}
               />
-
             </div>
 
             <div style={{ flex: 1 }}>
-
-              <label>Tipo</label>
+              <label>
+                Tipo
+              </label>
 
               <select
                 value={tipo}
                 onChange={(e) =>
-                  setTipo(e.target.value)
+                  setTipo(
+                    e.target.value
+                  )
                 }
                 style={inputStyle}
               >
-
                 <option value="">
                   Seleccione
                 </option>
@@ -407,19 +439,14 @@ function Productos() {
                 <option value="Oleosa">
                   Oleosa
                 </option>
-
               </select>
-
             </div>
-
           </div>
-
         </div>
       )}
 
       {/* BOTÓN */}
       {mostrarGuardar && (
-
         <button
           type="submit"
           style={{
@@ -433,9 +460,7 @@ function Productos() {
         >
           Guardar
         </button>
-
       )}
-
     </form>
   );
 }
