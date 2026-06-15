@@ -1,31 +1,24 @@
 import { useEffect, useState } from "react";
 
 function Bodegas() {
-
   // =========================
   // STATES
   // =========================
 
   const [fecha, setFecha] = useState("");
-
   const [idBodega, setIdBodega] = useState("");
-
   const [nombreBodega, setNombreBodega] = useState("");
-
+  const [localidad, setLocalidad] = useState("Seleccione");
   const [estado, setEstado] = useState("Activo");
+  const [descripcion, setDescripcion] = useState("");
 
   // =========================
   // FECHA AUTOMÁTICA
   // =========================
 
   useEffect(() => {
-
-    const hoy = new Date()
-      .toISOString()
-      .split("T")[0];
-
+    const hoy = new Date().toISOString().split("T")[0];
     setFecha(hoy);
-
   }, []);
 
   // =========================
@@ -33,10 +26,7 @@ function Bodegas() {
   // =========================
 
   const handleIdBodega = (e) => {
-
-    setIdBodega(
-      e.target.value.toUpperCase()
-    );
+    setIdBodega(e.target.value.toUpperCase());
   };
 
   // =========================
@@ -44,18 +34,18 @@ function Bodegas() {
   // =========================
 
   const handleSubmit = (e) => {
-
     e.preventDefault();
 
     const data = {
       fecha,
       idBodega,
       nombreBodega,
-      estado
+      localidad,
+      estado,
+      descripcion
     };
 
     console.log(data);
-
     alert("Bodega guardada correctamente");
   };
 
@@ -82,7 +72,6 @@ function Bodegas() {
   // =========================
 
   return (
-
     <form
       onSubmit={handleSubmit}
       style={{
@@ -92,33 +81,54 @@ function Bodegas() {
         fontFamily: "Arial"
       }}
     >
-
       <h2>Registro de Bodega</h2>
 
       {/* FILA 1 */}
       <div style={rowStyle}>
-
         {/* FECHA */}
         <div style={{ flex: 1 }}>
-
           <label>Fecha</label>
-
           <input
             type="date"
             value={fecha}
-            onChange={(e) =>
-              setFecha(e.target.value)
-            }
+            onChange={(e) => setFecha(e.target.value)}
             style={inputStyle}
           />
-
         </div>
 
+        {/* LOCALIDAD */}
+        <div style={{ flex: 1 }}>
+          <label>Localidad</label>
+          <select
+            value={localidad}
+            onChange={(e) => setLocalidad(e.target.value)}
+            style={inputStyle}
+          >
+            <option value="Seleccione">Seleccione</option>
+            <option value="Granja">Granja</option>
+            <option value="Incubadora">Incubadora</option>
+          </select>
+        </div>
+
+        {/* ESTADO */}
+        <div style={{ flex: 1 }}>
+          <label>Estado</label>
+          <select
+            value={estado}
+            onChange={(e) => setEstado(e.target.value)}
+            style={inputStyle}
+          >
+            <option value="Activo">Activo</option>
+            <option value="Inactivo">Inactivo</option>
+          </select>
+        </div>
+      </div>
+
+      {/* FILA 2: ID + NOMBRE (ID primero) */}
+      <div style={rowStyle}>
         {/* ID BODEGA */}
         <div style={{ flex: 1 }}>
-
           <label>Id Bodega</label>
-
           <input
             type="text"
             value={idBodega}
@@ -126,50 +136,29 @@ function Bodegas() {
             placeholder="BOD-XXX"
             style={inputStyle}
           />
-
         </div>
 
-        {/* ESTADO */}
-        <div style={{ flex: 1 }}>
-
-          <label>Estado</label>
-
-          <select
-            value={estado}
-            onChange={(e) =>
-              setEstado(e.target.value)
-            }
+        {/* NOMBRE BODEGA */}
+        <div style={{ flex: 2 }}>
+          <label>Nombre de la Bodega</label>
+          <input
+            type="text"
+            value={nombreBodega}
+            onChange={(e) => setNombreBodega(e.target.value)}
             style={inputStyle}
-          >
-
-            <option value="Activo">
-              Activo
-            </option>
-
-            <option value="Inactivo">
-              Inactivo
-            </option>
-
-          </select>
-
+          />
         </div>
-
       </div>
 
-      {/* NOMBRE */}
+      {/* FILA 3: DESCRIPCIÓN */}
       <div style={{ marginBottom: "20px" }}>
-
-        <label>Nombre de la Bodega</label>
-
+        <label>Descripción (opcional)</label>
         <input
           type="text"
-          value={nombreBodega}
-          onChange={(e) =>
-            setNombreBodega(e.target.value)
-          }
+          value={descripcion}
+          onChange={(e) => setDescripcion(e.target.value)}
           style={inputStyle}
         />
-
       </div>
 
       {/* BOTÓN */}
@@ -186,7 +175,6 @@ function Bodegas() {
       >
         Guardar
       </button>
-
     </form>
   );
 }
