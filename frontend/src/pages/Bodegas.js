@@ -123,7 +123,7 @@ function Bodegas() {
             type="text"
             value={idBodega}
             onChange={handleIdBodega}
-            placeholder="BA, BH, BGR, BI"
+            placeholder="BOD-XXX"
             style={inputStyle}
           />
 
