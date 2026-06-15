@@ -1,37 +1,28 @@
 import { useState } from "react";
 
 function Clientes() {
-
   // =========================
   // STATES
   // =========================
 
-  const [nit, setNit] = useState("");
-
+  const [codigoCliente, setCodigoCliente] = useState("");
   const [nombreComercial, setNombreComercial] = useState("");
-
-  const [direccionFiscal, setDireccionFiscal] = useState("");
-
   const [telefono, setTelefono] = useState("");
-
   const [correo, setCorreo] = useState("");
-
   const [contacto, setContacto] = useState("");
-
-  const [tipoCliente, setTipoCliente] = useState("");
-
-  const [precioAsignado, setPrecioAsignado] = useState("");
+  const [region, setRegion] = useState("");
+  const [categoria, setCategoria] = useState("");
+  const [precioCajaSuperNick, setPrecioCajaSuperNick] = useState("");
+  const [precioCajaBrownNick, setPrecioCajaBrownNick] = useState("");
 
   // =========================
   // FORMATO TELÉFONO
   // =========================
 
   const handleTelefono = (e) => {
-
     let value = e.target.value.replace(/\D/g, "");
 
     if (value.length > 4) {
-
       value =
         value.slice(0, 4) +
         "-" +
@@ -46,16 +37,13 @@ function Clientes() {
   // =========================
 
   const handleSubmit = (e) => {
-
     e.preventDefault();
 
     // VALIDAR TELÉFONO
     if (!/^\d{4}-\d{4}$/.test(telefono)) {
-
       alert(
         "El teléfono debe tener formato ####-####"
       );
-
       return;
     }
 
@@ -64,24 +52,22 @@ function Clientes() {
       correo &&
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)
     ) {
-
       alert(
         "Ingrese un correo electrónico válido"
       );
-
       return;
     }
 
     const data = {
-
-      nit,
+      codigoCliente,
       telefono,
       correo,
       contacto,
       nombreComercial,
-      direccionFiscal,
-      tipoCliente,
-      precioAsignado
+      region,
+      categoria,
+      precioCajaSuperNick,
+      precioCajaBrownNick
     };
 
     console.log(data);
@@ -131,7 +117,6 @@ function Clientes() {
   // =========================
 
   return (
-
     <form
       onSubmit={handleSubmit}
       style={{
@@ -141,36 +126,34 @@ function Clientes() {
         fontFamily: "Arial"
       }}
     >
-
       <h2>
         Registro de Clientes
       </h2>
 
-      {/* NIT + TELÉFONO + CORREO */}
+      {/* CÓDIGO CLIENTE + TELÉFONO + CORREO */}
       <div style={rowStyle}>
-
-        {/* NIT */}
+        {/* CÓDIGO CLIENTE */}
         <div>
-
           <label>
-            NIT
+            Código de Cliente
           </label>
 
           <input
             type="text"
-            value={nit}
+            value={codigoCliente}
             onChange={(e) =>
-              setNit(e.target.value)
+              setCodigoCliente(
+                e.target.value.toUpperCase()
+              )
             }
+            placeholder="CLI-001"
             style={inputStyle}
             required
           />
-
         </div>
 
         {/* TELÉFONO */}
         <div>
-
           <label>
             Teléfono
           </label>
@@ -184,12 +167,10 @@ function Clientes() {
             style={inputStyle}
             required
           />
-
         </div>
 
         {/* CORREO */}
         <div>
-
           <label>
             Correo Electrónico
           </label>
@@ -203,9 +184,7 @@ function Clientes() {
             placeholder="correo@ejemplo.com"
             style={inputStyle}
           />
-
         </div>
-
       </div>
 
       {/* CONTACTO */}
@@ -243,44 +222,58 @@ function Clientes() {
         required
       />
 
-      {/* DIRECCIÓN FISCAL */}
-      <label>
-        Dirección Fiscal
-      </label>
-
-      <input
-        type="text"
-        value={direccionFiscal}
-        onChange={(e) =>
-          setDireccionFiscal(e.target.value)
-        }
-        style={{
-          ...inputStyle,
-          marginBottom: "15px"
-        }}
-        required
-      />
-
-      {/* TIPO CLIENTE + PRECIO */}
+      {/* REGIÓN + CATEGORÍA */}
       <div style={doubleRowStyle}>
-
-        {/* TIPO CLIENTE */}
+        {/* REGIÓN */}
         <div>
-
           <label>
-            Tipo de Cliente
+            Región
           </label>
 
           <select
-            value={tipoCliente}
+            value={region}
             onChange={(e) =>
-              setTipoCliente(
+              setRegion(e.target.value)
+            }
+            style={inputStyle}
+          >
+            <option value="">
+              Seleccione
+            </option>
+
+            <option value="Norte">
+              Norte
+            </option>
+
+            <option value="Sur">
+              Sur
+            </option>
+
+            <option value="Este">
+              Este
+            </option>
+
+            <option value="Oeste">
+              Oeste
+            </option>
+          </select>
+        </div>
+
+        {/* CATEGORÍA */}
+        <div>
+          <label>
+            Categoría
+          </label>
+
+          <select
+            value={categoria}
+            onChange={(e) =>
+              setCategoria(
                 e.target.value
               )
             }
             style={inputStyle}
           >
-
             <option value="">
               Seleccione
             </option>
@@ -296,32 +289,49 @@ function Clientes() {
             <option value="Especial">
               Especial
             </option>
-
           </select>
-
         </div>
+      </div>
 
-        {/* PRECIO ASIGNADO */}
+      {/* PRECIOS */}
+      <div style={doubleRowStyle}>
+        {/* PRECIO CAJA SUPER NICK */}
         <div>
-
           <label>
-            Precio Asignado
+            Precio Caja Super Nick
           </label>
 
           <input
             type="number"
-            value={precioAsignado}
+            value={precioCajaSuperNick}
             onChange={(e) =>
-              setPrecioAsignado(
+              setPrecioCajaSuperNick(
                 e.target.value
               )
             }
             placeholder="0.00"
             style={inputStyle}
           />
-
         </div>
 
+        {/* PRECIO CAJA BROWN NICK */}
+        <div>
+          <label>
+            Precio Caja Brown Nick
+          </label>
+
+          <input
+            type="number"
+            value={precioCajaBrownNick}
+            onChange={(e) =>
+              setPrecioCajaBrownNick(
+                e.target.value
+              )
+            }
+            placeholder="0.00"
+            style={inputStyle}
+          />
+        </div>
       </div>
 
       {/* BOTÓN */}
@@ -329,11 +339,8 @@ function Clientes() {
         type="submit"
         style={buttonStyle}
       >
-
         Guardar
-
       </button>
-
     </form>
   );
 }
