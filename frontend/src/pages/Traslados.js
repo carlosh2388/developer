@@ -6,40 +6,31 @@ function Traslados() {
   // STATES
   // =========================
 
-  const [paso, setPaso] = useState(1);
+  const [fecha, setFecha] = useState("");
 
-  const [causaInicial, setCausaInicial] =
-    useState("");
-
-  const [fecha, setFecha] =
-    useState("");
-
-  const [lote] =
-    useState("REP-260401-1600");
-
-  const [hembras, setHembras] =
-    useState("");
-
-  const [machos, setMachos] =
-    useState("");
-
-  const [total, setTotal] =
-    useState(0);
-
-  const [causaFinal, setCausaFinal] =
-    useState("");
-
-  const [nuevaCausa, setNuevaCausa] =
-    useState("");
-
-  const [causas, setCausas] =
-    useState([]);
+  const [tipo, setTipo] = useState("");
 
   const [observaciones, setObservaciones] =
     useState("");
 
-  const [mostrarNuevaCausa, setMostrarNuevaCausa] =
+  const [causas, setCausas] = useState([]);
+
+  const [nuevaCausa, setNuevaCausa] =
+    useState("");
+
+  const [mostrarNuevaCausa,
+    setMostrarNuevaCausa] =
     useState(false);
+
+  const [filas, setFilas] = useState([
+    {
+      hembras: "",
+      machos: "",
+      total: 0,
+      lote: "",
+      causa: ""
+    }
+  ]);
 
   // =========================
   // FECHA AUTOMÁTICA
@@ -56,60 +47,95 @@ function Traslados() {
   }, []);
 
   // =========================
-  // CAMBIO TIPO TRASLADO
+  // AGREGAR FILA
   // =========================
 
-  const handleTipoTraslado = (e) => {
+  const agregarFila = () => {
 
-    const value = e.target.value;
+    setFilas([
+      ...filas,
+      {
+        hembras: "",
+        machos: "",
+        total: 0,
+        lote: "",
+        causa: ""
+      }
+    ]);
 
-    setCausaInicial(value);
-
-    if (value === "") {
-
-      setPaso(1);
-
-      return;
-    }
-
-    setPaso(2);
   };
 
   // =========================
-  // CALCULAR TOTAL
+  // ACTUALIZAR FILA
   // =========================
 
-  useEffect(() => {
+  const actualizarFila = (
+    index,
+    campo,
+    valor
+  ) => {
 
-    const h = parseInt(hembras) || 0;
+    const nuevasFilas = [...filas];
 
-    const m = parseInt(machos) || 0;
+    nuevasFilas[index][campo] = valor;
 
-    setTotal(h + m);
+    const hembras =
+      parseInt(
+        nuevasFilas[index].hembras
+      ) || 0;
 
-  }, [hembras, machos]);
+    const machos =
+      parseInt(
+        nuevasFilas[index].machos
+      ) || 0;
+
+    nuevasFilas[index].total =
+      hembras + machos;
+
+    setFilas(nuevasFilas);
+
+  };
 
   // =========================
-  // GUARDAR TRASLADO
+  // GUARDAR CAUSA
+  // =========================
+
+  const guardarNuevaCausa = () => {
+
+    if (!nuevaCausa.trim()) return;
+
+    setCausas([
+      ...causas,
+      nuevaCausa
+    ]);
+
+    setNuevaCausa("");
+
+    setMostrarNuevaCausa(false);
+
+  };
+
+  // =========================
+  // GUARDAR
   // =========================
 
   const guardar = () => {
 
     const data = {
 
-      causaInicial,
       fecha,
-      lote,
-      hembras,
-      machos,
-      total,
-      causaFinal,
+      tipo,
+      detalles: filas,
       observaciones
+
     };
 
     console.log(data);
 
-    alert("Traslado registrado correctamente");
+    alert(
+      "Egreso registrado correctamente"
+    );
+
   };
 
   // =========================
@@ -117,16 +143,21 @@ function Traslados() {
   // =========================
 
   const inputStyle = {
+
     width: "100%",
     padding: "8px",
     borderRadius: "5px",
     border: "1px solid #ccc"
+
   };
 
   const rowStyle = {
+
     display: "flex",
     gap: "10px",
-    marginBottom: "15px"
+    marginBottom: "15px",
+    alignItems: "flex-end"
+
   };
 
   // =========================
@@ -136,9 +167,8 @@ function Traslados() {
   return (
 
     <div
-      className="form-container"
       style={{
-        maxWidth: "750px",
+        maxWidth: "1200px",
         margin: "0 auto",
         padding: "20px",
         fontFamily: "Arial"
@@ -146,99 +176,75 @@ function Traslados() {
     >
 
       <h2>
-        Traslados (venta, mortandad, otros)
+        Egreso de Reproductores
       </h2>
 
-      {/* =========================
-          TIPO DE TRASLADO
-      ========================= */}
-      <div style={{ marginBottom: "15px" }}>
+      {/* FECHA + TIPO */}
 
-        <label>
-          Tipo de traslado
-        </label>
+      <div style={rowStyle}>
 
-        <select
-          value={causaInicial}
-          onChange={handleTipoTraslado}
-          style={inputStyle}
-        >
+        <div style={{ flex: 1 }}>
 
-          <option value="">
-            Seleccione
-          </option>
+          <label>
+            Fecha
+          </label>
 
-          <option value="Mortandad">
-            Mortandad
-          </option>
+          <input
+            type="date"
+            value={fecha}
+            onChange={(e) =>
+              setFecha(
+                e.target.value
+              )
+            }
+            style={inputStyle}
+          />
 
-          <option value="Venta">
-            Venta
-          </option>
+        </div>
 
-          <option value="Traslado">
-            Traslado
-          </option>
+        <div style={{ flex: 1 }}>
 
-          <option value="Otro">
-            Otro
-          </option>
+          <label>
+            Tipo
+          </label>
 
-        </select>
+          <select
+            value={tipo}
+            onChange={(e) =>
+              setTipo(
+                e.target.value
+              )
+            }
+            style={inputStyle}
+          >
+
+            <option value="">
+              Seleccione
+            </option>
+
+            <option value="Mortandad">
+              Mortandad
+            </option>
+
+            <option value="Venta">
+              Venta
+            </option>
+
+          </select>
+
+        </div>
 
       </div>
 
-      {/* =========================
-          PASO 2
-      ========================= */}
-      {paso === 2 && (
+      {/* FILAS DINÁMICAS */}
 
-        <div>
+      {filas.map(
+        (fila, index) => (
 
-          {/* FECHA Y LOTE */}
-          <div style={rowStyle}>
-
-            <div style={{ flex: 1 }}>
-
-              <label>
-                Fecha
-              </label>
-
-              <input
-                type="date"
-                value={fecha}
-                onChange={(e) =>
-                  setFecha(e.target.value)
-                }
-                style={inputStyle}
-              />
-
-            </div>
-
-            <div style={{ flex: 1 }}>
-
-              <label>
-                # Lote
-              </label>
-
-              <select
-                value={lote}
-                disabled
-                style={inputStyle}
-              >
-
-                <option>
-                  {lote}
-                </option>
-
-              </select>
-
-            </div>
-
-          </div>
-
-          {/* HEMBRAS, MACHOS Y TOTAL EN UNA LÍNEA */}
-          <div style={rowStyle}>
+          <div
+            key={index}
+            style={rowStyle}
+          >
 
             <div style={{ flex: 1 }}>
 
@@ -248,9 +254,13 @@ function Traslados() {
 
               <input
                 type="number"
-                value={hembras}
+                value={fila.hembras}
                 onChange={(e) =>
-                  setHembras(e.target.value)
+                  actualizarFila(
+                    index,
+                    "hembras",
+                    e.target.value
+                  )
                 }
                 style={inputStyle}
               />
@@ -265,9 +275,13 @@ function Traslados() {
 
               <input
                 type="number"
-                value={machos}
+                value={fila.machos}
                 onChange={(e) =>
-                  setMachos(e.target.value)
+                  actualizarFila(
+                    index,
+                    "machos",
+                    e.target.value
+                  )
                 }
                 style={inputStyle}
               />
@@ -281,184 +295,233 @@ function Traslados() {
               </label>
 
               <input
-                type="number"
-                value={total}
+                value={fila.total}
                 readOnly
                 style={inputStyle}
               />
 
             </div>
 
-          </div>
+            <div style={{ flex: 1 }}>
 
-          {/* CAUSA FINAL */}
-          <div style={{ marginBottom: "15px" }}>
-
-            <label>
-              Causa
-            </label>
-
-            <div
-              style={{
-                display: "flex",
-                gap: "10px",
-                alignItems: "center"
-              }}
-            >
+              <label>
+                # Lote
+              </label>
 
               <select
-                value={causaFinal}
+                value={fila.lote}
                 onChange={(e) =>
-                  setCausaFinal(e.target.value)
+                  actualizarFila(
+                    index,
+                    "lote",
+                    e.target.value
+                  )
                 }
-                style={{
-                  ...inputStyle,
-                  marginBottom: 0,
-                  flex: 1
-                }}
+                style={inputStyle}
               >
 
                 <option value="">
-                  Seleccione una causa
+                  Seleccione
                 </option>
 
-                {causas.map((c, i) => (
+                <option value="SL-001">
+                  SL-001
+                </option>
 
-                  <option key={i} value={c}>
-                    {c}
-                  </option>
-
-                ))}
+                <option value="BL-001">
+                  BL-001
+                </option>
 
               </select>
 
-              <button
-                type="button"
-                onClick={() =>
-                  setMostrarNuevaCausa(true)
-                }
-                style={{
-                  width: "35px",
-                  height: "35px",
-                  borderRadius: "5px",
-                  border: "none",
-                  backgroundColor: "#1976d2",
-                  color: "#fff",
-                  cursor: "pointer"
-                }}
-              >
-                +
-              </button>
-
             </div>
 
-          </div>
+            <div style={{ flex: 1 }}>
 
-          {/* NUEVA CAUSA */}
-          {mostrarNuevaCausa && (
+              <label>
+                Causa
+              </label>
 
-            <div
-              style={{
-                display: "flex",
-                gap: "10px",
-                marginBottom: "15px"
-              }}
-            >
-
-              <input
-                type="text"
-                value={nuevaCausa}
+              <select
+                value={fila.causa}
                 onChange={(e) =>
-                  setNuevaCausa(e.target.value)
+                  actualizarFila(
+                    index,
+                    "causa",
+                    e.target.value
+                  )
                 }
-                placeholder="Nueva causa"
-                style={{
-                  ...inputStyle,
-                  marginBottom: 0,
-                  flex: 1
-                }}
-              />
-
-              <button
-                type="button"
-                onClick={() => {
-
-                  if (!nuevaCausa.trim()) return;
-
-                  const nuevaLista = [
-                    ...causas,
-                    nuevaCausa
-                  ];
-
-                  setCausas(nuevaLista);
-
-                  setCausaFinal(nuevaCausa);
-
-                  setNuevaCausa("");
-
-                  setMostrarNuevaCausa(false);
-
-                }}
-                style={{
-                  padding: "0 15px",
-                  border: "none",
-                  backgroundColor: "#388e3c",
-                  color: "#fff",
-                  borderRadius: "5px",
-                  cursor: "pointer"
-                }}
+                style={inputStyle}
               >
-                Guardar
-              </button>
+
+                <option value="">
+                  Seleccione
+                </option>
+
+                {causas.map(
+                  (c, i) => (
+
+                    <option
+                      key={i}
+                      value={c}
+                    >
+                      {c}
+                    </option>
+
+                  )
+                )}
+
+              </select>
 
             </div>
 
-          )}
+            {/* NUEVA CAUSA */}
 
-          {/* OBSERVACIONES */}
-          <div style={{ marginBottom: "20px" }}>
-
-            <label>
-              Observaciones adicionales
-            </label>
-
-            <textarea
-              value={observaciones}
-              onChange={(e) =>
-                setObservaciones(e.target.value)
+            <button
+              type="button"
+              onClick={() =>
+                setMostrarNuevaCausa(
+                  true
+                )
               }
               style={{
-                width: "100%",
-                minHeight: "100px",
-                padding: "10px",
+                width: "35px",
+                height: "35px",
+                border: "none",
                 borderRadius: "5px",
-                border: "1px solid #ccc"
+                backgroundColor:
+                  "#388e3c",
+                color: "#fff",
+                cursor: "pointer"
               }}
-            />
+            >
+              +
+            </button>
+
+            {/* NUEVA FILA */}
+
+            <button
+              type="button"
+              onClick={agregarFila}
+              style={{
+                width: "35px",
+                height: "35px",
+                border: "none",
+                borderRadius: "5px",
+                backgroundColor:
+                  "#1976d2",
+                color: "#fff",
+                cursor: "pointer"
+              }}
+            >
+              +
+            </button>
 
           </div>
 
-          {/* BOTÓN GUARDAR */}
-          <button
-            onClick={guardar}
+        )
+      )}
+
+      {/* CREAR CAUSA */}
+
+      {mostrarNuevaCausa && (
+
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            marginBottom: "20px"
+          }}
+        >
+
+          <input
+            value={nuevaCausa}
+            onChange={(e) =>
+              setNuevaCausa(
+                e.target.value
+              )
+            }
+            placeholder="Nueva causa"
             style={{
-              padding: "10px 20px",
-              border: "none",
-              backgroundColor: "#1976d2",
+              ...inputStyle,
+              flex: 1
+            }}
+          />
+
+          <button
+            type="button"
+            onClick={
+              guardarNuevaCausa
+            }
+            style={{
+              padding: "0 15px",
+              backgroundColor:
+                "#388e3c",
               color: "#fff",
+              border: "none",
               borderRadius: "5px",
               cursor: "pointer"
             }}
           >
-            Guardar Traslado
+            Guardar
           </button>
 
         </div>
 
       )}
 
+      {/* OBSERVACIONES */}
+
+      <div
+        style={{
+          marginBottom: "20px"
+        }}
+      >
+
+        <label>
+          Observaciones
+        </label>
+
+        <textarea
+          value={observaciones}
+          onChange={(e) =>
+            setObservaciones(
+              e.target.value
+            )
+          }
+          style={{
+            width: "100%",
+            minHeight: "100px",
+            padding: "10px",
+            borderRadius: "5px",
+            border:
+              "1px solid #ccc"
+          }}
+        />
+
+      </div>
+
+      {/* GUARDAR */}
+
+      <button
+        onClick={guardar}
+        style={{
+          padding: "10px 20px",
+          backgroundColor:
+            "#1976d2",
+          color: "#fff",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer"
+        }}
+      >
+        Guardar Egreso
+      </button>
+
     </div>
+
   );
+
 }
 
 export default Traslados;
