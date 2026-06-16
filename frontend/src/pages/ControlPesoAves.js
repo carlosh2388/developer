@@ -42,7 +42,7 @@ function ControlPesoAves() {
     const hoy = new Date().toISOString().split("T")[0];
     setFecha(hoy);
 
-    setEtapas(["Crianza", "Levante", "Producción"]);
+    setEtapas(["Crianza", "Producción"]);
   }, []);
 
   // =========================
