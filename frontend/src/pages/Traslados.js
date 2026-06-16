@@ -7,19 +7,13 @@ function Traslados() {
   // =========================
 
   const [fecha, setFecha] = useState("");
-
   const [tipo, setTipo] = useState("");
-
-  const [observaciones, setObservaciones] =
-    useState("");
+  const [envio, setEnvio] = useState("");
+  const [observaciones, setObservaciones] = useState("");
 
   const [causas, setCausas] = useState([]);
-
-  const [nuevaCausa, setNuevaCausa] =
-    useState("");
-
-  const [mostrarNuevaCausa,
-    setMostrarNuevaCausa] =
+  const [nuevaCausa, setNuevaCausa] = useState("");
+  const [mostrarNuevaCausa, setMostrarNuevaCausa] =
     useState(false);
 
   const [filas, setFilas] = useState([
@@ -37,21 +31,27 @@ function Traslados() {
   // =========================
 
   useEffect(() => {
-
     const hoy = new Date()
       .toISOString()
       .split("T")[0];
 
     setFecha(hoy);
-
   }, []);
+
+  // =========================
+  // TOTAL GENERAL
+  // =========================
+
+  const totalGeneral = filas.reduce(
+    (acc, fila) => acc + (Number(fila.subtotal) || 0),
+    0
+  );
 
   // =========================
   // AGREGAR FILA
   // =========================
 
   const agregarFila = () => {
-
     setFilas([
       ...filas,
       {
@@ -62,7 +62,22 @@ function Traslados() {
         causa: ""
       }
     ]);
+  };
 
+  // =========================
+  // ELIMINAR FILA
+  // =========================
+
+  const eliminarFila = (index) => {
+
+    if (filas.length === 1) {
+      return;
+    }
+
+    const nuevasFilas =
+      filas.filter((_, i) => i !== index);
+
+    setFilas(nuevasFilas);
   };
 
   // =========================
@@ -93,11 +108,10 @@ function Traslados() {
       hembras + machos;
 
     setFilas(nuevasFilas);
-
   };
 
   // =========================
-  // GUARDAR CAUSA
+  // GUARDAR NUEVA CAUSA
   // =========================
 
   const guardarNuevaCausa = () => {
@@ -110,9 +124,7 @@ function Traslados() {
     ]);
 
     setNuevaCausa("");
-
     setMostrarNuevaCausa(false);
-
   };
 
   // =========================
@@ -125,6 +137,8 @@ function Traslados() {
 
       fecha,
       tipo,
+      envio,
+      totalGeneral,
       detalles: filas,
       observaciones
 
@@ -135,7 +149,6 @@ function Traslados() {
     alert(
       "Egreso registrado correctamente"
     );
-
   };
 
   // =========================
@@ -143,21 +156,17 @@ function Traslados() {
   // =========================
 
   const inputStyle = {
-
     width: "100%",
     padding: "8px",
     borderRadius: "5px",
     border: "1px solid #ccc"
-
   };
 
   const rowStyle = {
-
     display: "flex",
     gap: "10px",
     marginBottom: "15px",
     alignItems: "flex-end"
-
   };
 
   // =========================
@@ -179,45 +188,33 @@ function Traslados() {
         Egreso de Reproductores
       </h2>
 
-      {/* FECHA + TIPO */}
+      {/* FECHA + TIPO + TOTAL */}
 
       <div style={rowStyle}>
 
         <div style={{ flex: 1 }}>
-
-          <label>
-            Fecha
-          </label>
+          <label>Fecha</label>
 
           <input
             type="date"
             value={fecha}
             onChange={(e) =>
-              setFecha(
-                e.target.value
-              )
+              setFecha(e.target.value)
             }
             style={inputStyle}
           />
-
         </div>
 
         <div style={{ flex: 1 }}>
-
-          <label>
-            Tipo
-          </label>
+          <label>Tipo</label>
 
           <select
             value={tipo}
             onChange={(e) =>
-              setTipo(
-                e.target.value
-              )
+              setTipo(e.target.value)
             }
             style={inputStyle}
           >
-
             <option value="">
               Seleccione
             </option>
@@ -231,198 +228,219 @@ function Traslados() {
             </option>
 
           </select>
+        </div>
 
+        <div style={{ flex: 1 }}>
+          <label>Total</label>
+
+          <input
+            value={totalGeneral}
+            readOnly
+            style={inputStyle}
+          />
         </div>
 
       </div>
 
-      {/* FILAS DINÁMICAS */}
+      {/* FILAS SOLO SI EXISTE TIPO */}
 
-      {filas.map(
-        (fila, index) => (
+      {(tipo === "Mortandad" ||
+        tipo === "Venta") && (
 
-          <div
-            key={index}
-            style={rowStyle}
-          >
+        <>
+          {filas.map(
+            (fila, index) => (
 
-            <div style={{ flex: 1 }}>
-
-              <label>
-                Hembras
-              </label>
-
-              <input
-                type="number"
-                value={fila.hembras}
-                onChange={(e) =>
-                  actualizarFila(
-                    index,
-                    "hembras",
-                    e.target.value
-                  )
-                }
-                style={inputStyle}
-              />
-
-            </div>
-
-            <div style={{ flex: 1 }}>
-
-              <label>
-                Machos
-              </label>
-
-              <input
-                type="number"
-                value={fila.machos}
-                onChange={(e) =>
-                  actualizarFila(
-                    index,
-                    "machos",
-                    e.target.value
-                  )
-                }
-                style={inputStyle}
-              />
-
-            </div>
-
-            <div style={{ flex: 1 }}>
-
-              <label>
-                Sub-Total
-              </label>
-
-              <input
-                value={fila.subtotal}
-                readOnly
-                style={inputStyle}
-              />
-
-            </div>
-
-            <div style={{ flex: 1 }}>
-
-              <label>
-                # Lote
-              </label>
-
-              <select
-                value={fila.lote}
-                onChange={(e) =>
-                  actualizarFila(
-                    index,
-                    "lote",
-                    e.target.value
-                  )
-                }
-                style={inputStyle}
+              <div
+                key={index}
+                style={rowStyle}
               >
 
-                <option value="">
-                  Seleccione
-                </option>
+                <div style={{ flex: 0.5 }}>
+                  <label>
+                    Hembras
+                  </label>
 
-                <option value="SL-001">
-                  SL-001
-                </option>
+                  <input
+                    type="number"
+                    value={fila.hembras}
+                    onChange={(e) =>
+                      actualizarFila(
+                        index,
+                        "hembras",
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  />
+                </div>
 
-                <option value="BL-001">
-                  BL-001
-                </option>
+                <div style={{ flex: 0.5 }}>
+                  <label>
+                    Machos
+                  </label>
 
-              </select>
+                  <input
+                    type="number"
+                    value={fila.machos}
+                    onChange={(e) =>
+                      actualizarFila(
+                        index,
+                        "machos",
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  />
+                </div>
 
-            </div>
+                <div style={{ flex: 0.5 }}>
+                  <label>
+                    Sub-Total
+                  </label>
 
-            <div style={{ flex: 1 }}>
+                  <input
+                    value={fila.subtotal}
+                    readOnly
+                    style={inputStyle}
+                  />
+                </div>
 
-              <label>
-                Causa
-              </label>
+                <div style={{ flex: 1 }}>
+                  <label>
+                    # Lote
+                  </label>
 
-              <select
-                value={fila.causa}
-                onChange={(e) =>
-                  actualizarFila(
-                    index,
-                    "causa",
-                    e.target.value
-                  )
-                }
-                style={inputStyle}
-              >
-
-                <option value="">
-                  Seleccione
-                </option>
-
-                {causas.map(
-                  (c, i) => (
-
-                    <option
-                      key={i}
-                      value={c}
-                    >
-                      {c}
+                  <select
+                    value={fila.lote}
+                    onChange={(e) =>
+                      actualizarFila(
+                        index,
+                        "lote",
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  >
+                    <option value="">
+                      Seleccione
                     </option>
 
-                  )
-                )}
+                    <option value="SL-001">
+                      SL-001
+                    </option>
 
-              </select>
+                    <option value="BL-001">
+                      BL-001
+                    </option>
 
-            </div>
+                  </select>
+                </div>
 
-            {/* NUEVA CAUSA */}
+                <div style={{ flex: 1 }}>
+                  <label>
+                    Causa
+                  </label>
 
-            <button
-              type="button"
-              onClick={() =>
-                setMostrarNuevaCausa(
-                  true
-                )
-              }
-              style={{
-                width: "35px",
-                height: "35px",
-                border: "none",
-                borderRadius: "5px",
-                backgroundColor:
-                  "#388e3c",
-                color: "#fff",
-                cursor: "pointer"
-              }}
-            >
-              +
-            </button>
+                  <select
+                    value={fila.causa}
+                    onChange={(e) =>
+                      actualizarFila(
+                        index,
+                        "causa",
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  >
+                    <option value="">
+                      Seleccione
+                    </option>
 
-            {/* NUEVA FILA */}
+                    {causas.map(
+                      (c, i) => (
+                        <option
+                          key={i}
+                          value={c}
+                        >
+                          {c}
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
 
-            <button
-              type="button"
-              onClick={agregarFila}
-              style={{
-                width: "35px",
-                height: "35px",
-                border: "none",
-                borderRadius: "5px",
-                backgroundColor:
-                  "#1976d2",
-                color: "#fff",
-                cursor: "pointer"
-              }}
-            >
-              +
-            </button>
+                {/* NUEVA CAUSA */}
 
-          </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setMostrarNuevaCausa(
+                      true
+                    )
+                  }
+                  style={{
+                    width: "35px",
+                    height: "35px",
+                    border: "none",
+                    borderRadius: "5px",
+                    backgroundColor:
+                      "#388e3c",
+                    color: "#fff",
+                    cursor: "pointer"
+                  }}
+                >
+                  +
+                </button>
 
-        )
+                {/* AGREGAR FILA */}
+
+                <button
+                  type="button"
+                  onClick={agregarFila}
+                  style={{
+                    width: "35px",
+                    height: "35px",
+                    border: "none",
+                    borderRadius: "5px",
+                    backgroundColor:
+                      "#1976d2",
+                    color: "#fff",
+                    cursor: "pointer"
+                  }}
+                >
+                  +
+                </button>
+
+                {/* ELIMINAR FILA */}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    eliminarFila(index)
+                  }
+                  style={{
+                    width: "35px",
+                    height: "35px",
+                    border: "none",
+                    borderRadius: "5px",
+                    backgroundColor:
+                      "#d32f2f",
+                    color: "#fff",
+                    cursor: "pointer"
+                  }}
+                >
+                  X
+                </button>
+
+              </div>
+
+            )
+          )}
+        </>
       )}
 
-      {/* CREAR CAUSA */}
+      {/* NUEVA CAUSA */}
 
       {mostrarNuevaCausa && (
 
@@ -465,6 +483,35 @@ function Traslados() {
           >
             Guardar
           </button>
+
+        </div>
+
+      )}
+
+      {/* ENVÍO SOLO PARA VENTA */}
+
+      {tipo === "Venta" && (
+
+        <div
+          style={{
+            marginBottom: "20px"
+          }}
+        >
+
+          <label>
+            # Envío
+          </label>
+
+          <input
+            type="text"
+            value={envio}
+            onChange={(e) =>
+              setEnvio(
+                e.target.value
+              )
+            }
+            style={inputStyle}
+          />
 
         </div>
 
