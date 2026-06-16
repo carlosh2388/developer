@@ -80,7 +80,7 @@ function ControlPesoHuevos() {
 
       fila.pesoUnitario =
         pesoCaja && factor
-          ? (pesoCaja / factor).toFixed(2)
+          ? ((pesoCaja-pesoMaterial) / factor).toFixed(2)
           : "";
     }
 
