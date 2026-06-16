@@ -48,45 +48,62 @@ function ControlPesoHuevos() {
   // ACTUALIZAR FILA
   // =========================
 
-  const handleChange = (index, field, value) => {
-    const copy = [...filas];
-    const fila = { ...copy[index] };
+ const handleChange = (
+  index,
+  field,
+  value
+) => {
 
-    fila[field] = value;
+  const copy = [...filas];
 
-    // LÓGICA MATERIAL
-    if (field === "material") {
-      if (value === "Cartones 360") {
-        fila.pesoMaterial = 1150;
-      } else if (value === "Bandejas 336") {
-        fila.pesoMaterial = 1050;
-      } else {
-        fila.pesoMaterial = "";
-      }
-    }
-
-    // LÓGICA PESO UNITARIO
-    if (
-      field === "pesoCaja" ||
-      field === "material"
-    ) {
-      const pesoCaja = parseFloat(fila.pesoCaja);
-      const factor =
-        fila.material === "Cartones 360"
-          ? 360
-          : fila.material === "Bandejas 336"
-          ? 336
-          : null;
-
-      fila.pesoUnitario =
-        pesoCaja && factor
-          ? ((pesoCaja-fila.material) / factor).toFixed(2)
-          : "";
-    }
-
-    copy[index] = fila;
-    setFilas(copy);
+  const fila = {
+    ...copy[index]
   };
+
+  fila[field] = value;
+
+  // Material seleccionado
+  if (fila.material === "Cartones 360") {
+
+    fila.pesoMaterial = 1150;
+
+  } else if (
+    fila.material === "Bandejas 336"
+  ) {
+
+    fila.pesoMaterial = 1050;
+
+  } else {
+
+    fila.pesoMaterial = "";
+  }
+
+  // Calcular peso unitario
+  const pesoCaja =
+    parseFloat(fila.pesoCaja) || 0;
+
+  const pesoMaterial =
+    parseFloat(fila.pesoMaterial) || 0;
+
+  const factor =
+    fila.material === "Cartones 360"
+      ? 360
+      : fila.material === "Bandejas 336"
+      ? 336
+      : 0;
+
+  fila.pesoUnitario =
+    pesoCaja > 0 && factor > 0
+      ? (
+          (pesoCaja - pesoMaterial) /
+          factor
+        ).toFixed(2)
+      : "";
+
+  copy[index] = fila;
+
+  setFilas(copy);
+};
 
   // =========================
   // PROMEDIO GENERAL
