@@ -1,379 +1,148 @@
 import { useEffect, useState } from "react";
 
 function ControlPesoAves() {
-
   // =========================
   // STATES
   // =========================
 
   const [fecha, setFecha] = useState("");
-
   const [lote] = useState("REP-260401-1600");
 
-  const [semana] = useState(1);
-
   const [etapa, setEtapa] = useState("");
+  const [nuevaEtapa, setNuevaEtapa] = useState("");
+  const [mostrarNuevaEtapa, setMostrarNuevaEtapa] = useState(false);
 
-  const [nuevaEtapa, setNuevaEtapa] =
-    useState("");
+  const [semana] = useState(1);
+  const [uniformidad, setUniformidad] = useState("");
 
-  const [mostrarNuevaEtapa,
-    setMostrarNuevaEtapa] =
-    useState(false);
+  const [tamanoMuestra, setTamanoMuestra] = useState(20);
 
-  const [etapas, setEtapas] =
-    useState([]);
+  const [promedioGeneral, setPromedioGeneral] = useState(0);
 
-  const [tamanoMuestra,
-    setTamanoMuestra] =
-    useState("");
+  const [etapas, setEtapas] = useState([]);
 
-  const [promHembras,
-    setPromHembras] =
-    useState(0);
-
-  const [promMachos,
-    setPromMachos] =
-    useState(0);
-
-  const [promedioGeneral,
-    setPromedioGeneral] =
-    useState(0);
-
-  const [uniformidad,
-    setUniformidad] =
-    useState(0);
+  const [expandH, setExpandH] = useState(true);
+  const [expandM, setExpandM] = useState(true);
 
   // =========================
-  // EXPANDIR / CONTRAER
+  // PESOS
   // =========================
 
-  const [mostrarHembras,
-    setMostrarHembras] =
-    useState(true);
+  const [hembras, setHembras] = useState({});
+  const [machos, setMachos] = useState({});
 
-  const [mostrarMachos,
-    setMostrarMachos] =
-    useState(true);
+  const [promHembras, setPromHembras] = useState(0);
+  const [promMachos, setPromMachos] = useState(0);
 
   // =========================
-  // MUESTRAS DINÁMICAS
-  // =========================
-
-  const [hembras,
-    setHembras] =
-    useState([]);
-
-  const [machos,
-    setMachos] =
-    useState([]);
-
-  // =========================
-  // FECHA INICIAL
+  // INIT
   // =========================
 
   useEffect(() => {
-
-    const hoy =
-      new Date()
-        .toISOString()
-        .split("T")[0];
-
+    const hoy = new Date().toISOString().split("T")[0];
     setFecha(hoy);
 
-    setEtapas([
-      "Crianza",
-      "Levante",
-      "Producción"
-    ]);
-
+    setEtapas(["Crianza", "Levante", "Producción"]);
   }, []);
 
   // =========================
-  // GENERAR MUESTRAS
+  // HELPERS
+  // =========================
+
+  const calcularPromedio = (obj) => {
+    const vals = Object.values(obj);
+    let suma = 0;
+    let count = 0;
+
+    vals.forEach((v) => {
+      const n = parseFloat(v);
+      if (!isNaN(n)) {
+        suma += n;
+        count++;
+      }
+    });
+
+    return count ? suma / count : 0;
+  };
+
+  const generarInputs = (base, setFn, size) => {
+    const obj = {};
+    for (let i = 1; i <= size; i++) obj[`m${i}`] = base[`m${i}`] || "";
+    setFn(obj);
+  };
+
+  // =========================
+  // EFECTO TAMANO MUESTRA
   // =========================
 
   useEffect(() => {
-
-    const total =
-      parseInt(
-        tamanoMuestra || 0
-      );
-
-    if (
-      isNaN(total) ||
-      total <= 0
-    ) {
-
-      setHembras([]);
-      setMachos([]);
-
-      return;
-
-    }
-
-    const mitad =
-      Math.floor(total / 2);
-
-    setHembras(
-      Array(mitad).fill("")
-    );
-
-    setMachos(
-      Array(mitad).fill("")
-    );
-
+    generarInputs(hembras, setHembras, tamanoMuestra);
+    generarInputs(machos, setMachos, tamanoMuestra);
   }, [tamanoMuestra]);
 
   // =========================
-  // CALCULAR PROMEDIO
-  // =========================
-
-  const calcularPromedio =
-    (lista) => {
-
-      const numeros =
-        lista
-          .map(v =>
-            parseFloat(v)
-          )
-          .filter(v =>
-            !isNaN(v)
-          );
-
-      if (
-        numeros.length === 0
-      )
-        return 0;
-
-      const suma =
-        numeros.reduce(
-          (a, b) => a + b,
-          0
-        );
-
-      return (
-        suma /
-        numeros.length
-      ).toFixed(2);
-
-    };
-
-  // =========================
-  // PROMEDIO HEMBRAS
+  // PROMEDIOS
   // =========================
 
   useEffect(() => {
-
-    setPromHembras(
-      calcularPromedio(
-        hembras
-      )
-    );
-
+    setPromHembras(calcularPromedio(hembras));
   }, [hembras]);
 
-  // =========================
-  // PROMEDIO MACHOS
-  // =========================
-
   useEffect(() => {
-
-    setPromMachos(
-      calcularPromedio(
-        machos
-      )
-    );
-
+    setPromMachos(calcularPromedio(machos));
   }, [machos]);
 
+  useEffect(() => {
+    const g =
+      (parseFloat(promHembras) + parseFloat(promMachos)) / 2 || 0;
+
+    setPromedioGeneral(g);
+  }, [promHembras, promMachos]);
+
   // =========================
-  // PROMEDIO GENERAL
+  // UNIFORMIDAD (±10%)
   // =========================
 
   useEffect(() => {
+    const all = [...Object.values(hembras), ...Object.values(machos)]
+      .map(Number)
+      .filter((n) => !isNaN(n));
 
-    const h =
-      Number(promHembras);
-
-    const m =
-      Number(promMachos);
-
-    if (
-      h > 0 &&
-      m > 0
-    ) {
-
-      setPromedioGeneral(
-        (
-          (h + m) / 2
-        ).toFixed(2)
-      );
-
-    }
-    else if (h > 0) {
-
-      setPromedioGeneral(
-        h.toFixed(2)
-      );
-
-    }
-    else if (m > 0) {
-
-      setPromedioGeneral(
-        m.toFixed(2)
-      );
-
-    }
-    else {
-
-      setPromedioGeneral(0);
-
+    if (!all.length || !promedioGeneral) {
+      setUniformidad(0);
+      return;
     }
 
-  }, [
-    promHembras,
-    promMachos
-  ]);
+    const min = promedioGeneral * 0.9;
+    const max = promedioGeneral * 1.1;
+
+    const dentro = all.filter((n) => n >= min && n <= max).length;
+
+    setUniformidad(((dentro / all.length) * 100).toFixed(2));
+  }, [hembras, machos, promedioGeneral]);
 
   // =========================
   // HANDLERS
   // =========================
 
-  const handleHembra =
-    (index, value) => {
+  const handleChangeH = (e) =>
+    setHembras({ ...hembras, [e.target.name]: e.target.value });
 
-      const copia =
-        [...hembras];
-
-      copia[index] =
-        value;
-
-      setHembras(
-        copia
-      );
-
-    };
-
-  const handleMacho =
-    (index, value) => {
-
-      const copia =
-        [...machos];
-
-      copia[index] =
-        value;
-
-      setMachos(
-        copia
-      );
-
-    };
+  const handleChangeM = (e) =>
+    setMachos({ ...machos, [e.target.name]: e.target.value });
 
   // =========================
-  // UNIFORMIDAD AUTOMÁTICA
-  // ±10% DEL PROMEDIO GENERAL
-  // =========================
-
-  useEffect(() => {
-
-    const promedio =
-      Number(promedioGeneral);
-
-    if (promedio <= 0) {
-
-      setUniformidad(0);
-
-      return;
-
-    }
-
-    const limiteInferior =
-      promedio * 0.90;
-
-    const limiteSuperior =
-      promedio * 1.10;
-
-    const todasLasMuestras = [
-
-      ...hembras,
-      ...machos
-
-    ]
-      .map(v => parseFloat(v))
-      .filter(v => !isNaN(v));
-
-    if (
-      todasLasMuestras.length === 0
-    ) {
-
-      setUniformidad(0);
-
-      return;
-
-    }
-
-    const dentroRango =
-      todasLasMuestras.filter(v =>
-        v >= limiteInferior &&
-        v <= limiteSuperior
-      ).length;
-
-    const porcentaje =
-      (
-        (dentroRango /
-          todasLasMuestras.length) *
-        100
-      ).toFixed(2);
-
-    setUniformidad(
-      porcentaje
-    );
-
-  }, [
-    hembras,
-    machos,
-    promedioGeneral
-  ]);
-
-  // =========================
-  // AGREGAR ETAPA
+  // ETAPA
   // =========================
 
   const agregarEtapa = () => {
+    if (!mostrarNuevaEtapa) return setMostrarNuevaEtapa(true);
+    if (!nuevaEtapa.trim()) return;
 
-    if (!mostrarNuevaEtapa) {
-
-      setMostrarNuevaEtapa(
-        true
-      );
-
-      return;
-
-    }
-
-    if (
-      !nuevaEtapa.trim()
-    )
-      return;
-
-    setEtapas(prev => [
-
-      ...prev,
-      nuevaEtapa
-
-    ]);
-
-    setEtapa(
-      nuevaEtapa
-    );
-
+    setEtapas([...etapas, nuevaEtapa]);
+    setEtapa(nuevaEtapa);
     setNuevaEtapa("");
-
-    setMostrarNuevaEtapa(
-      false
-    );
-
+    setMostrarNuevaEtapa(false);
   };
 
   // =========================
@@ -381,79 +150,46 @@ function ControlPesoAves() {
   // =========================
 
   const guardar = () => {
-
-    const data = {
-
+    console.log({
       fecha,
       lote,
       semana,
-
       etapa,
-
       tamanoMuestra,
-
       promedioGeneral,
-
       uniformidad,
-
-      promHembras,
-
-      promMachos,
-
       hembras,
-
       machos
+    });
 
-    };
-
-    console.log(data);
-
-    alert(
-      "Registro guardado correctamente"
-    );
-
+    alert("Guardado");
   };
 
   // =========================
-  // ESTILOS
+  // RENDER GRID 5
   // =========================
 
-  const inputStyle = {
+  const renderInputs = (data, handler) => {
+    const keys = Object.keys(data);
 
-    width: "100%",
+    const rows = [];
+    for (let i = 0; i < keys.length; i += 5) {
+      rows.push(keys.slice(i, i + 5));
+    }
 
-    padding: "8px",
-
-    borderRadius: "5px",
-
-    border: "1px solid #ccc"
-
-  };
-
-  const rowStyle = {
-
-    display: "flex",
-
-    gap: "10px",
-
-    marginBottom: "15px"
-
-  };
-
-  const botonExpandir = {
-
-    padding: "5px 12px",
-
-    background: "#1976d2",
-
-    color: "#fff",
-
-    border: "none",
-
-    borderRadius: "5px",
-
-    cursor: "pointer"
-
+    return rows.map((row, i) => (
+      <div key={i} style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+        {row.map((k) => (
+          <input
+            key={k}
+            name={k}
+            value={data[k]}
+            onChange={handler}
+            style={{ flex: 1, padding: "8px" }}
+          />
+        ))}
+      </div>
+    ));
   };
 
   // =========================
@@ -461,418 +197,67 @@ function ControlPesoAves() {
   // =========================
 
   return (
+    <div style={{ maxWidth: 950, margin: "auto", fontFamily: "Arial" }}>
+      <h2>Control Peso Aves</h2>
 
-    <div
-      style={{
-        maxWidth: "1100px",
-        margin: "0 auto",
-        padding: "20px",
-        fontFamily: "Arial"
-      }}
-    >
-
-      <h2>
-        Registro de Pesos de Aves
-      </h2>
-
-      {/* =====================
-          FECHA + LOTE + SEMANA
-      ===================== */}
-
-      <div style={rowStyle}>
-
-        <div style={{ flex: 1 }}>
-
-          <label>
-            Fecha
-          </label>
-
-          <input
-            type="date"
-            value={fecha}
-            onChange={(e) =>
-              setFecha(
-                e.target.value
-              )
-            }
-            style={inputStyle}
-          />
-
-        </div>
-
-        <div style={{ flex: 1 }}>
-
-          <label>
-            # Lote
-          </label>
-
-          <select
-            disabled
-            style={inputStyle}
-          >
-
-            <option>
-              {lote}
-            </option>
-
-          </select>
-
-        </div>
-
-        <div style={{ flex: 1 }}>
-
-          <label>
-            Semana
-          </label>
-
-          <input
-            value={semana}
-            readOnly
-            style={inputStyle}
-          />
-
-        </div>
-
+      {/* HEADER */}
+      <div style={{ display: "flex", gap: 10 }}>
+        <input value={fecha} onChange={(e) => setFecha(e.target.value)} />
+        <input value={lote} readOnly />
+        <input value={semana} readOnly />
       </div>
 
-      {/* =====================
-           ETAPA
-      ===================== */}
-
-      <div style={rowStyle}>
-
-        <div style={{ flex: 2 }}>
-
-          <label>
-            Etapa
-          </label>
-
-          <div
-            style={{
-              display: "flex",
-              gap: "10px"
-            }}
-          >
-
-            <select
-              value={etapa}
-              onChange={(e) =>
-                setEtapa(
-                  e.target.value
-                )
-              }
-              style={inputStyle}
-            >
-
-              <option value="">
-                Seleccione
-              </option>
-
-              {etapas.map(
-                (item, i) => (
-                  <option
-                    key={i}
-                    value={item}
-                  >
-                    {item}
-                  </option>
-                )
-              )}
-
-            </select>
-
-            {mostrarNuevaEtapa && (
-
-              <input
-                value={nuevaEtapa}
-                onChange={(e) =>
-                  setNuevaEtapa(
-                    e.target.value
-                  )
-                }
-                placeholder="Nueva etapa"
-                style={inputStyle}
-              />
-
-            )}
-
-            <button
-              type="button"
-              onClick={agregarEtapa}
-              style={botonExpandir}
-            >
-
-              {mostrarNuevaEtapa
-                ? "Guardar"
-                : "+"}
-
-            </button>
-
-          </div>
-
-        </div>
-        {/* =====================
-            TAMAÑO DE MUESTRA
-        ===================== */}
-
-        <div style={{ flex: 1 }}>
-
-          <label>
-            Tamaño de la Muestra
-          </label>
-
-          <input
-            type="number"
-            value={tamanoMuestra}
-            onChange={(e) =>
-              setTamanoMuestra(
-                e.target.value
-              )
-            }
-            style={inputStyle}
-            placeholder="Ej: 20, 50, 100"
-          />
-
-        </div>
-
-        {/* =====================
-            PROMEDIO GENERAL
-        ===================== */}
-
-        <div style={{ flex: 1 }}>
-
-          <label>
-            Promedio General
-          </label>
-
-          <input
-            value={promedioGeneral}
-            readOnly
-            style={inputStyle}
-          />
-
-        </div>
-
-        {/* =====================
-            % UNIFORMIDAD
-        ===================== */}
-
-        <div style={{ flex: 1 }}>
-
-          <label>
-            % Uniformidad
-          </label>
-
-          <input
-            value={uniformidad}
-            readOnly
-            style={inputStyle}
-          />
-
-        </div>
-
-      </div>
-
-      {/* =====================
-          HEMBRAS HEADER
-      ===================== */}
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginTop: "20px"
-        }}
-      >
-
-        <h3>
-          Hembras
-        </h3>
-
-        <div style={{
-          display: "flex",
-          gap: "10px",
-          alignItems: "center"
-        }}>
-
-          <strong>
-            Promedio:
-          </strong>
-
-          <span>
-            {promHembras}
-          </span>
-
-          <button
-            type="button"
-            onClick={() =>
-              setMostrarHembras(true)
-            }
-            style={botonExpandir}
-          >
-            +
-          </button>
-
-          <button
-            type="button"
-            onClick={() =>
-              setMostrarHembras(false)
-            }
-            style={{
-              ...botonExpandir,
-              background: "#999"
-            }}
-          >
-            -
-          </button>
-
-        </div>
-
-      </div>
-
-      {/* =====================
-          HEMBRAS MUESTRAS
-      ===================== */}
-
-      {mostrarHembras && (
-
-        <div>
-                {/* =====================
-            GRID HEMBRAS (5 POR FILA)
-        ===================== */}
-
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-
-          {hembras.map((valor, i) => (
-            <div
-              key={i}
-              style={{ width: "18%" }}
-            >
-              <label>M {i + 1}</label>
-
-              <input
-                type="number"
-                value={valor}
-                onChange={(e) =>
-                  handleHembra(i, e.target.value)
-                }
-                style={inputStyle}
-              />
-            </div>
+      {/* ETAPA */}
+      <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+        <select value={etapa} onChange={(e) => setEtapa(e.target.value)}>
+          <option value="">Seleccione</option>
+          {etapas.map((e, i) => (
+            <option key={i}>{e}</option>
           ))}
+        </select>
 
-        </div>
+        <button onClick={agregarEtapa} type="button">+</button>
 
-      )}
+        <input
+          type="number"
+          value={tamanoMuestra}
+          onChange={(e) => setTamanoMuestra(Number(e.target.value))}
+        />
 
-      {/* =====================
-          MACHOS HEADER
-      ===================== */}
+        <input value={promedioGeneral.toFixed(2)} readOnly />
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginTop: "25px"
-        }}
-      >
+        <input value={uniformidad} readOnly />
+      </div>
 
+      {/* HEMBRAS */}
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
         <h3>
-          Machos
+          Hembras{" "}
+          <button onClick={() => setExpandH(!expandH)} type="button">
+            {expandH ? "-" : "+"}
+          </button>
         </h3>
-
-        <div style={{
-          display: "flex",
-          gap: "10px",
-          alignItems: "center"
-        }}>
-
-          <strong>Promedio:</strong>
-          <span>{promMachos}</span>
-
-          <button
-            type="button"
-            onClick={() =>
-              setMostrarMachos(true)
-            }
-            style={botonExpandir}
-          >
-            +
-          </button>
-
-          <button
-            type="button"
-            onClick={() =>
-              setMostrarMachos(false)
-            }
-            style={{
-              ...botonExpandir,
-              background: "#999"
-            }}
-          >
-            -
-          </button>
-
-        </div>
-
+        <span>Prom: {promHembras.toFixed(2)}</span>
       </div>
 
-      {/* =====================
-          MACHOS GRID
-      ===================== */}
+      {expandH && renderInputs(hembras, handleChangeH)}
 
-      {mostrarMachos && (
-
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-
-          {machos.map((valor, i) => (
-            <div
-              key={i}
-              style={{ width: "18%" }}
-            >
-              <label>M {i + 1}</label>
-
-              <input
-                type="number"
-                value={valor}
-                onChange={(e) =>
-                  handleMacho(i, e.target.value)
-                }
-                style={inputStyle}
-              />
-            </div>
-          ))}
-
-        </div>
-
-      )}
-
-      {/* =====================
-          BOTÓN GUARDAR
-      ===================== */}
-
-      <div style={{ marginTop: "25px" }}>
-
-        <button
-          onClick={guardar}
-          style={{
-            padding: "10px 20px",
-            backgroundColor: "#1976d2",
-            color: "#fff",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer"
-          }}
-        >
-
-          Guardar Registro
-
-        </button>
-
+      {/* MACHOS */}
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <h3>
+          Machos{" "}
+          <button onClick={() => setExpandM(!expandM)} type="button">
+            {expandM ? "-" : "+"}
+          </button>
+        </h3>
+        <span>Prom: {promMachos.toFixed(2)}</span>
       </div>
 
+      {expandM && renderInputs(machos, handleChangeM)}
+
+      <button onClick={guardar} style={{ marginTop: 20 }}>
+        Guardar
+      </button>
     </div>
   );
 }
