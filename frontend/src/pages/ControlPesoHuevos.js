@@ -6,7 +6,7 @@ function ControlPesoHuevos() {
   // =========================
 
   const [fecha, setFecha] = useState("");
-  const [lote] = useState("REP-260401-1600");
+  const [lote, setLote] = useState("");
   const [semana, setSemana] = useState("");
 
   const [numMuestras, setNumMuestras] = useState(0);
@@ -184,8 +184,26 @@ function ControlPesoHuevos() {
 
         <div style={{ flex: 1 }}>
           <label># Lote</label>
-          <select disabled style={inputStyle}>
-            <option>{lote}</option>
+        
+          <select
+            value={lote}
+            onChange={(e) =>
+              setLote(e.target.value)
+            }
+            style={inputStyle}
+          >
+            <option value="">
+              Seleccione
+            </option>
+        
+            <option value="SL-001">
+              SL-001
+            </option>
+        
+            <option value="BL-001">
+              BL-001
+            </option>
+        
           </select>
         </div>
 
