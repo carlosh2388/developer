@@ -10,68 +10,74 @@ function ControlPesoAves() {
 
   const [lote] = useState("REP-260401-1600");
 
-  const [etapa, setEtapa] = useState("");
-
-  const [nuevaEtapa, setNuevaEtapa] = useState("");
-
-  const [mostrarNuevaEtapa,
-    setMostrarNuevaEtapa] = useState(false);
-
   const [semana] = useState(1);
 
-  const [uniformidad, setUniformidad] = useState("");
+  const [etapa, setEtapa] = useState("");
+
+  const [nuevaEtapa, setNuevaEtapa] =
+    useState("");
+
+  const [mostrarNuevaEtapa,
+    setMostrarNuevaEtapa] =
+    useState(false);
+
+  const [etapas, setEtapas] =
+    useState([]);
 
   const [tamanoMuestra,
-    setTamanoMuestra] = useState("");
-
-  const [promedioGeneral,
-    setPromedioGeneral] = useState(0);
-
-  const [etapas, setEtapas] = useState([]);
-
-  // =========================
-  // PESOS HEMBRAS
-  // =========================
-
-  const [hembras, setHembras] = useState({
-    m1: "",
-    m2: "",
-    m3: "",
-    m4: "",
-    m5: "",
-    m6: "",
-    m7: ""
-  });
+    setTamanoMuestra] =
+    useState("");
 
   const [promHembras,
-    setPromHembras] = useState(0);
-
-  // =========================
-  // PESOS MACHOS
-  // =========================
-
-  const [machos, setMachos] = useState({
-    m1: "",
-    m2: "",
-    m3: "",
-    m4: "",
-    m5: "",
-    m6: "",
-    m7: ""
-  });
+    setPromHembras] =
+    useState(0);
 
   const [promMachos,
-    setPromMachos] = useState(0);
+    setPromMachos] =
+    useState(0);
+
+  const [promedioGeneral,
+    setPromedioGeneral] =
+    useState(0);
+
+  const [uniformidad,
+    setUniformidad] =
+    useState(0);
 
   // =========================
-  // FECHA + ETAPAS BASE
+  // EXPANDIR / CONTRAER
+  // =========================
+
+  const [mostrarHembras,
+    setMostrarHembras] =
+    useState(true);
+
+  const [mostrarMachos,
+    setMostrarMachos] =
+    useState(true);
+
+  // =========================
+  // MUESTRAS DINÁMICAS
+  // =========================
+
+  const [hembras,
+    setHembras] =
+    useState([]);
+
+  const [machos,
+    setMachos] =
+    useState([]);
+
+  // =========================
+  // FECHA INICIAL
   // =========================
 
   useEffect(() => {
 
-    const hoy = new Date()
-      .toISOString()
-      .split("T")[0];
+    const hoy =
+      new Date()
+        .toISOString()
+        .split("T")[0];
 
     setFecha(hoy);
 
@@ -84,45 +90,99 @@ function ControlPesoAves() {
   }, []);
 
   // =========================
-  // CALCULAR PROMEDIOS
+  // GENERAR MUESTRAS
   // =========================
 
-  const calcularPromedio = (obj) => {
+  useEffect(() => {
 
-    let suma = 0;
+    const total =
+      parseInt(
+        tamanoMuestra || 0
+      );
 
-    let count = 0;
+    if (
+      isNaN(total) ||
+      total <= 0
+    ) {
 
-    Object.values(obj).forEach(v => {
+      setHembras([]);
+      setMachos([]);
 
-      const num = parseFloat(v);
+      return;
 
-      if (!isNaN(num)) {
+    }
 
-        suma += num;
-        count++;
+    const mitad =
+      Math.floor(total / 2);
 
-      }
+    setHembras(
+      Array(mitad).fill("")
+    );
 
-    });
+    setMachos(
+      Array(mitad).fill("")
+    );
 
-    return count > 0
-      ? (suma / count).toFixed(2)
-      : 0;
-  };
+  }, [tamanoMuestra]);
+
+  // =========================
+  // CALCULAR PROMEDIO
+  // =========================
+
+  const calcularPromedio =
+    (lista) => {
+
+      const numeros =
+        lista
+          .map(v =>
+            parseFloat(v)
+          )
+          .filter(v =>
+            !isNaN(v)
+          );
+
+      if (
+        numeros.length === 0
+      )
+        return 0;
+
+      const suma =
+        numeros.reduce(
+          (a, b) => a + b,
+          0
+        );
+
+      return (
+        suma /
+        numeros.length
+      ).toFixed(2);
+
+    };
+
+  // =========================
+  // PROMEDIO HEMBRAS
+  // =========================
 
   useEffect(() => {
 
     setPromHembras(
-      calcularPromedio(hembras)
+      calcularPromedio(
+        hembras
+      )
     );
 
   }, [hembras]);
 
+  // =========================
+  // PROMEDIO MACHOS
+  // =========================
+
   useEffect(() => {
 
     setPromMachos(
-      calcularPromedio(machos)
+      calcularPromedio(
+        machos
+      )
     );
 
   }, [machos]);
@@ -133,61 +193,148 @@ function ControlPesoAves() {
 
   useEffect(() => {
 
-    const hem =
-      parseFloat(promHembras) || 0;
+    const h =
+      Number(promHembras);
 
-    const mac =
-      parseFloat(promMachos) || 0;
+    const m =
+      Number(promMachos);
 
-    if (hem > 0 && mac > 0) {
-
-      setPromedioGeneral(
-        ((hem + mac) / 2).toFixed(2)
-      );
-
-    } else if (hem > 0) {
+    if (
+      h > 0 &&
+      m > 0
+    ) {
 
       setPromedioGeneral(
-        hem.toFixed(2)
+        (
+          (h + m) / 2
+        ).toFixed(2)
       );
 
-    } else if (mac > 0) {
+    }
+    else if (h > 0) {
 
       setPromedioGeneral(
-        mac.toFixed(2)
+        h.toFixed(2)
       );
 
-    } else {
+    }
+    else if (m > 0) {
+
+      setPromedioGeneral(
+        m.toFixed(2)
+      );
+
+    }
+    else {
 
       setPromedioGeneral(0);
 
     }
 
-  }, [promHembras, promMachos]);
+  }, [
+    promHembras,
+    promMachos
+  ]);
 
   // =========================
   // HANDLERS
   // =========================
 
-  const handleHembras = (e) => {
+  const handleHembra =
+    (index, value) => {
 
-    setHembras({
+      const copia =
+        [...hembras];
+
+      copia[index] =
+        value;
+
+      setHembras(
+        copia
+      );
+
+    };
+
+  const handleMacho =
+    (index, value) => {
+
+      const copia =
+        [...machos];
+
+      copia[index] =
+        value;
+
+      setMachos(
+        copia
+      );
+
+    };
+
+  // =========================
+  // UNIFORMIDAD AUTOMÁTICA
+  // ±10% DEL PROMEDIO GENERAL
+  // =========================
+
+  useEffect(() => {
+
+    const promedio =
+      Number(promedioGeneral);
+
+    if (promedio <= 0) {
+
+      setUniformidad(0);
+
+      return;
+
+    }
+
+    const limiteInferior =
+      promedio * 0.90;
+
+    const limiteSuperior =
+      promedio * 1.10;
+
+    const todasLasMuestras = [
+
       ...hembras,
-      [e.target.name]:
-        e.target.value
-    });
+      ...machos
 
-  };
+    ]
+      .map(v => parseFloat(v))
+      .filter(v => !isNaN(v));
 
-  const handleMachos = (e) => {
+    if (
+      todasLasMuestras.length === 0
+    ) {
 
-    setMachos({
-      ...machos,
-      [e.target.name]:
-        e.target.value
-    });
+      setUniformidad(0);
 
-  };
+      return;
+
+    }
+
+    const dentroRango =
+      todasLasMuestras.filter(v =>
+        v >= limiteInferior &&
+        v <= limiteSuperior
+      ).length;
+
+    const porcentaje =
+      (
+        (dentroRango /
+          todasLasMuestras.length) *
+        100
+      ).toFixed(2);
+
+    setUniformidad(
+      porcentaje
+    );
+
+  }, [
+    hembras,
+    machos,
+    promedioGeneral
+  ]);
 
   // =========================
   // AGREGAR ETAPA
@@ -197,24 +344,35 @@ function ControlPesoAves() {
 
     if (!mostrarNuevaEtapa) {
 
-      setMostrarNuevaEtapa(true);
+      setMostrarNuevaEtapa(
+        true
+      );
 
       return;
 
     }
 
-    if (!nuevaEtapa.trim()) return;
+    if (
+      !nuevaEtapa.trim()
+    )
+      return;
 
     setEtapas(prev => [
+
       ...prev,
       nuevaEtapa
+
     ]);
 
-    setEtapa(nuevaEtapa);
+    setEtapa(
+      nuevaEtapa
+    );
 
     setNuevaEtapa("");
 
-    setMostrarNuevaEtapa(false);
+    setMostrarNuevaEtapa(
+      false
+    );
 
   };
 
@@ -229,21 +387,29 @@ function ControlPesoAves() {
       fecha,
       lote,
       semana,
+
       etapa,
+
       tamanoMuestra,
+
       promedioGeneral,
+
       uniformidad,
-      hembras,
+
       promHembras,
-      machos,
-      promMachos
+
+      promMachos,
+
+      hembras,
+
+      machos
 
     };
 
     console.log(data);
 
     alert(
-      "Registro de pesos guardado correctamente"
+      "Registro guardado correctamente"
     );
 
   };
@@ -253,16 +419,41 @@ function ControlPesoAves() {
   // =========================
 
   const inputStyle = {
+
     width: "100%",
+
     padding: "8px",
+
     borderRadius: "5px",
+
     border: "1px solid #ccc"
+
   };
 
   const rowStyle = {
+
     display: "flex",
+
     gap: "10px",
+
     marginBottom: "15px"
+
+  };
+
+  const botonExpandir = {
+
+    padding: "5px 12px",
+
+    background: "#1976d2",
+
+    color: "#fff",
+
+    border: "none",
+
+    borderRadius: "5px",
+
+    cursor: "pointer"
+
   };
 
   // =========================
@@ -272,9 +463,8 @@ function ControlPesoAves() {
   return (
 
     <div
-      className="form-container"
       style={{
-        maxWidth: "950px",
+        maxWidth: "1100px",
         margin: "0 auto",
         padding: "20px",
         fontFamily: "Arial"
@@ -285,21 +475,25 @@ function ControlPesoAves() {
         Registro de Pesos de Aves
       </h2>
 
-      {/* =========================
+      {/* =====================
           FECHA + LOTE + SEMANA
-      ========================= */}
+      ===================== */}
 
       <div style={rowStyle}>
 
         <div style={{ flex: 1 }}>
 
-          <label>Fecha</label>
+          <label>
+            Fecha
+          </label>
 
           <input
             type="date"
             value={fecha}
             onChange={(e) =>
-              setFecha(e.target.value)
+              setFecha(
+                e.target.value
+              )
             }
             style={inputStyle}
           />
@@ -308,25 +502,30 @@ function ControlPesoAves() {
 
         <div style={{ flex: 1 }}>
 
-          <label># Lote</label>
+          <label>
+            # Lote
+          </label>
 
           <select
             disabled
             style={inputStyle}
           >
+
             <option>
               {lote}
             </option>
+
           </select>
 
         </div>
 
         <div style={{ flex: 1 }}>
 
-          <label>Semana</label>
+          <label>
+            Semana
+          </label>
 
           <input
-            type="number"
             value={semana}
             readOnly
             style={inputStyle}
@@ -336,25 +535,22 @@ function ControlPesoAves() {
 
       </div>
 
-      {/* =========================
-          ETAPA + TAMAÑO MUESTRA +
-          PROMEDIO GENERAL +
-          UNIFORMIDAD
-      ========================= */}
+      {/* =====================
+           ETAPA
+      ===================== */}
 
       <div style={rowStyle}>
 
-        {/* ETAPA */}
-
         <div style={{ flex: 2 }}>
 
-          <label>Etapa</label>
+          <label>
+            Etapa
+          </label>
 
           <div
             style={{
               display: "flex",
-              gap: "10px",
-              alignItems: "center"
+              gap: "10px"
             }}
           >
 
@@ -372,23 +568,22 @@ function ControlPesoAves() {
                 Seleccione
               </option>
 
-              {etapas.map((e, i) => (
-
-                <option
-                  key={i}
-                  value={e}
-                >
-                  {e}
-                </option>
-
-              ))}
+              {etapas.map(
+                (item, i) => (
+                  <option
+                    key={i}
+                    value={item}
+                  >
+                    {item}
+                  </option>
+                )
+              )}
 
             </select>
 
             {mostrarNuevaEtapa && (
 
               <input
-                type="text"
                 value={nuevaEtapa}
                 onChange={(e) =>
                   setNuevaEtapa(
@@ -404,21 +599,22 @@ function ControlPesoAves() {
             <button
               type="button"
               onClick={agregarEtapa}
-              style={{
-                padding: "8px 12px",
-                cursor: "pointer"
-              }}
+              style={botonExpandir}
             >
+
               {mostrarNuevaEtapa
                 ? "Guardar"
                 : "+"}
+
             </button>
 
           </div>
 
         </div>
 
-        {/* TAMAÑO MUESTRA */}
+        {/* =====================
+            TAMAÑO DE MUESTRA
+        ===================== */}
 
         <div style={{ flex: 1 }}>
 
@@ -435,11 +631,14 @@ function ControlPesoAves() {
               )
             }
             style={inputStyle}
+            placeholder="Ej: 20, 50, 100"
           />
 
         </div>
 
-        {/* PROMEDIO GENERAL */}
+        {/* =====================
+            PROMEDIO GENERAL
+        ===================== */}
 
         <div style={{ flex: 1 }}>
 
@@ -455,7 +654,9 @@ function ControlPesoAves() {
 
         </div>
 
-        {/* UNIFORMIDAD */}
+        {/* =====================
+            % UNIFORMIDAD
+        ===================== */}
 
         <div style={{ flex: 1 }}>
 
@@ -464,13 +665,8 @@ function ControlPesoAves() {
           </label>
 
           <input
-            type="number"
             value={uniformidad}
-            onChange={(e) =>
-              setUniformidad(
-                e.target.value
-              )
-            }
+            readOnly
             style={inputStyle}
           />
 
@@ -478,15 +674,14 @@ function ControlPesoAves() {
 
       </div>
 
-      {/* =========================
-          HEMBRAS
-      ========================= */}
+      {/* =====================
+          HEMBRAS HEADER
+      ===================== */}
 
       <div
         style={{
           display: "flex",
-          justifyContent:
-            "space-between",
+          justifyContent: "space-between",
           alignItems: "center",
           marginTop: "20px"
         }}
@@ -496,84 +691,92 @@ function ControlPesoAves() {
           Hembras
         </h3>
 
-        <div>
+        <div style={{
+          display: "flex",
+          gap: "10px",
+          alignItems: "center"
+        }}>
 
           <strong>
             Promedio:
-          </strong>{" "}
-          {promHembras}
+          </strong>
+
+          <span>
+            {promHembras}
+          </span>
+
+          <button
+            type="button"
+            onClick={() =>
+              setMostrarHembras(true)
+            }
+            style={botonExpandir}
+          >
+            +
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              setMostrarHembras(false)
+            }
+            style={{
+              ...botonExpandir,
+              background: "#999"
+            }}
+          >
+            -
+          </button>
 
         </div>
 
       </div>
 
-      <div style={rowStyle}>
+      {/* =====================
+          HEMBRAS MUESTRAS
+      ===================== */}
 
-        {[1, 2, 3, 4].map(i => (
+      {mostrarHembras && (
 
-          <div
-            key={i}
-            style={{ flex: 1 }}
-          >
+        <div>
+        {/* =====================
+            GRID HEMBRAS (5 POR FILA)
+        ===================== */}
 
-            <label>
-              Muestra {i}
-            </label>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
 
-            <input
-              name={`m${i}`}
-              type="number"
-              onChange={
-                handleHembras
-              }
-              style={inputStyle}
-            />
+          {hembras.map((valor, i) => (
+            <div
+              key={i}
+              style={{ width: "18%" }}
+            >
+              <label>M {i + 1}</label>
 
-          </div>
+              <input
+                type="number"
+                value={valor}
+                onChange={(e) =>
+                  handleHembra(i, e.target.value)
+                }
+                style={inputStyle}
+              />
+            </div>
+          ))}
 
-        ))}
+        </div>
 
-      </div>
+      )}
 
-      <div style={rowStyle}>
-
-        {[5, 6, 7].map(i => (
-
-          <div
-            key={i}
-            style={{ flex: 1 }}
-          >
-
-            <label>
-              Muestra {i}
-            </label>
-
-            <input
-              name={`m${i}`}
-              type="number"
-              onChange={
-                handleHembras
-              }
-              style={inputStyle}
-            />
-
-          </div>
-
-        ))}
-
-      </div>
-
-      {/* =========================
-          MACHOS
-      ========================= */}
+      {/* =====================
+          MACHOS HEADER
+      ===================== */}
 
       <div
         style={{
           display: "flex",
-          justifyContent:
-            "space-between",
+          justifyContent: "space-between",
           alignItems: "center",
-          marginTop: "20px"
+          marginTop: "25px"
         }}
       >
 
@@ -581,98 +784,100 @@ function ControlPesoAves() {
           Machos
         </h3>
 
-        <div>
+        <div style={{
+          display: "flex",
+          gap: "10px",
+          alignItems: "center"
+        }}>
 
-          <strong>
-            Promedio:
-          </strong>{" "}
-          {promMachos}
+          <strong>Promedio:</strong>
+          <span>{promMachos}</span>
+
+          <button
+            type="button"
+            onClick={() =>
+              setMostrarMachos(true)
+            }
+            style={botonExpandir}
+          >
+            +
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              setMostrarMachos(false)
+            }
+            style={{
+              ...botonExpandir,
+              background: "#999"
+            }}
+          >
+            -
+          </button>
 
         </div>
 
       </div>
 
-      <div style={rowStyle}>
+      {/* =====================
+          MACHOS GRID
+      ===================== */}
 
-        {[1, 2, 3, 4].map(i => (
+      {mostrarMachos && (
 
-          <div
-            key={i}
-            style={{ flex: 1 }}
-          >
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
 
-            <label>
-              Muestra {i}
-            </label>
+          {machos.map((valor, i) => (
+            <div
+              key={i}
+              style={{ width: "18%" }}
+            >
+              <label>M {i + 1}</label>
 
-            <input
-              name={`m${i}`}
-              type="number"
-              onChange={
-                handleMachos
-              }
-              style={inputStyle}
-            />
+              <input
+                type="number"
+                value={valor}
+                onChange={(e) =>
+                  handleMacho(i, e.target.value)
+                }
+                style={inputStyle}
+              />
+            </div>
+          ))}
 
-          </div>
+        </div>
 
-        ))}
+      )}
 
-      </div>
-
-      <div style={rowStyle}>
-
-        {[5, 6, 7].map(i => (
-
-          <div
-            key={i}
-            style={{ flex: 1 }}
-          >
-
-            <label>
-              Muestra {i}
-            </label>
-
-            <input
-              name={`m${i}`}
-              type="number"
-              onChange={
-                handleMachos
-              }
-              style={inputStyle}
-            />
-
-          </div>
-
-        ))}
-
-      </div>
-
-      {/* =========================
+      {/* =====================
           BOTÓN GUARDAR
-      ========================= */}
+      ===================== */}
 
-      <button
-        onClick={guardar}
-        style={{
-          padding: "10px 20px",
-          backgroundColor: "#1976d2",
-          color: "#fff",
-          border: "none",
-          borderRadius: "5px",
-          cursor: "pointer",
-          marginTop: "15px"
-        }}
-      >
+      <div style={{ marginTop: "25px" }}>
 
-        Guardar Registro
+        <button
+          onClick={guardar}
+          style={{
+            padding: "10px 20px",
+            backgroundColor: "#1976d2",
+            color: "#fff",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer"
+          }}
+        >
 
-      </button>
+          Guardar Registro
+
+        </button>
+
+      </div>
 
     </div>
-
   );
-
 }
 
 export default ControlPesoAves;
+
+    
