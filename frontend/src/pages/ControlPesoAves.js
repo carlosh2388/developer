@@ -260,26 +260,64 @@ function ControlPesoAves() {
         </div>
       </div>
 
-      {/* ================= HEMBRAS ================= */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20 }}>
-        <h3>Hembras</h3>
-        <div>
-          Prom: {promHembras.toFixed(2)}{" "}
-          <button onClick={() => setExpandH(!expandH)}>+/-</button>
+      {/* ========================= HEMBRAS ========================= */}
+      
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginTop: 20
+        }}
+      >
+        <h3 style={{ margin: 0 }}>Hembras</h3>
+      
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <span>Prom: {promHembras.toFixed(2)}</span>
+      
+          <button
+            type="button"
+            onClick={() => setExpandH(!expandH)}
+            style={{
+              padding: "4px 10px",
+              cursor: "pointer"
+            }}
+          >
+            {expandH ? "-" : "+"}
+          </button>
         </div>
       </div>
-
+      
       {expandH && renderInputs(hembras, handleH)}
 
-      {/* ================= MACHOS ================= */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20 }}>
-        <h3>Machos</h3>
-        <div>
-          Prom: {promMachos.toFixed(2)}{" "}
-          <button onClick={() => setExpandM(!expandM)}>+/-</button>
+      {/* ========================= MACHOS ========================= */}
+      
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginTop: 20
+        }}
+      >
+        <h3 style={{ margin: 0 }}>Machos</h3>
+      
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <span>Prom: {promMachos.toFixed(2)}</span>
+      
+          <button
+            type="button"
+            onClick={() => setExpandM(!expandM)}
+            style={{
+              padding: "4px 10px",
+              cursor: "pointer"
+            }}
+          >
+            {expandM ? "-" : "+"}
+          </button>
         </div>
       </div>
-
+      
       {expandM && renderInputs(machos, handleM)}
 
       {/* ================= GUARDAR ================= */}
