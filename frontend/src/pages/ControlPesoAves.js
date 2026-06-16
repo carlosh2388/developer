@@ -611,7 +611,6 @@ function ControlPesoAves() {
           </div>
 
         </div>
-
         {/* =====================
             TAMAÑO DE MUESTRA
         ===================== */}
@@ -739,7 +738,7 @@ function ControlPesoAves() {
       {mostrarHembras && (
 
         <div>
-        {/* =====================
+                {/* =====================
             GRID HEMBRAS (5 POR FILA)
         ===================== */}
 
@@ -879,5 +878,3 @@ function ControlPesoAves() {
 }
 
 export default ControlPesoAves;
-
-    
