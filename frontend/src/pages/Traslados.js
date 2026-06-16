@@ -26,7 +26,7 @@ function Traslados() {
     {
       hembras: "",
       machos: "",
-      total: 0,
+      subtotal: 0,
       lote: "",
       causa: ""
     }
@@ -57,7 +57,7 @@ function Traslados() {
       {
         hembras: "",
         machos: "",
-        total: 0,
+        subtotal: 0,
         lote: "",
         causa: ""
       }
@@ -89,7 +89,7 @@ function Traslados() {
         nuevasFilas[index].machos
       ) || 0;
 
-    nuevasFilas[index].total =
+    nuevasFilas[index].subtotal =
       hembras + machos;
 
     setFilas(nuevasFilas);
@@ -249,7 +249,7 @@ function Traslados() {
             <div style={{ flex: 1 }}>
 
               <label>
-                Cantidad Hembras
+                Hembras
               </label>
 
               <input
@@ -270,7 +270,7 @@ function Traslados() {
             <div style={{ flex: 1 }}>
 
               <label>
-                Cantidad Machos
+                Machos
               </label>
 
               <input
@@ -291,11 +291,11 @@ function Traslados() {
             <div style={{ flex: 1 }}>
 
               <label>
-                Total
+                Sub-Total
               </label>
 
               <input
-                value={fila.total}
+                value={fila.subtotal}
                 readOnly
                 style={inputStyle}
               />
