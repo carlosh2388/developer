@@ -10,8 +10,6 @@ function ControlPesoAves() {
 
   const [lote] = useState("REP-260401-1600");
 
-  const [sexo, setSexo] = useState("Macho");
-
   const [etapa, setEtapa] = useState("");
 
   const [nuevaEtapa, setNuevaEtapa] = useState("");
@@ -23,6 +21,12 @@ function ControlPesoAves() {
 
   const [uniformidad, setUniformidad] = useState("");
 
+  const [tamanoMuestra,
+    setTamanoMuestra] = useState("");
+
+  const [promedioGeneral,
+    setPromedioGeneral] = useState(0);
+
   const [etapas, setEtapas] = useState([]);
 
   // =========================
@@ -30,24 +34,34 @@ function ControlPesoAves() {
   // =========================
 
   const [hembras, setHembras] = useState({
-    m1: "", m2: "", m3: "", m4: "",
-    m5: "", m6: "", m7: ""
+    m1: "",
+    m2: "",
+    m3: "",
+    m4: "",
+    m5: "",
+    m6: "",
+    m7: ""
   });
 
-  const [promHembras, setPromHembras] =
-    useState(0);
+  const [promHembras,
+    setPromHembras] = useState(0);
 
   // =========================
   // PESOS MACHOS
   // =========================
 
   const [machos, setMachos] = useState({
-    m1: "", m2: "", m3: "", m4: "",
-    m5: "", m6: "", m7: ""
+    m1: "",
+    m2: "",
+    m3: "",
+    m4: "",
+    m5: "",
+    m6: "",
+    m7: ""
   });
 
-  const [promMachos, setPromMachos] =
-    useState(0);
+  const [promMachos,
+    setPromMachos] = useState(0);
 
   // =========================
   // FECHA + ETAPAS BASE
@@ -86,7 +100,6 @@ function ControlPesoAves() {
       if (!isNaN(num)) {
 
         suma += num;
-
         count++;
 
       }
@@ -115,6 +128,44 @@ function ControlPesoAves() {
   }, [machos]);
 
   // =========================
+  // PROMEDIO GENERAL
+  // =========================
+
+  useEffect(() => {
+
+    const hem =
+      parseFloat(promHembras) || 0;
+
+    const mac =
+      parseFloat(promMachos) || 0;
+
+    if (hem > 0 && mac > 0) {
+
+      setPromedioGeneral(
+        ((hem + mac) / 2).toFixed(2)
+      );
+
+    } else if (hem > 0) {
+
+      setPromedioGeneral(
+        hem.toFixed(2)
+      );
+
+    } else if (mac > 0) {
+
+      setPromedioGeneral(
+        mac.toFixed(2)
+      );
+
+    } else {
+
+      setPromedioGeneral(0);
+
+    }
+
+  }, [promHembras, promMachos]);
+
+  // =========================
   // HANDLERS
   // =========================
 
@@ -125,6 +176,7 @@ function ControlPesoAves() {
       [e.target.name]:
         e.target.value
     });
+
   };
 
   const handleMachos = (e) => {
@@ -134,6 +186,7 @@ function ControlPesoAves() {
       [e.target.name]:
         e.target.value
     });
+
   };
 
   // =========================
@@ -142,31 +195,27 @@ function ControlPesoAves() {
 
   const agregarEtapa = () => {
 
-    // MOSTRAR INPUT
     if (!mostrarNuevaEtapa) {
 
       setMostrarNuevaEtapa(true);
 
       return;
+
     }
 
-    // VALIDAR
     if (!nuevaEtapa.trim()) return;
 
-    // AGREGAR
     setEtapas(prev => [
       ...prev,
       nuevaEtapa
     ]);
 
-    // AUTO SELECCIONAR
     setEtapa(nuevaEtapa);
 
-    // LIMPIAR
     setNuevaEtapa("");
 
-    // OCULTAR
     setMostrarNuevaEtapa(false);
+
   };
 
   // =========================
@@ -181,11 +230,14 @@ function ControlPesoAves() {
       lote,
       semana,
       etapa,
+      tamanoMuestra,
+      promedioGeneral,
       uniformidad,
       hembras,
       promHembras,
       machos,
       promMachos
+
     };
 
     console.log(data);
@@ -193,6 +245,7 @@ function ControlPesoAves() {
     alert(
       "Registro de pesos guardado correctamente"
     );
+
   };
 
   // =========================
@@ -220,7 +273,6 @@ function ControlPesoAves() {
 
     <div
       className="form-container"
-
       style={{
         maxWidth: "950px",
         margin: "0 auto",
@@ -245,15 +297,10 @@ function ControlPesoAves() {
 
           <input
             type="date"
-
             value={fecha}
-
             onChange={(e) =>
-              setFecha(
-                e.target.value
-              )
+              setFecha(e.target.value)
             }
-
             style={inputStyle}
           />
 
@@ -267,11 +314,9 @@ function ControlPesoAves() {
             disabled
             style={inputStyle}
           >
-
             <option>
               {lote}
             </option>
-
           </select>
 
         </div>
@@ -282,11 +327,8 @@ function ControlPesoAves() {
 
           <input
             type="number"
-
             value={semana}
-
             readOnly
-
             style={inputStyle}
           />
 
@@ -295,32 +337,34 @@ function ControlPesoAves() {
       </div>
 
       {/* =========================
-          ETAPA + UNIFORMIDAD
+          ETAPA + TAMAÑO MUESTRA +
+          PROMEDIO GENERAL +
+          UNIFORMIDAD
       ========================= */}
 
       <div style={rowStyle}>
+
+        {/* ETAPA */}
 
         <div style={{ flex: 2 }}>
 
           <label>Etapa</label>
 
-          <div style={{
-            display: "flex",
-            gap: "10px",
-            alignItems: "center"
-          }}>
-
-            {/* SELECT */}
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              alignItems: "center"
+            }}
+          >
 
             <select
               value={etapa}
-
               onChange={(e) =>
                 setEtapa(
                   e.target.value
                 )
               }
-
               style={inputStyle}
             >
 
@@ -341,35 +385,25 @@ function ControlPesoAves() {
 
             </select>
 
-            {/* INPUT NUEVA ETAPA */}
-
             {mostrarNuevaEtapa && (
 
               <input
                 type="text"
-
                 value={nuevaEtapa}
-
                 onChange={(e) =>
                   setNuevaEtapa(
                     e.target.value
                   )
                 }
-
                 placeholder="Nueva etapa"
-
                 style={inputStyle}
               />
 
             )}
 
-            {/* BOTÓN */}
-
             <button
               type="button"
-
               onClick={agregarEtapa}
-
               style={{
                 padding: "8px 12px",
                 cursor: "pointer"
@@ -384,6 +418,45 @@ function ControlPesoAves() {
 
         </div>
 
+        {/* TAMAÑO MUESTRA */}
+
+        <div style={{ flex: 1 }}>
+
+          <label>
+            Tamaño de la Muestra
+          </label>
+
+          <input
+            type="number"
+            value={tamanoMuestra}
+            onChange={(e) =>
+              setTamanoMuestra(
+                e.target.value
+              )
+            }
+            style={inputStyle}
+          />
+
+        </div>
+
+        {/* PROMEDIO GENERAL */}
+
+        <div style={{ flex: 1 }}>
+
+          <label>
+            Promedio General
+          </label>
+
+          <input
+            value={promedioGeneral}
+            readOnly
+            style={inputStyle}
+          />
+
+        </div>
+
+        {/* UNIFORMIDAD */}
+
         <div style={{ flex: 1 }}>
 
           <label>
@@ -392,15 +465,12 @@ function ControlPesoAves() {
 
           <input
             type="number"
-
             value={uniformidad}
-
             onChange={(e) =>
               setUniformidad(
                 e.target.value
               )
             }
-
             style={inputStyle}
           />
 
@@ -412,7 +482,30 @@ function ControlPesoAves() {
           HEMBRAS
       ========================= */}
 
-      <h3>Hembras</h3>
+      <div
+        style={{
+          display: "flex",
+          justifyContent:
+            "space-between",
+          alignItems: "center",
+          marginTop: "20px"
+        }}
+      >
+
+        <h3>
+          Hembras
+        </h3>
+
+        <div>
+
+          <strong>
+            Promedio:
+          </strong>{" "}
+          {promHembras}
+
+        </div>
+
+      </div>
 
       <div style={rowStyle}>
 
@@ -429,11 +522,10 @@ function ControlPesoAves() {
 
             <input
               name={`m${i}`}
-
               type="number"
-
-              onChange={handleHembras}
-
+              onChange={
+                handleHembras
+              }
               style={inputStyle}
             />
 
@@ -458,31 +550,16 @@ function ControlPesoAves() {
 
             <input
               name={`m${i}`}
-
               type="number"
-
-              onChange={handleHembras}
-
+              onChange={
+                handleHembras
+              }
               style={inputStyle}
             />
 
           </div>
 
         ))}
-
-        <div style={{ flex: 1 }}>
-
-          <label>Promedio</label>
-
-          <input
-            value={promHembras}
-
-            readOnly
-
-            style={inputStyle}
-          />
-
-        </div>
 
       </div>
 
@@ -490,7 +567,30 @@ function ControlPesoAves() {
           MACHOS
       ========================= */}
 
-      <h3>Machos</h3>
+      <div
+        style={{
+          display: "flex",
+          justifyContent:
+            "space-between",
+          alignItems: "center",
+          marginTop: "20px"
+        }}
+      >
+
+        <h3>
+          Machos
+        </h3>
+
+        <div>
+
+          <strong>
+            Promedio:
+          </strong>{" "}
+          {promMachos}
+
+        </div>
+
+      </div>
 
       <div style={rowStyle}>
 
@@ -507,11 +607,10 @@ function ControlPesoAves() {
 
             <input
               name={`m${i}`}
-
               type="number"
-
-              onChange={handleMachos}
-
+              onChange={
+                handleMachos
+              }
               style={inputStyle}
             />
 
@@ -536,11 +635,10 @@ function ControlPesoAves() {
 
             <input
               name={`m${i}`}
-
               type="number"
-
-              onChange={handleMachos}
-
+              onChange={
+                handleMachos
+              }
               style={inputStyle}
             />
 
@@ -548,41 +646,33 @@ function ControlPesoAves() {
 
         ))}
 
-        <div style={{ flex: 1 }}>
-
-          <label>Promedio</label>
-
-          <input
-            value={promMachos}
-
-            readOnly
-
-            style={inputStyle}
-          />
-
-        </div>
-
       </div>
 
-      {/* BOTÓN */}
+      {/* =========================
+          BOTÓN GUARDAR
+      ========================= */}
 
       <button
         onClick={guardar}
-
         style={{
           padding: "10px 20px",
           backgroundColor: "#1976d2",
           color: "#fff",
           border: "none",
           borderRadius: "5px",
-          cursor: "pointer"
+          cursor: "pointer",
+          marginTop: "15px"
         }}
       >
+
         Guardar Registro
+
       </button>
 
     </div>
+
   );
+
 }
 
 export default ControlPesoAves;
