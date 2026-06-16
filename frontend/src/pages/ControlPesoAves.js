@@ -6,17 +6,17 @@ function ControlPesoAves() {
   // =========================
 
   const [fecha, setFecha] = useState("");
-  const [lote] = useState("REP-260401-1600");
+  const [lote, setLote] = useState("");
 
   const [etapa, setEtapa] = useState("");
   const [nuevaEtapa, setNuevaEtapa] = useState("");
   const [mostrarNuevaEtapa, setMostrarNuevaEtapa] = useState(false);
 
   const [semana] = useState(1);
-  const [uniformidad, setUniformidad] = useState("");
 
-  const [tamanoMuestra, setTamanoMuestra] = useState(20);
+  const [tamanoMuestra, setTamanoMuestra] = useState(0);
 
+  const [uniformidad, setUniformidad] = useState(0);
   const [promedioGeneral, setPromedioGeneral] = useState(0);
 
   const [etapas, setEtapas] = useState([]);
@@ -46,15 +46,14 @@ function ControlPesoAves() {
   }, []);
 
   // =========================
-  // HELPERS
+  // PROMEDIO
   // =========================
 
   const calcularPromedio = (obj) => {
-    const vals = Object.values(obj);
     let suma = 0;
     let count = 0;
 
-    vals.forEach((v) => {
+    Object.values(obj).forEach((v) => {
       const n = parseFloat(v);
       if (!isNaN(n)) {
         suma += n;
@@ -65,19 +64,22 @@ function ControlPesoAves() {
     return count ? suma / count : 0;
   };
 
-  const generarInputs = (base, setFn, size) => {
+  // =========================
+  // DISTRIBUCIÓN MUESTRA
+  // =========================
+
+  const buildSamples = (total, setFn) => {
+    const half = Math.floor(total / 2);
+
     const obj = {};
-    for (let i = 1; i <= size; i++) obj[`m${i}`] = base[`m${i}`] || "";
+
+    for (let i = 1; i <= half; i++) obj[`m${i}`] = "";
     setFn(obj);
   };
 
-  // =========================
-  // EFECTO TAMANO MUESTRA
-  // =========================
-
   useEffect(() => {
-    generarInputs(hembras, setHembras, tamanoMuestra);
-    generarInputs(machos, setMachos, tamanoMuestra);
+    buildSamples(tamanoMuestra, setHembras);
+    buildSamples(tamanoMuestra, setMachos);
   }, [tamanoMuestra]);
 
   // =========================
@@ -116,19 +118,19 @@ function ControlPesoAves() {
     const min = promedioGeneral * 0.9;
     const max = promedioGeneral * 1.1;
 
-    const dentro = all.filter((n) => n >= min && n <= max).length;
+    const ok = all.filter((n) => n >= min && n <= max).length;
 
-    setUniformidad(((dentro / all.length) * 100).toFixed(2));
+    setUniformidad(((ok / all.length) * 100).toFixed(2));
   }, [hembras, machos, promedioGeneral]);
 
   // =========================
   // HANDLERS
   // =========================
 
-  const handleChangeH = (e) =>
+  const handleH = (e) =>
     setHembras({ ...hembras, [e.target.name]: e.target.value });
 
-  const handleChangeM = (e) =>
+  const handleM = (e) =>
     setMachos({ ...machos, [e.target.name]: e.target.value });
 
   // =========================
@@ -143,6 +145,33 @@ function ControlPesoAves() {
     setEtapa(nuevaEtapa);
     setNuevaEtapa("");
     setMostrarNuevaEtapa(false);
+  };
+
+  // =========================
+  // RENDER INPUTS (FILAS DE 5)
+  // =========================
+
+  const renderInputs = (data, handler) => {
+    const keys = Object.keys(data);
+    const rows = [];
+
+    for (let i = 0; i < keys.length; i += 5) {
+      rows.push(keys.slice(i, i + 5));
+    }
+
+    return rows.map((row, i) => (
+      <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+        {row.map((k) => (
+          <input
+            key={k}
+            name={k}
+            value={data[k]}
+            onChange={handler}
+            style={{ flex: 1, padding: 8 }}
+          />
+        ))}
+      </div>
+    ));
   };
 
   // =========================
@@ -166,33 +195,6 @@ function ControlPesoAves() {
   };
 
   // =========================
-  // RENDER GRID 5
-  // =========================
-
-  const renderInputs = (data, handler) => {
-    const keys = Object.keys(data);
-
-    const rows = [];
-    for (let i = 0; i < keys.length; i += 5) {
-      rows.push(keys.slice(i, i + 5));
-    }
-
-    return rows.map((row, i) => (
-      <div key={i} style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-        {row.map((k) => (
-          <input
-            key={k}
-            name={k}
-            value={data[k]}
-            onChange={handler}
-            style={{ flex: 1, padding: "8px" }}
-          />
-        ))}
-      </div>
-    ));
-  };
-
-  // =========================
   // RENDER
   // =========================
 
@@ -200,63 +202,89 @@ function ControlPesoAves() {
     <div style={{ maxWidth: 950, margin: "auto", fontFamily: "Arial" }}>
       <h2>Control Peso Aves</h2>
 
-      {/* HEADER */}
+      {/* ================= FECHA / LOTE / SEMANA ================= */}
       <div style={{ display: "flex", gap: 10 }}>
-        <input value={fecha} onChange={(e) => setFecha(e.target.value)} />
-        <input value={lote} readOnly />
-        <input value={semana} readOnly />
+        <div style={{ flex: 1 }}>
+          <label>Fecha</label>
+          <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+        </div>
+
+        <div style={{ flex: 1 }}>
+          <label># Lote</label>
+          <select value={lote} onChange={(e) => setLote(e.target.value)}>
+            <option value="">Seleccione</option>
+            <option value="SL-001">SL-001</option>
+            <option value="BL-001">BL-001</option>
+          </select>
+        </div>
+
+        <div style={{ flex: 1 }}>
+          <label>Semana</label>
+          <input value={semana} readOnly />
+        </div>
       </div>
 
-      {/* ETAPA */}
+      {/* ================= ETAPA / MUESTRA / PROM / UNI ================= */}
       <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-        <select value={etapa} onChange={(e) => setEtapa(e.target.value)}>
-          <option value="">Seleccione</option>
-          {etapas.map((e, i) => (
-            <option key={i}>{e}</option>
-          ))}
-        </select>
+        <div style={{ flex: 2 }}>
+          <label>Etapa</label>
+          <div style={{ display: "flex", gap: 10 }}>
+            <select value={etapa} onChange={(e) => setEtapa(e.target.value)}>
+              <option value="">Seleccione</option>
+              {etapas.map((e, i) => (
+                <option key={i}>{e}</option>
+              ))}
+            </select>
 
-        <button onClick={agregarEtapa} type="button">+</button>
+            <button type="button" onClick={agregarEtapa}>+</button>
+          </div>
+        </div>
 
-        <input
-          type="number"
-          value={tamanoMuestra}
-          onChange={(e) => setTamanoMuestra(Number(e.target.value))}
-        />
+        <div style={{ flex: 1 }}>
+          <label>Tamaño de la Muestra</label>
+          <input
+            type="number"
+            value={tamanoMuestra}
+            onChange={(e) => setTamanoMuestra(Number(e.target.value))}
+          />
+        </div>
 
-        <input value={promedioGeneral.toFixed(2)} readOnly />
+        <div style={{ flex: 1 }}>
+          <label>Promedio General</label>
+          <input value={promedioGeneral.toFixed(2)} readOnly />
+        </div>
 
-        <input value={uniformidad} readOnly />
+        <div style={{ flex: 1 }}>
+          <label>% Uniformidad</label>
+          <input value={uniformidad} readOnly />
+        </div>
       </div>
 
-      {/* HEMBRAS */}
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <h3>
-          Hembras{" "}
-          <button onClick={() => setExpandH(!expandH)} type="button">
-            {expandH ? "-" : "+"}
-          </button>
-        </h3>
-        <span>Prom: {promHembras.toFixed(2)}</span>
+      {/* ================= HEMBRAS ================= */}
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20 }}>
+        <h3>Hembras</h3>
+        <div>
+          Prom: {promHembras.toFixed(2)}{" "}
+          <button onClick={() => setExpandH(!expandH)}>+/-</button>
+        </div>
       </div>
 
-      {expandH && renderInputs(hembras, handleChangeH)}
+      {expandH && renderInputs(hembras, handleH)}
 
-      {/* MACHOS */}
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <h3>
-          Machos{" "}
-          <button onClick={() => setExpandM(!expandM)} type="button">
-            {expandM ? "-" : "+"}
-          </button>
-        </h3>
-        <span>Prom: {promMachos.toFixed(2)}</span>
+      {/* ================= MACHOS ================= */}
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20 }}>
+        <h3>Machos</h3>
+        <div>
+          Prom: {promMachos.toFixed(2)}{" "}
+          <button onClick={() => setExpandM(!expandM)}>+/-</button>
+        </div>
       </div>
 
-      {expandM && renderInputs(machos, handleChangeM)}
+      {expandM && renderInputs(machos, handleM)}
 
+      {/* ================= GUARDAR ================= */}
       <button onClick={guardar} style={{ marginTop: 20 }}>
-        Guardar
+        Guardar Registro
       </button>
     </div>
   );
