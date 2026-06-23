@@ -11,7 +11,7 @@ function EgresoAlimento() {
   );
 
   // =========================
-  // CATÁLOGOS (ordenados)
+  // CATÁLOGOS
   // =========================
 
   const galeras = [
@@ -33,28 +33,18 @@ function EgresoAlimento() {
     "Prepostura"
   ];
 
-  const aditivos = [
-    "AD-001",
-    "AD-002"
-  ];
+  const aditivos = ["AD-001", "AD-002"];
 
-  const medicamentos = [
-    "MED-001",
-    "MED-002"
-  ];
+  const medicamentos = ["MED-001", "MED-002"];
 
-  const vacunas = [
-    "VAC-001",
-    "VAC-002"
-  ];
+  const vacunas = ["VAC-001", "VAC-002"];
 
   // =========================
-  // CREAR REGISTRO
+  // REGISTRO
   // =========================
 
   const crearRegistro = () => ({
     id: Date.now() + Math.random(),
-
     galera: "",
 
     alimento: "",
@@ -70,14 +60,10 @@ function EgresoAlimento() {
     cantidadVacuna: ""
   });
 
-  // =========================
-  // STATE
-  // =========================
-
   const [registros, setRegistros] = useState([]);
 
   // =========================
-  // AGREGAR / ELIMINAR
+  // HANDLERS
   // =========================
 
   const agregarRegistro = () => {
@@ -88,10 +74,6 @@ function EgresoAlimento() {
     setRegistros(prev => prev.filter(r => r.id !== id));
   };
 
-  // =========================
-  // HANDLE CHANGE
-  // =========================
-
   const handleChange = (id, campo, value) => {
     setRegistros(prev =>
       prev.map(r =>
@@ -100,25 +82,19 @@ function EgresoAlimento() {
     );
   };
 
-  // =========================
-  // GUARDAR
-  // =========================
-
   const guardar = (e) => {
     e.preventDefault();
 
-    const payload = {
+    console.log({
       fecha,
       movimientos: registros
-    };
+    });
 
-    console.log(payload);
-
-    alert("Salida de alimento registrada correctamente");
+    alert("Registro guardado correctamente");
   };
 
   // =========================
-  // ESTILOS (COMPACTOS)
+  // ESTILOS (CORREGIDOS ALINEACIÓN)
   // =========================
 
   const inputStyle = {
@@ -127,7 +103,8 @@ function EgresoAlimento() {
     border: "1px solid #ccc",
     borderRadius: "4px",
     height: "32px",
-    fontSize: "13px"
+    fontSize: "13px",
+    lineHeight: "1"
   };
 
   const labelStyle = {
@@ -139,7 +116,11 @@ function EgresoAlimento() {
 
   const cellStyle = {
     padding: "2px 4px",
-    verticalAlign: "top"
+    verticalAlign: "middle"
+  };
+
+  const rowHeight = {
+    height: "38px"
   };
 
   // =========================
@@ -147,7 +128,6 @@ function EgresoAlimento() {
   // =========================
 
   return (
-
     <div
       style={{
         maxWidth: "1200px",
@@ -171,7 +151,6 @@ function EgresoAlimento() {
           marginBottom: "10px"
         }}
       >
-
         <div>
           <label style={labelStyle}>Fecha</label>
           <input
@@ -195,14 +174,13 @@ function EgresoAlimento() {
             cursor: "pointer"
           }}
         >
-          + Proporcionar a Galera
+          Proporcionar a Galera
         </button>
-
       </div>
 
       <form onSubmit={guardar}>
 
-        {registros.map(registro => (
+        {registros.map((registro) => (
 
           <div
             key={registro.id}
@@ -215,7 +193,7 @@ function EgresoAlimento() {
             }}
           >
 
-            {/* HEADER */}
+            {/* GALERA + ELIMINAR */}
 
             <div
               style={{
@@ -225,7 +203,6 @@ function EgresoAlimento() {
                 marginBottom: "8px"
               }}
             >
-
               <div>
                 <label style={labelStyle}>Galera</label>
                 <select
@@ -247,29 +224,29 @@ function EgresoAlimento() {
                 onClick={() => eliminarRegistro(registro.id)}
                 style={{
                   height: "32px",
+                  padding: "0 10px",
                   background: "#d9534f",
                   color: "#fff",
                   border: "none",
                   borderRadius: "5px",
-                  padding: "0 10px",
                   cursor: "pointer"
                 }}
               >
                 X
               </button>
-
             </div>
 
-            {/* MATRIZ COMPACTA */}
+            {/* TABLA */}
 
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
-
               <tbody>
 
                 {/* ALIMENTO */}
-                <tr>
+                <tr style={rowHeight}>
                   <td style={{ ...cellStyle, width: "120px", fontWeight: "bold" }}>
-                    Alimento
+                    <div style={{ display: "flex", alignItems: "center", height: "100%" }}>
+                      Alimento
+                    </div>
                   </td>
                   <td style={cellStyle}>
                     <select
@@ -298,9 +275,11 @@ function EgresoAlimento() {
                 </tr>
 
                 {/* ADITIVO */}
-                <tr>
+                <tr style={rowHeight}>
                   <td style={{ ...cellStyle, fontWeight: "bold" }}>
-                    Aditivo
+                    <div style={{ display: "flex", alignItems: "center", height: "100%" }}>
+                      Aditivo
+                    </div>
                   </td>
                   <td style={cellStyle}>
                     <select
@@ -329,9 +308,11 @@ function EgresoAlimento() {
                 </tr>
 
                 {/* MEDICAMENTO */}
-                <tr>
+                <tr style={rowHeight}>
                   <td style={{ ...cellStyle, fontWeight: "bold" }}>
-                    Medicamento
+                    <div style={{ display: "flex", alignItems: "center", height: "100%" }}>
+                      Medicamento
+                    </div>
                   </td>
                   <td style={cellStyle}>
                     <select
@@ -360,9 +341,11 @@ function EgresoAlimento() {
                 </tr>
 
                 {/* VACUNA */}
-                <tr>
+                <tr style={rowHeight}>
                   <td style={{ ...cellStyle, fontWeight: "bold" }}>
-                    Vacuna
+                    <div style={{ display: "flex", alignItems: "center", height: "100%" }}>
+                      Vacuna
+                    </div>
                   </td>
                   <td style={cellStyle}>
                     <select
@@ -391,11 +374,9 @@ function EgresoAlimento() {
                 </tr>
 
               </tbody>
-
             </table>
 
           </div>
-
         ))}
 
         <button
@@ -416,7 +397,6 @@ function EgresoAlimento() {
       </form>
 
     </div>
-
   );
 }
 
