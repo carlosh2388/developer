@@ -7,13 +7,51 @@ function Clientes() {
 
   const [codigoCliente, setCodigoCliente] = useState("");
   const [nombreComercial, setNombreComercial] = useState("");
+  const [contacto, setContacto] = useState("");
+
   const [telefono, setTelefono] = useState("");
   const [correo, setCorreo] = useState("");
-  const [contacto, setContacto] = useState("");
+
   const [region, setRegion] = useState("");
   const [categoria, setCategoria] = useState("");
+
   const [precioCajaSuperNick, setPrecioCajaSuperNick] = useState("");
   const [precioCajaBrownNick, setPrecioCajaBrownNick] = useState("");
+
+  // =========================
+  // UBICACIONES DINÁMICAS
+  // =========================
+
+  const [ubicaciones, setUbicaciones] = useState([]);
+
+  const agregarUbicacion = () => {
+    setUbicaciones(prev => [
+      ...prev,
+      {
+        id: Date.now() + Math.random(),
+        nit: "",
+        razonSocial: "",
+        direccionFiscal: "",
+        direccionEntrega: ""
+      }
+    ]);
+  };
+
+  const eliminarUbicacion = (id) => {
+    setUbicaciones(prev =>
+      prev.filter(u => u.id !== id)
+    );
+  };
+
+  const handleUbicacionChange = (id, campo, value) => {
+    setUbicaciones(prev =>
+      prev.map(u =>
+        u.id === id
+          ? { ...u, [campo]: value }
+          : u
+      )
+    );
+  };
 
   // =========================
   // FORMATO TELÉFONO
@@ -23,10 +61,7 @@ function Clientes() {
     let value = e.target.value.replace(/\D/g, "");
 
     if (value.length > 4) {
-      value =
-        value.slice(0, 4) +
-        "-" +
-        value.slice(4, 8);
+      value = value.slice(0, 4) + "-" + value.slice(4, 8);
     }
 
     setTelefono(value);
@@ -39,25 +74,6 @@ function Clientes() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // VALIDAR TELÉFONO
-    if (!/^\d{4}-\d{4}$/.test(telefono)) {
-      alert(
-        "El teléfono debe tener formato ####-####"
-      );
-      return;
-    }
-
-    // VALIDAR CORREO
-    if (
-      correo &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)
-    ) {
-      alert(
-        "Ingrese un correo electrónico válido"
-      );
-      return;
-    }
-
     const data = {
       codigoCliente,
       telefono,
@@ -67,14 +83,13 @@ function Clientes() {
       region,
       categoria,
       precioCajaSuperNick,
-      precioCajaBrownNick
+      precioCajaBrownNick,
+      ubicaciones
     };
 
     console.log(data);
 
-    alert(
-      "Cliente guardado correctamente"
-    );
+    alert("Cliente guardado correctamente");
   };
 
   // =========================
@@ -112,6 +127,15 @@ function Clientes() {
     cursor: "pointer"
   };
 
+  const deleteBtn = {
+    padding: "8px 10px",
+    background: "#d9534f",
+    color: "#fff",
+    border: "none",
+    borderRadius: "5px",
+    cursor: "pointer"
+  };
+
   // =========================
   // RENDER
   // =========================
@@ -126,219 +150,181 @@ function Clientes() {
         fontFamily: "Arial"
       }}
     >
-      <h2>
-        Registro de Clientes
-      </h2>
+      <h2>Registro de Clientes</h2>
 
-      {/* CÓDIGO CLIENTE + TELÉFONO + CORREO */}
+      {/* CÓDIGO + TELÉFONO + CORREO */}
       <div style={rowStyle}>
-        {/* CÓDIGO CLIENTE */}
         <div>
-          <label>
-            Código de Cliente
-          </label>
-
+          <label>Código de Cliente</label>
           <input
-            type="text"
             value={codigoCliente}
             onChange={(e) =>
-              setCodigoCliente(
-                e.target.value.toUpperCase()
-              )
+              setCodigoCliente(e.target.value.toUpperCase())
             }
-            placeholder="CLI-001"
             style={inputStyle}
-            required
           />
         </div>
 
-        {/* TELÉFONO */}
         <div>
-          <label>
-            Teléfono
-          </label>
-
+          <label>Teléfono</label>
           <input
-            type="text"
             value={telefono}
             onChange={handleTelefono}
-            placeholder="####-####"
             maxLength={9}
             style={inputStyle}
-            required
           />
         </div>
 
-        {/* CORREO */}
         <div>
-          <label>
-            Correo Electrónico
-          </label>
-
+          <label>Correo Electrónico</label>
           <input
             type="email"
             value={correo}
-            onChange={(e) =>
-              setCorreo(e.target.value)
-            }
-            placeholder="correo@ejemplo.com"
+            onChange={(e) => setCorreo(e.target.value)}
             style={inputStyle}
           />
         </div>
       </div>
 
-      {/* CONTACTO */}
-      <label>
-        Nombre del Contacto
-      </label>
+      {/* NOMBRE COMERCIAL + CONTACTO (ORDEN CAMBIADO) */}
+      <div style={doubleRowStyle}>
+        <div>
+          <label>Nombre Comercial</label>
+          <input
+            value={nombreComercial}
+            onChange={(e) => setNombreComercial(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
 
-      <input
-        type="text"
-        value={contacto}
-        onChange={(e) =>
-          setContacto(e.target.value)
-        }
-        style={{
-          ...inputStyle,
-          marginBottom: "15px"
-        }}
-      />
-
-      {/* NOMBRE COMERCIAL */}
-      <label>
-        Nombre Comercial
-      </label>
-
-      <input
-        type="text"
-        value={nombreComercial}
-        onChange={(e) =>
-          setNombreComercial(e.target.value)
-        }
-        style={{
-          ...inputStyle,
-          marginBottom: "15px"
-        }}
-        required
-      />
+        <div>
+          <label>Nombre del Contacto</label>
+          <input
+            value={contacto}
+            onChange={(e) => setContacto(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
+      </div>
 
       {/* REGIÓN + CATEGORÍA */}
       <div style={doubleRowStyle}>
-        {/* REGIÓN */}
         <div>
-          <label>
-            Región
-          </label>
-
+          <label>Región</label>
           <select
             value={region}
-            onChange={(e) =>
-              setRegion(e.target.value)
-            }
+            onChange={(e) => setRegion(e.target.value)}
             style={inputStyle}
           >
-            <option value="">
-              Seleccione
-            </option>
-
-            <option value="Norte">
-              Norte
-            </option>
-
-            <option value="Sur">
-              Sur
-            </option>
-
-            <option value="Este">
-              Este
-            </option>
-
-            <option value="Oeste">
-              Oeste
-            </option>
+            <option value="">Seleccione</option>
+            <option>Norte</option>
+            <option>Sur</option>
+            <option>Este</option>
+            <option>Oeste</option>
           </select>
         </div>
 
-        {/* CATEGORÍA */}
         <div>
-          <label>
-            Categoría
-          </label>
-
+          <label>Categoría</label>
           <select
             value={categoria}
-            onChange={(e) =>
-              setCategoria(
-                e.target.value
-              )
-            }
+            onChange={(e) => setCategoria(e.target.value)}
             style={inputStyle}
           >
-            <option value="">
-              Seleccione
-            </option>
-
-            <option value="Preferencial">
-              Preferencial
-            </option>
-
-            <option value="VIP">
-              VIP
-            </option>
-
-            <option value="Especial">
-              Especial
-            </option>
+            <option value="">Seleccione</option>
+            <option>Preferencial</option>
+            <option>VIP</option>
+            <option>Especial</option>
           </select>
         </div>
       </div>
 
-      {/* PRECIOS */}
+      {/* PRECIOS + BOTÓN */}
       <div style={doubleRowStyle}>
-        {/* PRECIO CAJA SUPER NICK */}
         <div>
-          <label>
-            Precio Caja Super Nick
-          </label>
-
+          <label>Precio Caja Super Nick</label>
           <input
             type="number"
             value={precioCajaSuperNick}
-            onChange={(e) =>
-              setPrecioCajaSuperNick(
-                e.target.value
-              )
-            }
-            placeholder="0.00"
+            onChange={(e) => setPrecioCajaSuperNick(e.target.value)}
             style={inputStyle}
           />
         </div>
 
-        {/* PRECIO CAJA BROWN NICK */}
         <div>
-          <label>
-            Precio Caja Brown Nick
-          </label>
-
+          <label>Precio Caja Brown Nick</label>
           <input
             type="number"
             value={precioCajaBrownNick}
-            onChange={(e) =>
-              setPrecioCajaBrownNick(
-                e.target.value
-              )
-            }
-            placeholder="0.00"
+            onChange={(e) => setPrecioCajaBrownNick(e.target.value)}
             style={inputStyle}
           />
         </div>
       </div>
 
-      {/* BOTÓN */}
+      {/* BOTÓN AGREGAR UBICACIÓN */}
       <button
-        type="submit"
-        style={buttonStyle}
+        type="button"
+        onClick={agregarUbicacion}
+        style={{
+          ...buttonStyle,
+          marginBottom: "15px"
+        }}
       >
+        Agregar Ubicación
+      </button>
+
+      {/* UBICACIONES */}
+      {ubicaciones.map((u) => (
+        <div key={u.id} style={doubleRowStyle}>
+          <input
+            placeholder="NIT"
+            value={u.nit}
+            onChange={(e) =>
+              handleUbicacionChange(u.id, "nit", e.target.value)
+            }
+            style={inputStyle}
+          />
+
+          <input
+            placeholder="Razón Social"
+            value={u.razonSocial}
+            onChange={(e) =>
+              handleUbicacionChange(u.id, "razonSocial", e.target.value)
+            }
+            style={inputStyle}
+          />
+
+          <input
+            placeholder="Dirección Fiscal"
+            value={u.direccionFiscal}
+            onChange={(e) =>
+              handleUbicacionChange(u.id, "direccionFiscal", e.target.value)
+            }
+            style={inputStyle}
+          />
+
+          <input
+            placeholder="Dirección de Entrega"
+            value={u.direccionEntrega}
+            onChange={(e) =>
+              handleUbicacionChange(u.id, "direccionEntrega", e.target.value)
+            }
+            style={inputStyle}
+          />
+
+          <button
+            type="button"
+            onClick={() => eliminarUbicacion(u.id)}
+            style={deleteBtn}
+          >
+            X
+          </button>
+        </div>
+      ))}
+
+      {/* GUARDAR */}
+      <button type="submit" style={buttonStyle}>
         Guardar
       </button>
     </form>
