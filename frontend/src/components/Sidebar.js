@@ -52,7 +52,9 @@ function Sidebar({ setVista }) {
             <li onClick={() => setVista("IngresoAlimento")}>
               Ingreso de Alimento
             </li>
-          
+            <li onClick={() => setVista("EgresoAlimento")}>
+              Egreso de Alimento
+            </li>
             <li onClick={() => setVista("ingresoHuevos")}>
               Ingreso de Huevos
             </li>
