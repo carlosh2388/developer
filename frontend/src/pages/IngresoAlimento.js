@@ -3,111 +3,94 @@ import { useState } from "react";
 function IngresoAlimento() {
 
   // =========================
-  // STATES
+  // FECHA
   // =========================
 
-  const [movimiento, setMovimiento] =
-    useState("");
-
-  const [mostrarFormulario, setMostrarFormulario] =
-    useState(false);
-
-  const [fecha, setFecha] =
-    useState("");
-
-  const [lote, setLote] =
-    useState("REP-260401-1600");
-
-  const [tipoAlimento, setTipoAlimento] =
-    useState("");
-
-  const [cantidadAlimento, setCantidadAlimento] =
-    useState("");
-
-  const [aditivo, setAditivo] =
-    useState("");
-
-  const [cantidadAditivo, setCantidadAditivo] =
-    useState("");
-
-  const [medicamento, setMedicamento] =
-    useState("");
-
-  const [cantidadMedicamento, setCantidadMedicamento] =
-    useState("");
+  const [fecha, setFecha] = useState(
+    new Date().toISOString().split("T")[0]
+  );
 
   // =========================
-  // CAMBIO MOVIMIENTO
+  // LOTES (solo salida opcional eliminado)
   // =========================
 
-  const handleMovimiento = (e) => {
+  const [lote] = useState("REP-260401-1600");
 
-    const value = e.target.value;
+  // =========================
+  // FILAS DE INGRESO
+  // =========================
 
-    setMovimiento(value);
+  const alimentosDisponibles = [
+    "Preinicio",
+    "Inicio Polla",
+    "Desarrollo Polla",
+    "Crecimiento Polla",
+    "Prepostura",
+    "Fase 1",
+    "Fase 2"
+  ];
 
-    // VOLVER A ESTADO INICIAL
-    if (value === "") {
+  const aditivosDisponibles = [
+    "AD-001 Ejemplo"
+  ];
 
-      setMostrarFormulario(false);
+  const medicamentosDisponibles = [
+    "MD-001 Ejemplo"
+  ];
 
-      setFecha("");
+  const crearFila = () => ({
+    alimento: "",
+    aditivo: "",
+    medicamento: "",
+    cantidadAlimento: "",
+    cantidadAditivo: "",
+    cantidadMedicamento: ""
+  });
 
-      setTipoAlimento("");
-      setCantidadAlimento("");
+  const [filas, setFilas] = useState([
+    crearFila()
+  ]);
 
-      setAditivo("");
-      setCantidadAditivo("");
+  // =========================
+  // MANEJO FILAS
+  // =========================
 
-      setMedicamento("");
-      setCantidadMedicamento("");
+  const handleChange = (index, campo, value) => {
+    setFilas(prev =>
+      prev.map((fila, i) =>
+        i === index
+          ? { ...fila, [campo]: value }
+          : fila
+      )
+    );
+  };
 
-      return;
-    }
+  const agregarFila = () => {
+    setFilas(prev => [...prev, crearFila()]);
+  };
 
-    // MOSTRAR FORMULARIO
-    setMostrarFormulario(true);
-
-    const hoy =
-      new Date()
-        .toISOString()
-        .split("T")[0];
-
-    setFecha(hoy);
+  const eliminarFila = (index) => {
+    setFilas(prev =>
+      prev.filter((_, i) => i !== index)
+    );
   };
 
   // =========================
-  // SUBMIT
+  // GUARDAR
   // =========================
 
   const guardar = (e) => {
-
     e.preventDefault();
 
     const data = {
-
-      movimiento,
       fecha,
-
-      // SOLO ENVÍA LOTE SI ES SALIDA
-      lote:
-        movimiento === "salida"
-          ? lote
-          : "",
-
-      tipoAlimento,
-      cantidadAlimento,
-      aditivo,
-      cantidadAditivo,
-      medicamento,
-      cantidadMedicamento
+      lote,
+      movimientos: filas
     };
 
     console.log(data);
 
-    alert(
-      "Movimiento de alimentos registrado correctamente"
-    );
+    alert("Ingreso registrado correctamente");
   };
 
   // =========================
@@ -116,15 +99,14 @@ function IngresoAlimento() {
 
   const inputStyle = {
     width: "100%",
-    padding: "8px",
-    borderRadius: "5px",
-    border: "1px solid #ccc"
+    padding: "6px",
+    border: "1px solid #ccc",
+    borderRadius: "4px"
   };
 
-  const rowStyle = {
-    display: "flex",
-    gap: "10px",
-    marginBottom: "15px"
+  const btnSmall = {
+    padding: "4px 8px",
+    cursor: "pointer"
   };
 
   // =========================
@@ -134,304 +116,239 @@ function IngresoAlimento() {
   return (
 
     <div
-      className="form-container"
       style={{
-        maxWidth: "700px",
+        maxWidth: "1000px",
         margin: "0 auto",
         padding: "20px",
         fontFamily: "Arial"
       }}
     >
 
-      <h2>
-        Control de Alimentos
-      </h2>
+      <h2>Ingreso de Alimentos</h2>
 
-      {/* TIPO MOVIMIENTO */}
-      <label>
-        Tipo de Movimiento
-      </label>
+      {/* FECHA */}
+      <div style={{ marginBottom: "15px" }}>
+        <label>Fecha</label>
+        <input
+          type="date"
+          value={fecha}
+          onChange={(e) =>
+            setFecha(e.target.value)
+          }
+          style={inputStyle}
+        />
+      </div>
 
-      <select
-        value={movimiento}
-        onChange={handleMovimiento}
-        style={{
-          ...inputStyle,
-          marginBottom: "20px"
-        }}
-      >
+      {/* TABLA */}
+      <form onSubmit={guardar}>
 
-        <option value="">
-          Seleccione
-        </option>
-
-        <option value="entrada">
-          Entrada a Bodega
-        </option>
-
-        <option value="salida">
-          Salida de Bodega
-        </option>
-
-      </select>
-
-      {/* FORMULARIO */}
-      {mostrarFormulario && (
-
-        <form
-          onSubmit={guardar}
-          className="form-alimentos"
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse"
+          }}
         >
 
-          {/* FECHA Y LOTE */}
-          <div style={rowStyle}>
+          <thead>
+            <tr style={{ background: "#f5f5f5" }}>
+              <th>Alimento</th>
+              <th>Cant. Alimento</th>
+              <th>Aditivo</th>
+              <th>Cant. Aditivo</th>
+              <th>Medicamento</th>
+              <th>Cant. Medicamento</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
 
-            {/* FECHA */}
-            <div style={{ flex: 1 }}>
+          <tbody>
 
-              <label>
-                Fecha
-              </label>
+            {filas.map((fila, index) => (
 
-              <input
-                type="date"
-                value={fecha}
-                onChange={(e) =>
-                  setFecha(e.target.value)
-                }
-                style={inputStyle}
-              />
+              <tr key={index}>
 
-            </div>
+                {/* ALIMENTO */}
+                <td>
+                  <select
+                    value={fila.alimento}
+                    onChange={(e) =>
+                      handleChange(
+                        index,
+                        "alimento",
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  >
+                    <option value="">
+                      Seleccione
+                    </option>
 
-            {/* LOTE SOLO PARA SALIDA */}
-            {movimiento === "salida" && (
+                    {alimentosDisponibles.map(a => (
+                      <option key={a} value={a}>
+                        {a}
+                      </option>
+                    ))}
+                  </select>
+                </td>
 
-              <div style={{ flex: 1 }}>
+                {/* CANTIDAD ALIMENTO */}
+                <td>
+                  <input
+                    type="number"
+                    value={fila.cantidadAlimento}
+                    onChange={(e) =>
+                      handleChange(
+                        index,
+                        "cantidadAlimento",
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  />
+                </td>
 
-                <label>
-                  # Lote
-                </label>
+                {/* ADITIVO */}
+                <td>
+                  <select
+                    value={fila.aditivo}
+                    onChange={(e) =>
+                      handleChange(
+                        index,
+                        "aditivo",
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  >
+                    <option value="">
+                      Seleccione
+                    </option>
 
-                <select
-                  value={lote}
-                  onChange={(e) =>
-                    setLote(e.target.value)
-                  }
-                  style={inputStyle}
-                >
+                    {aditivosDisponibles.map(a => (
+                      <option key={a} value={a}>
+                        {a}
+                      </option>
+                    ))}
+                  </select>
+                </td>
 
-                  <option value="REP-260401-1600">
-                    REP-260401-1600
-                  </option>
+                {/* CANTIDAD ADITIVO */}
+                <td>
+                  <input
+                    type="number"
+                    value={fila.cantidadAditivo}
+                    onChange={(e) =>
+                      handleChange(
+                        index,
+                        "cantidadAditivo",
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  />
+                </td>
 
-                </select>
+                {/* MEDICAMENTO */}
+                <td>
+                  <select
+                    value={fila.medicamento}
+                    onChange={(e) =>
+                      handleChange(
+                        index,
+                        "medicamento",
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  >
+                    <option value="">
+                      Seleccione
+                    </option>
 
-              </div>
+                    {medicamentosDisponibles.map(m => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </td>
 
-            )}
+                {/* CANTIDAD MEDICAMENTO */}
+                <td>
+                  <input
+                    type="number"
+                    value={fila.cantidadMedicamento}
+                    onChange={(e) =>
+                      handleChange(
+                        index,
+                        "cantidadMedicamento",
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  />
+                </td>
 
-          </div>
+                {/* ACCIONES */}
+                <td>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      eliminarFila(index)
+                    }
+                    style={{
+                      ...btnSmall,
+                      background: "#d9534f",
+                      color: "#fff",
+                      border: "none"
+                    }}
+                  >
+                    x
+                  </button>
+                </td>
 
-          {/* TIPO ALIMENTO */}
-          <label>
-            Tipo de Alimento
-          </label>
+              </tr>
 
-          <select
-            value={tipoAlimento}
-            onChange={(e) =>
-              setTipoAlimento(e.target.value)
-            }
-            style={{
-              ...inputStyle,
-              marginBottom: "15px"
-            }}
+            ))}
+
+          </tbody>
+
+        </table>
+
+        {/* BOTONES */}
+        <div
+          style={{
+            marginTop: "15px",
+            display: "flex",
+            gap: "10px"
+          }}
+        >
+
+          <button
+            type="button"
+            onClick={agregarFila}
+            style={btnSmall}
           >
+            + Agregar fila
+          </button>
 
-            <option value="">
-              Seleccione
-            </option>
-
-            <option value="Preinicio">
-              Preinicio
-            </option>
-
-            <option value="Inicio Polla">
-              Inicio Polla
-            </option>
-
-            <option value="Desarrollo Polla">
-              Desarrollo Polla
-            </option>
-
-            <option value="Crecimiento Polla">
-              Crecimiento Polla
-            </option>
-
-            <option value="Prepostura">
-              Prepostura
-            </option>
-
-            <option value="Fase 1">
-              Fase 1
-            </option>
-
-            <option value="Fase 2">
-              Fase 2
-            </option>
-
-          </select>
-
-          {/* CANTIDAD ALIMENTO */}
-          {tipoAlimento && (
-
-            <div style={{ marginBottom: "15px" }}>
-
-              <label>
-                Cantidad de Alimento
-                (quintales)
-              </label>
-
-              <input
-                type="number"
-                value={cantidadAlimento}
-                onChange={(e) =>
-                  setCantidadAlimento(
-                    e.target.value
-                  )
-                }
-                style={inputStyle}
-              />
-
-            </div>
-          )}
-
-          <hr />
-
-          {/* ADITIVOS */}
-          <label>
-            Aditivos
-          </label>
-
-          <select
-            value={aditivo}
-            onChange={(e) =>
-              setAditivo(e.target.value)
-            }
-            style={{
-              ...inputStyle,
-              marginBottom: "15px"
-            }}
-          >
-
-            <option value="">
-              Seleccione
-            </option>
-
-            <option value="AD-001 Ejemplo">
-              AD-001 Ejemplo
-            </option>
-
-          </select>
-
-          {/* CANTIDAD ADITIVO */}
-          {aditivo && (
-
-            <div style={{ marginBottom: "15px" }}>
-
-              <label>
-                Cantidad de Aditivo
-                (gramos)
-              </label>
-
-              <input
-                type="number"
-                value={cantidadAditivo}
-                onChange={(e) =>
-                  setCantidadAditivo(
-                    e.target.value
-                  )
-                }
-                style={inputStyle}
-              />
-
-            </div>
-          )}
-
-          <hr />
-
-          {/* MEDICAMENTOS */}
-          <label>
-            Medicamentos
-          </label>
-
-          <select
-            value={medicamento}
-            onChange={(e) =>
-              setMedicamento(
-                e.target.value
-              )
-            }
-            style={{
-              ...inputStyle,
-              marginBottom: "15px"
-            }}
-          >
-
-            <option value="">
-              Seleccione
-            </option>
-
-            <option value="MD-001 Ejemplo">
-              MD-001 Ejemplo
-            </option>
-
-          </select>
-
-          {/* CANTIDAD MEDICAMENTO */}
-          {medicamento && (
-
-            <div style={{ marginBottom: "20px" }}>
-
-              <label>
-                Cantidad de Medicamento
-                (gramos)
-              </label>
-
-              <input
-                type="number"
-                value={cantidadMedicamento}
-                onChange={(e) =>
-                  setCantidadMedicamento(
-                    e.target.value
-                  )
-                }
-                style={inputStyle}
-              />
-
-            </div>
-          )}
-
-          {/* BOTÓN */}
           <button
             type="submit"
             style={{
-              padding: "10px 20px",
-              backgroundColor: "#1976d2",
+              padding: "8px 16px",
+              background: "#1976d2",
               color: "#fff",
               border: "none",
-              borderRadius: "5px",
-              cursor: "pointer"
+              borderRadius: "4px"
             }}
           >
-
             Guardar
-
           </button>
 
-        </form>
-      )}
+        </div>
+
+      </form>
 
     </div>
   );
