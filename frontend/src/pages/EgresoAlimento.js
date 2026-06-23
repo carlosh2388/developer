@@ -11,14 +11,16 @@ function EgresoAlimento() {
   );
 
   // =========================
-  // CREAR FILA
+  // CREAR REGISTRO
   // =========================
 
-  const crearFila = () => ({
+  const crearRegistro = () => ({
 
     id: Date.now() + Math.random(),
 
     galera: "",
+
+    numero: "",
 
     alimento: "",
     cantidadAlimento: "",
@@ -35,32 +37,33 @@ function EgresoAlimento() {
   });
 
   // =========================
-  // FILAS
+  // REGISTROS
   // =========================
 
-  const [filas, setFilas] = useState([]);
+  const [registros, setRegistros] =
+    useState([]);
 
   // =========================
-  // AGREGAR FILA
+  // AGREGAR
   // =========================
 
-  const agregarFila = () => {
+  const agregarRegistro = () => {
 
-    setFilas(prev => [
+    setRegistros(prev => [
       ...prev,
-      crearFila()
+      crearRegistro()
     ]);
 
   };
 
   // =========================
-  // ELIMINAR FILA
+  // ELIMINAR
   // =========================
 
-  const eliminarFila = (id) => {
+  const eliminarRegistro = (id) => {
 
-    setFilas(prev =>
-      prev.filter(f => f.id !== id)
+    setRegistros(prev =>
+      prev.filter(r => r.id !== id)
     );
 
   };
@@ -75,14 +78,14 @@ function EgresoAlimento() {
     value
   ) => {
 
-    setFilas(prev =>
-      prev.map(f =>
-        f.id === id
+    setRegistros(prev =>
+      prev.map(r =>
+        r.id === id
           ? {
-              ...f,
+              ...r,
               [campo]: value
             }
-          : f
+          : r
       )
     );
 
@@ -100,7 +103,7 @@ function EgresoAlimento() {
 
       fecha,
 
-      movimientos: filas
+      movimientos: registros
 
     };
 
@@ -113,20 +116,28 @@ function EgresoAlimento() {
   };
 
   // =========================
-  // ESTILO INPUT
+  // ESTILOS
   // =========================
 
   const inputStyle = {
 
     width: "100%",
 
-    padding: "6px",
+    padding: "8px",
 
     border: "1px solid #ccc",
 
-    borderRadius: "4px",
+    borderRadius: "4px"
 
-    fontSize: "12px"
+  };
+
+  const labelStyle = {
+
+    fontWeight: "bold",
+
+    marginBottom: "4px",
+
+    display: "block"
 
   };
 
@@ -138,7 +149,7 @@ function EgresoAlimento() {
 
     <div
       style={{
-        maxWidth: "1600px",
+        maxWidth: "1200px",
         margin: "0 auto",
         padding: "20px",
         fontFamily: "Arial"
@@ -149,7 +160,7 @@ function EgresoAlimento() {
         Salida de Alimento
       </h2>
 
-      {/* FECHA Y BOTÓN */}
+      {/* FECHA + BOTÓN */}
 
       <div
         style={{
@@ -162,7 +173,7 @@ function EgresoAlimento() {
 
         <div>
 
-          <label>
+          <label style={labelStyle}>
             Fecha
           </label>
 
@@ -181,15 +192,19 @@ function EgresoAlimento() {
 
         <button
           type="button"
-          onClick={agregarFila}
+          onClick={
+            agregarRegistro
+          }
           style={{
-            padding: "10px 15px",
-            background: "#1976d2",
+            padding:
+              "10px 15px",
+            background:
+              "#1976d2",
             color: "#fff",
             border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-            height: "38px"
+            borderRadius:
+              "5px",
+            cursor: "pointer"
           }}
         >
           Proporcionar Alimento a Galera
@@ -197,394 +212,541 @@ function EgresoAlimento() {
 
       </div>
 
-      <form
-        onSubmit={guardar}
-      >
+      <form onSubmit={guardar}>
 
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse"
-          }}
-        >
+        {registros.map(registro => (
 
-          <thead>
+          <div
+            key={registro.id}
+            style={{
+              border:
+                "1px solid #ccc",
+              borderRadius:
+                "8px",
+              padding: "15px",
+              marginBottom:
+                "20px",
+              background:
+                "#fafafa"
+            }}
+          >
 
-            <tr
+            {/* ENCABEZADO */}
+
+            <div
               style={{
-                background: "#f5f5f5"
+                display: "grid",
+                gridTemplateColumns:
+                  "2fr 1fr auto",
+                gap: "15px",
+                marginBottom:
+                  "20px"
               }}
             >
 
-              <th>Galera</th>
+              <div>
 
-              <th>Alimento</th>
-              <th>Cantidad</th>
+                <label
+                  style={
+                    labelStyle
+                  }
+                >
+                  Galera
+                </label>
 
-              <th>Medicamento</th>
-              <th>Cantidad</th>
+                <select
+                  value={
+                    registro.galera
+                  }
+                  onChange={(e) =>
+                    handleChange(
+                      registro.id,
+                      "galera",
+                      e.target.value
+                    )
+                  }
+                  style={
+                    inputStyle
+                  }
+                >
 
-              <th>Vacuna</th>
-              <th>Cantidad</th>
+                  <option value="">
+                    Seleccione
+                  </option>
 
-              <th>Aditivo</th>
-              <th>Cantidad</th>
+                  <option>
+                    Galera 1
+                  </option>
 
-              <th>Acción</th>
+                  <option>
+                    Galera 2
+                  </option>
 
-            </tr>
+                  <option>
+                    Galera 3
+                  </option>
 
-          </thead>
+                  <option>
+                    Galera 4
+                  </option>
 
-          <tbody>
+                  <option>
+                    Galera 5
+                  </option>
 
-            {filas.map((fila) => (
+                  <option>
+                    Crianza
+                  </option>
 
-              <tr key={fila.id}>
+                </select>
 
-                {/* GALERA */}
+              </div>
 
-                <td>
+              <div>
 
-                  <select
-                    value={fila.galera}
-                    onChange={(e) =>
-                      handleChange(
-                        fila.id,
-                        "galera",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
+                <label
+                  style={
+                    labelStyle
+                  }
+                >
+                  Número
+                </label>
+
+                <input
+                  type="number"
+                  value={
+                    registro.numero
+                  }
+                  onChange={(e) =>
+                    handleChange(
+                      registro.id,
+                      "numero",
+                      e.target.value
+                    )
+                  }
+                  style={
+                    inputStyle
+                  }
+                />
+
+              </div>
+
+              <div
+                style={{
+                  display:
+                    "flex",
+                  alignItems:
+                    "end"
+                }}
+              >
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    eliminarRegistro(
+                      registro.id
+                    )
+                  }
+                  style={{
+                    background:
+                      "#d9534f",
+                    color:
+                      "#fff",
+                    border:
+                      "none",
+                    padding:
+                      "10px 15px",
+                    borderRadius:
+                      "5px",
+                    cursor:
+                      "pointer"
+                  }}
+                >
+                  X
+                </button>
+
+              </div>
+
+            </div>
+
+            {/* MATRIZ */}
+
+            <table
+              style={{
+                width: "100%",
+                borderCollapse:
+                  "collapse"
+              }}
+            >
+
+              <thead>
+
+                <tr
+                  style={{
+                    background:
+                      "#f5f5f5"
+                  }}
+                >
+
+                  <th
+                    style={{
+                      padding:
+                        "8px"
+                    }}
                   >
+                    Concepto
+                  </th>
 
-                    <option value="">
-                      Seleccione
-                    </option>
+                  <th
+                    style={{
+                      padding:
+                        "8px"
+                    }}
+                  >
+                    Selección
+                  </th>
 
-                    <option value="Galera 1">
-                      Galera 1
-                    </option>
+                  <th
+                    style={{
+                      padding:
+                        "8px"
+                    }}
+                  >
+                    Cantidad
+                  </th>
 
-                    <option value="Galera 2">
-                      Galera 2
-                    </option>
+                </tr>
 
-                    <option value="Galera 3">
-                      Galera 3
-                    </option>
+              </thead>
 
-                    <option value="Galera 4">
-                      Galera 4
-                    </option>
-
-                    <option value="Galera 5">
-                      Galera 5
-                    </option>
-
-                    <option value="Crianza">
-                      Crianza
-                    </option>
-
-                  </select>
-
-                </td>
+              <tbody>
 
                 {/* ALIMENTO */}
 
-                <td>
+                <tr>
 
-                  <select
-                    value={fila.alimento}
-                    onChange={(e) =>
-                      handleChange(
-                        fila.id,
-                        "alimento",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  >
+                  <td>
+                    Alimento
+                  </td>
 
-                    <option value="">
-                      Seleccione
-                    </option>
+                  <td>
 
-                    <option value="Preinicio">
-                      Preinicio
-                    </option>
+                    <select
+                      value={
+                        registro.alimento
+                      }
+                      onChange={(
+                        e
+                      ) =>
+                        handleChange(
+                          registro.id,
+                          "alimento",
+                          e.target.value
+                        )
+                      }
+                      style={
+                        inputStyle
+                      }
+                    >
 
-                    <option value="Inicio">
-                      Inicio
-                    </option>
+                      <option value="">
+                        Seleccione
+                      </option>
 
-                    <option value="Desarrollo">
-                      Desarrollo
-                    </option>
+                      <option>
+                        Preinicio
+                      </option>
 
-                    <option value="Crecimiento">
-                      Crecimiento
-                    </option>
+                      <option>
+                        Inicio
+                      </option>
 
-                    <option value="Prepostura">
-                      Prepostura
-                    </option>
+                      <option>
+                        Desarrollo
+                      </option>
 
-                    <option value="Fase 1">
-                      Fase 1
-                    </option>
+                      <option>
+                        Crecimiento
+                      </option>
 
-                    <option value="Fase 2">
-                      Fase 2
-                    </option>
+                      <option>
+                        Prepostura
+                      </option>
 
-                  </select>
+                      <option>
+                        Fase 1
+                      </option>
 
-                </td>
+                      <option>
+                        Fase 2
+                      </option>
 
-                <td>
+                    </select>
 
-                  <input
-                    type="number"
-                    step="1"
-                    value={
-                      fila.cantidadAlimento
-                    }
-                    onChange={(e) =>
-                      handleChange(
-                        fila.id,
-                        "cantidadAlimento",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  />
+                  </td>
 
-                </td>
+                  <td>
+
+                    <input
+                      type="number"
+                      value={
+                        registro.cantidadAlimento
+                      }
+                      onChange={(
+                        e
+                      ) =>
+                        handleChange(
+                          registro.id,
+                          "cantidadAlimento",
+                          e.target.value
+                        )
+                      }
+                      style={
+                        inputStyle
+                      }
+                    />
+
+                  </td>
+
+                </tr>
 
                 {/* MEDICAMENTO */}
 
-                <td>
+                <tr>
 
-                  <select
-                    value={fila.medicamento}
-                    onChange={(e) =>
-                      handleChange(
-                        fila.id,
-                        "medicamento",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  >
+                  <td>
+                    Medicamento
+                  </td>
 
-                    <option value="">
-                      Seleccione
-                    </option>
+                  <td>
 
-                    <option value="MED-001">
-                      MED-001
-                    </option>
+                    <select
+                      value={
+                        registro.medicamento
+                      }
+                      onChange={(
+                        e
+                      ) =>
+                        handleChange(
+                          registro.id,
+                          "medicamento",
+                          e.target.value
+                        )
+                      }
+                      style={
+                        inputStyle
+                      }
+                    >
 
-                    <option value="MED-002">
-                      MED-002
-                    </option>
+                      <option value="">
+                        Seleccione
+                      </option>
 
-                  </select>
+                      <option>
+                        MED-001
+                      </option>
 
-                </td>
+                      <option>
+                        MED-002
+                      </option>
 
-                <td>
+                    </select>
 
-                  <input
-                    type="number"
-                    step="1"
-                    value={
-                      fila.cantidadMedicamento
-                    }
-                    onChange={(e) =>
-                      handleChange(
-                        fila.id,
-                        "cantidadMedicamento",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  />
+                  </td>
 
-                </td>
+                  <td>
+
+                    <input
+                      type="number"
+                      value={
+                        registro.cantidadMedicamento
+                      }
+                      onChange={(
+                        e
+                      ) =>
+                        handleChange(
+                          registro.id,
+                          "cantidadMedicamento",
+                          e.target.value
+                        )
+                      }
+                      style={
+                        inputStyle
+                      }
+                    />
+
+                  </td>
+
+                </tr>
 
                 {/* VACUNA */}
 
-                <td>
+                <tr>
 
-                  <select
-                    value={fila.vacuna}
-                    onChange={(e) =>
-                      handleChange(
-                        fila.id,
-                        "vacuna",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  >
+                  <td>
+                    Vacuna
+                  </td>
 
-                    <option value="">
-                      Seleccione
-                    </option>
+                  <td>
 
-                    <option value="VAC-001">
-                      VAC-001
-                    </option>
+                    <select
+                      value={
+                        registro.vacuna
+                      }
+                      onChange={(
+                        e
+                      ) =>
+                        handleChange(
+                          registro.id,
+                          "vacuna",
+                          e.target.value
+                        )
+                      }
+                      style={
+                        inputStyle
+                      }
+                    >
 
-                    <option value="VAC-002">
-                      VAC-002
-                    </option>
+                      <option value="">
+                        Seleccione
+                      </option>
 
-                  </select>
+                      <option>
+                        VAC-001
+                      </option>
 
-                </td>
+                      <option>
+                        VAC-002
+                      </option>
 
-                <td>
+                    </select>
 
-                  <input
-                    type="number"
-                    step="1"
-                    value={
-                      fila.cantidadVacuna
-                    }
-                    onChange={(e) =>
-                      handleChange(
-                        fila.id,
-                        "cantidadVacuna",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  />
+                  </td>
 
-                </td>
+                  <td>
+
+                    <input
+                      type="number"
+                      value={
+                        registro.cantidadVacuna
+                      }
+                      onChange={(
+                        e
+                      ) =>
+                        handleChange(
+                          registro.id,
+                          "cantidadVacuna",
+                          e.target.value
+                        )
+                      }
+                      style={
+                        inputStyle
+                      }
+                    />
+
+                  </td>
+
+                </tr>
+
                 {/* ADITIVO */}
 
-                <td>
+                <tr>
 
-                  <select
-                    value={fila.aditivo}
-                    onChange={(e) =>
-                      handleChange(
-                        fila.id,
-                        "aditivo",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  >
+                  <td>
+                    Aditivo
+                  </td>
 
-                    <option value="">
-                      Seleccione
-                    </option>
+                  <td>
 
-                    <option value="AD-001">
-                      AD-001
-                    </option>
+                    <select
+                      value={
+                        registro.aditivo
+                      }
+                      onChange={(
+                        e
+                      ) =>
+                        handleChange(
+                          registro.id,
+                          "aditivo",
+                          e.target.value
+                        )
+                      }
+                      style={
+                        inputStyle
+                      }
+                    >
 
-                    <option value="AD-002">
-                      AD-002
-                    </option>
+                      <option value="">
+                        Seleccione
+                      </option>
 
-                  </select>
+                      <option>
+                        AD-001
+                      </option>
 
-                </td>
+                      <option>
+                        AD-002
+                      </option>
 
-                {/* CANTIDAD ADITIVO */}
+                    </select>
 
-                <td>
+                  </td>
 
-                  <input
-                    type="number"
-                    step="1"
-                    value={
-                      fila.cantidadAditivo
-                    }
-                    onChange={(e) =>
-                      handleChange(
-                        fila.id,
-                        "cantidadAditivo",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  />
+                  <td>
 
-                </td>
+                    <input
+                      type="number"
+                      value={
+                        registro.cantidadAditivo
+                      }
+                      onChange={(
+                        e
+                      ) =>
+                        handleChange(
+                          registro.id,
+                          "cantidadAditivo",
+                          e.target.value
+                        )
+                      }
+                      style={
+                        inputStyle
+                      }
+                    />
 
-                {/* ELIMINAR */}
+                  </td>
 
-                <td>
+                </tr>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      eliminarFila(
-                        fila.id
-                      )
-                    }
-                    style={{
-                      background:
-                        "#d9534f",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: "4px",
-                      cursor: "pointer",
-                      padding: "6px 10px"
-                    }}
-                  >
-                    X
-                  </button>
+              </tbody>
 
-                </td>
+            </table>
 
-              </tr>
+          </div>
 
-            ))}
+        ))}
 
-          </tbody>
-
-        </table>
-
-        {/* BOTÓN GUARDAR */}
-
-        <div
+        <button
+          type="submit"
           style={{
-            marginTop: "20px"
+            padding:
+              "10px 20px",
+            background:
+              "#1976d2",
+            color: "#fff",
+            border: "none",
+            borderRadius:
+              "5px",
+            cursor: "pointer"
           }}
         >
-
-          <button
-            type="submit"
-            style={{
-              padding: "10px 20px",
-              background:
-                "#1976d2",
-              color: "#fff",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer"
-            }}
-          >
-            Guardar
-          </button>
-
-        </div>
+          Guardar
+        </button>
 
       </form>
 
     </div>
 
   );
-
 }
 
-export default EgresoAlimento;          
-          
+export default EgresoAlimento;
