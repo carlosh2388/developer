@@ -11,10 +11,11 @@ import Localidades from "./pages/Localidades";
 import Productos from "./pages/Productos";
 import Clientes from "./pages/Clientes";
 
-import ControlAlimento from "./pages/ControlAlimento";
+
 import ControlPesoAves from "./pages/ControlPesoAves";
 import ControlPesoHuevos from "./pages/ControlPesoHuevos";
 
+import IngresoAlimento from "./pages/IngresoAlimento";
 import IngresoHuevos from "./pages/IngresoHuevos";
 import EgresoHuevos from "./pages/EgresoHuevos";
 import EgresoReproductores from "./pages/EgresoReproductores";
@@ -42,15 +43,15 @@ function App() {
 	  case "clientes":
         return <Clientes />;
 
-	  case "controlAlimento":
-        return <ControlAlimento />;
-
       case "controlPesoAves":
         return <ControlPesoAves />;
 
       case "controlPesoHuevos":
         return <ControlPesoHuevos />;
       
+	  case "IngresoAlimento":
+        return <IngresoAlimento />;
+
 	  case "ingresoHuevos":
         return <IngresoHuevos />;
 
