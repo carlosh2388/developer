@@ -64,16 +64,8 @@ function EgresoHuevos() {
   // =====================================================
 
   const lotesDisponibles = [
-    "Lote 1",
-    "Lote 2",
-    "Lote 3",
-    "Lote 4",
-    "Lote 5",
-    "Lote 6",
-    "Lote 7",
-    "Lote 8",
-    "Lote 9",
-    "Lote 10"
+    "SL-001",
+    "BL-001"
   ];
 
   // =====================================================
@@ -1182,7 +1174,7 @@ function EgresoHuevos() {
 
         <div>
 
-          <label># Egreso</label>
+          <label># Envío</label>
 
           <input
             value={egreso}
@@ -1244,7 +1236,7 @@ function EgresoHuevos() {
         <div>
 
           <label>
-            Bodega Salida
+            Localidad Salida
           </label>
 
           <select
@@ -1256,19 +1248,16 @@ function EgresoHuevos() {
             }
           >
 
-            <option>BA</option>
-            <option>BH</option>
-            <option>BGR</option>
-            <option>BI</option>
+            <option>Granja</option>
 
-          </select>
+           </select>
 
         </div>
 
         <div>
 
           <label>
-            Bodega Destino
+            Localidad Destino
           </label>
 
           <select
@@ -1281,13 +1270,12 @@ function EgresoHuevos() {
           >
 
             <option value="">
-              Sin Bodega
+              Seleccione
             </option>
 
-            <option>BA</option>
-            <option>BH</option>
-            <option>BGR</option>
-            <option>BI</option>
+            <option>Incubadora</option>
+            <option>Otra</option>
+
 
           </select>
 
