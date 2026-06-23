@@ -347,7 +347,7 @@ const calcularSubTotal = (grupo, filtro) => {
         <tr>
           <th>Tamaño</th>
           <th>Caja de Bandejas 336</th>
-          <th>Caja de CartonesC 360</th>
+          <th>Caja de Cartones 360</th>
           <th>Bandeja 84</th>
           <th>Cartón 30</th>
           <th>Unidades</th>
@@ -453,7 +453,7 @@ const calcularSubTotal = (grupo, filtro) => {
       <thead>
         <tr>
           <th>Tamaño</th>
-          <th>Caja C 360</th>
+          <th>Caja de Cartones 360</th>
           <th>Cartón 30</th>
           <th>Unidades</th>
           <th>Total Unidades</th>
