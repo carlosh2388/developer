@@ -34,6 +34,14 @@ function IngresoInsumos() {
     "MAT-002"
   ];
 
+  const alimentos = [
+    "Preinicio",
+    "Inicio",
+    "Crecimiento",
+    "Fase 1",
+    "Fase 2"
+  ];
+
   // =========================
   // FILAS DINÁMICAS
   // =========================
@@ -45,15 +53,10 @@ function IngresoInsumos() {
   // =========================
 
   const crearFila = (tipo) => ({
-
     id: Date.now() + Math.random(),
-
     tipo,
-
     item: "",
-
     cantidad: ""
-
   });
 
   // =========================
@@ -61,12 +64,10 @@ function IngresoInsumos() {
   // =========================
 
   const agregarFila = (tipo) => {
-
     setFilas(prev => [
       ...prev,
       crearFila(tipo)
     ]);
-
   };
 
   // =========================
@@ -74,11 +75,9 @@ function IngresoInsumos() {
   // =========================
 
   const eliminarFila = (id) => {
-
     setFilas(prev =>
       prev.filter(f => f.id !== id)
     );
-
   };
 
   // =========================
@@ -86,7 +85,6 @@ function IngresoInsumos() {
   // =========================
 
   const handleChange = (id, campo, value) => {
-
     setFilas(prev =>
       prev.map(f =>
         f.id === id
@@ -94,7 +92,6 @@ function IngresoInsumos() {
           : f
       )
     );
-
   };
 
   // =========================
@@ -102,7 +99,6 @@ function IngresoInsumos() {
   // =========================
 
   const guardar = (e) => {
-
     e.preventDefault();
 
     console.log({
@@ -111,7 +107,6 @@ function IngresoInsumos() {
     });
 
     alert("Insumos registrados correctamente");
-
   };
 
   // =========================
@@ -140,13 +135,12 @@ function IngresoInsumos() {
   // =========================
 
   const getOptions = (tipo) => {
-
     switch (tipo) {
 
-      case "Vacuna":
+      case "Vacunas":
         return vacunas;
 
-      case "Medicamento":
+      case "Medicamentos":
         return medicamentos;
 
       case "Aditivos":
@@ -155,11 +149,12 @@ function IngresoInsumos() {
       case "Materiales":
         return materiales;
 
+      case "Alimento":
+        return alimentos;
+
       default:
         return [];
-
     }
-
   };
 
   // =========================
@@ -167,7 +162,6 @@ function IngresoInsumos() {
   // =========================
 
   return (
-
     <div
       style={{
         maxWidth: "1000px",
@@ -185,60 +179,39 @@ function IngresoInsumos() {
         <input
           type="date"
           value={fecha}
-          onChange={(e) =>
-            setFecha(e.target.value)
-          }
+          onChange={(e) => setFecha(e.target.value)}
           style={inputStyle}
         />
       </div>
 
-      {/* BOTONES */}
+      {/* BOTONES (ORDENADOS + NUEVO ALIMENTO) */}
       <div
         style={{
           display: "flex",
           gap: "10px",
-          marginBottom: "20px"
+          marginBottom: "20px",
+          flexWrap: "wrap"
         }}
       >
 
-        <button
-          type="button"
-          style={btn}
-          onClick={() =>
-            agregarFila("Vacuna")
-          }
-        >
-          Vacuna
-        </button>
-
-        <button
-          type="button"
-          style={btn}
-          onClick={() =>
-            agregarFila("Medicamento")
-          }
-        >
-          Medicamento
-        </button>
-
-        <button
-          type="button"
-          style={btn}
-          onClick={() =>
-            agregarFila("Aditivos")
-          }
-        >
+        <button type="button" style={btn} onClick={() => agregarFila("Aditivos")}>
           Aditivos
         </button>
 
-        <button
-          type="button"
-          style={btn}
-          onClick={() =>
-            agregarFila("Materiales")
-          }
-        >
+        <button type="button" style={btn} onClick={() => agregarFila("Alimento")}>
+          Alimento
+        </button>
+
+        <button type="button" style={btn} onClick={() => agregarFila("Materiales")}>
           Materiales
+        </button>
+
+        <button type="button" style={btn} onClick={() => agregarFila("Medicamentos")}>
+          Medicamentos
+        </button>
+
+        <button type="button" style={btn} onClick={() => agregarFila("Vacunas")}>
+          Vacunas
         </button>
 
       </div>
@@ -269,68 +242,44 @@ function IngresoInsumos() {
               <tr key={fila.id}>
 
                 {/* TIPO */}
-                <td>
-                  {fila.tipo}
-                </td>
+                <td>{fila.tipo}</td>
 
                 {/* NOMBRE */}
                 <td>
-
                   <select
                     value={fila.item}
                     onChange={(e) =>
-                      handleChange(
-                        fila.id,
-                        "item",
-                        e.target.value
-                      )
+                      handleChange(fila.id, "item", e.target.value)
                     }
                     style={inputStyle}
                   >
-
-                    <option value="">
-                      Seleccione
-                    </option>
+                    <option value="">Seleccione</option>
 
                     {getOptions(fila.tipo).map(op => (
-                      <option
-                        key={op}
-                        value={op}
-                      >
+                      <option key={op} value={op}>
                         {op}
                       </option>
                     ))}
-
                   </select>
-
                 </td>
 
                 {/* CANTIDAD */}
                 <td>
-
                   <input
                     type="number"
                     value={fila.cantidad}
                     onChange={(e) =>
-                      handleChange(
-                        fila.id,
-                        "cantidad",
-                        e.target.value
-                      )
+                      handleChange(fila.id, "cantidad", e.target.value)
                     }
                     style={inputStyle}
                   />
-
                 </td>
 
-                {/* ELIMINAR */}
+                {/* ACCIÓN */}
                 <td>
-
                   <button
                     type="button"
-                    onClick={() =>
-                      eliminarFila(fila.id)
-                    }
+                    onClick={() => eliminarFila(fila.id)}
                     style={{
                       padding: "5px 10px",
                       background: "#d9534f",
@@ -342,7 +291,6 @@ function IngresoInsumos() {
                   >
                     X
                   </button>
-
                 </td>
 
               </tr>
@@ -355,7 +303,6 @@ function IngresoInsumos() {
 
         {/* GUARDAR */}
         <div style={{ marginTop: "20px" }}>
-
           <button
             type="submit"
             style={{
@@ -369,7 +316,6 @@ function IngresoInsumos() {
           >
             Guardar
           </button>
-
         </div>
 
       </form>
