@@ -18,11 +18,11 @@ function Clientes() {
   const [precioCajaSuperNick, setPrecioCajaSuperNick] = useState("");
   const [precioCajaBrownNick, setPrecioCajaBrownNick] = useState("");
 
-  // =========================
-  // UBICACIONES DINÁMICAS
-  // =========================
-
   const [ubicaciones, setUbicaciones] = useState([]);
+
+  // =========================
+  // UBICACIONES
+  // =========================
 
   const agregarUbicacion = () => {
     setUbicaciones(prev => [
@@ -46,15 +46,13 @@ function Clientes() {
   const handleUbicacionChange = (id, campo, value) => {
     setUbicaciones(prev =>
       prev.map(u =>
-        u.id === id
-          ? { ...u, [campo]: value }
-          : u
+        u.id === id ? { ...u, [campo]: value } : u
       )
     );
   };
 
   // =========================
-  // FORMATO TELÉFONO
+  // TELÉFONO
   // =========================
 
   const handleTelefono = (e) => {
@@ -74,7 +72,7 @@ function Clientes() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const data = {
+    console.log({
       codigoCliente,
       telefono,
       correo,
@@ -85,9 +83,7 @@ function Clientes() {
       precioCajaSuperNick,
       precioCajaBrownNick,
       ubicaciones
-    };
-
-    console.log(data);
+    });
 
     alert("Cliente guardado correctamente");
   };
@@ -107,6 +103,15 @@ function Clientes() {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
     gap: "10px",
+    marginBottom: "15px"
+  };
+
+  // 🔥 NUEVO: fila de precios + botón
+  const priceRow = {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr auto",
+    gap: "10px",
+    alignItems: "end",
     marginBottom: "15px"
   };
 
@@ -170,13 +175,12 @@ function Clientes() {
           <input
             value={telefono}
             onChange={handleTelefono}
-            maxLength={9}
             style={inputStyle}
           />
         </div>
 
         <div>
-          <label>Correo Electrónico</label>
+          <label>Correo</label>
           <input
             type="email"
             value={correo}
@@ -186,7 +190,7 @@ function Clientes() {
         </div>
       </div>
 
-      {/* NOMBRE COMERCIAL + CONTACTO (ORDEN CAMBIADO) */}
+      {/* NOMBRE COMERCIAL + CONTACTO */}
       <div style={doubleRowStyle}>
         <div>
           <label>Nombre Comercial</label>
@@ -198,7 +202,7 @@ function Clientes() {
         </div>
 
         <div>
-          <label>Nombre del Contacto</label>
+          <label>Nombre Contacto</label>
           <input
             value={contacto}
             onChange={(e) => setContacto(e.target.value)}
@@ -239,8 +243,8 @@ function Clientes() {
         </div>
       </div>
 
-      {/* PRECIOS + BOTÓN */}
-      <div style={doubleRowStyle}>
+      {/* 🔥 PRECIOS + BOTÓN EN MISMA LÍNEA */}
+      <div style={priceRow}>
         <div>
           <label>Precio Caja Super Nick</label>
           <input
@@ -260,19 +264,18 @@ function Clientes() {
             style={inputStyle}
           />
         </div>
-      </div>
 
-      {/* BOTÓN AGREGAR UBICACIÓN */}
-      <button
-        type="button"
-        onClick={agregarUbicacion}
-        style={{
-          ...buttonStyle,
-          marginBottom: "15px"
-        }}
-      >
-        Agregar Ubicación
-      </button>
+        <button
+          type="button"
+          onClick={agregarUbicacion}
+          style={{
+            ...buttonStyle,
+            height: "42px"
+          }}
+        >
+          Agregar Ubicación
+        </button>
+      </div>
 
       {/* UBICACIONES */}
       {ubicaciones.map((u) => (
