@@ -33,10 +33,11 @@ function IngresoAlimento() {
   ];
 
   // =========================
-  // ESTADO POR FILA (FIJO)
+  // ESTADO POR FILA
   // =========================
 
   const crearEstadoFila = () => ({
+    cantidad: "",
     aditivo: "",
     medicamento: ""
   });
@@ -50,7 +51,7 @@ function IngresoAlimento() {
   const [data, setData] = useState(inicial);
 
   // =========================
-  // MANEJO DE CAMBIOS
+  // MANEJO CAMBIOS
   // =========================
 
   const handleChange = (alimento, campo, value) => {
@@ -130,6 +131,7 @@ function IngresoAlimento() {
           <thead>
             <tr style={{ background: "#f5f5f5" }}>
               <th>Alimento</th>
+              <th>Cantidad</th>
               <th>Aditivo</th>
               <th>Medicamento</th>
             </tr>
@@ -144,6 +146,22 @@ function IngresoAlimento() {
                 {/* ALIMENTO */}
                 <td>
                   {item}
+                </td>
+
+                {/* CANTIDAD */}
+                <td>
+                  <input
+                    type="number"
+                    value={data[item].cantidad}
+                    onChange={(e) =>
+                      handleChange(
+                        item,
+                        "cantidad",
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  />
                 </td>
 
                 {/* ADITIVO */}
@@ -204,7 +222,7 @@ function IngresoAlimento() {
 
         </table>
 
-        {/* BOTÓN GUARDAR */}
+        {/* BOTÓN */}
         <div style={{ marginTop: "15px" }}>
 
           <button
