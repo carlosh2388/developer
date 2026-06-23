@@ -39,7 +39,7 @@ function EgresoInsumos() {
     tipo,
     item: "",
     cantidad: "",
-    galeras: []
+    galeras: [] // ahora será lista de {galera, cantidad}
   });
 
   const agregarFila = (tipo) => {
@@ -63,24 +63,40 @@ function EgresoInsumos() {
   };
 
   // =========================
-  // GALERAS MULTISELECT
+  // GALERAS DINÁMICAS (AGREGAR FILA GALERA + CANTIDAD)
   // =========================
 
-  const toggleGalera = (id, galera) => {
+  const agregarGalera = (filaId) => {
+    setFilas(prev =>
+      prev.map(f =>
+        f.id === filaId
+          ? {
+              ...f,
+              galeras: [
+                ...f.galeras,
+                { galera: "", cantidad: "" }
+              ]
+            }
+          : f
+      )
+    );
+  };
+
+  const handleGaleraChange = (filaId, index, campo, value) => {
     setFilas(prev =>
       prev.map(f => {
+        if (f.id !== filaId) return f;
 
-        if (f.id !== id) return f;
-
-        const existe = f.galeras.includes(galera);
+        const nuevas = [...f.galeras];
+        nuevas[index] = {
+          ...nuevas[index],
+          [campo]: value
+        };
 
         return {
           ...f,
-          galeras: existe
-            ? f.galeras.filter(g => g !== galera)
-            : [...f.galeras, galera]
+          galeras: nuevas
         };
-
       })
     );
   };
@@ -90,14 +106,7 @@ function EgresoInsumos() {
   // =========================
 
   const getOptions = (tipo) => {
-
     switch (tipo) {
-
-      case "Vacuna":
-        return vacunas;
-
-      case "Medicamento":
-        return medicamentos;
 
       case "Aditivos":
         return aditivos;
@@ -105,11 +114,15 @@ function EgresoInsumos() {
       case "Materiales":
         return materiales;
 
+      case "Medicamentos":
+        return medicamentos;
+
+      case "Vacuna":
+        return vacunas;
+
       default:
         return [];
-
     }
-
   };
 
   // =========================
@@ -148,11 +161,20 @@ function EgresoInsumos() {
     cursor: "pointer"
   };
 
-  const galeraBox = {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "5px",
-    fontSize: "12px"
+  const btnSmall = {
+    padding: "5px 10px",
+    background: "#1976d2",
+    color: "#fff",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
+    marginBottom: "5px"
+  };
+
+  const galeraRow = {
+    display: "flex",
+    gap: "8px",
+    marginBottom: "5px"
   };
 
   // =========================
@@ -178,23 +200,13 @@ function EgresoInsumos() {
         <input
           type="date"
           value={fecha}
-          onChange={(e) =>
-            setFecha(e.target.value)
-          }
+          onChange={(e) => setFecha(e.target.value)}
           style={inputStyle}
         />
       </div>
 
-      {/* BOTONES */}
+      {/* BOTONES (REORDENADOS) */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
-
-        <button type="button" style={btn} onClick={() => agregarFila("Vacuna")}>
-          Vacuna
-        </button>
-
-        <button type="button" style={btn} onClick={() => agregarFila("Medicamento")}>
-          Medicamento
-        </button>
 
         <button type="button" style={btn} onClick={() => agregarFila("Aditivos")}>
           Aditivos
@@ -202,6 +214,14 @@ function EgresoInsumos() {
 
         <button type="button" style={btn} onClick={() => agregarFila("Materiales")}>
           Materiales
+        </button>
+
+        <button type="button" style={btn} onClick={() => agregarFila("Medicamentos")}>
+          Medicamentos
+        </button>
+
+        <button type="button" style={btn} onClick={() => agregarFila("Vacuna")}>
+          Vacunas
         </button>
 
       </div>
@@ -228,7 +248,7 @@ function EgresoInsumos() {
 
           <tbody>
 
-            {filas.map(fila => (
+            {filas.map((fila) => (
 
               <tr key={fila.id}>
 
@@ -245,13 +265,11 @@ function EgresoInsumos() {
                     style={inputStyle}
                   >
                     <option value="">Seleccione</option>
-
                     {getOptions(fila.tipo).map(op => (
                       <option key={op} value={op}>
                         {op}
                       </option>
                     ))}
-
                   </select>
                 </td>
 
@@ -267,26 +285,57 @@ function EgresoInsumos() {
                   />
                 </td>
 
-                {/* GALERAS MULTISELECT */}
+                {/* GALERAS DINÁMICAS */}
                 <td>
-                  <div style={galeraBox}>
 
-                    {galeras.map(g => (
+                  <button
+                    type="button"
+                    onClick={() => agregarGalera(fila.id)}
+                    style={btnSmall}
+                  >
+                    Agregar
+                  </button>
 
-                      <label key={g}>
-                        <input
-                          type="checkbox"
-                          checked={fila.galeras.includes(g)}
-                          onChange={() =>
-                            toggleGalera(fila.id, g)
-                          }
-                        />
-                        {" "}{g}
-                      </label>
+                  {fila.galeras.map((g, index) => (
+                    <div key={index} style={galeraRow}>
 
-                    ))}
+                      <select
+                        value={g.galera}
+                        onChange={(e) =>
+                          handleGaleraChange(
+                            fila.id,
+                            index,
+                            "galera",
+                            e.target.value
+                          )
+                        }
+                        style={inputStyle}
+                      >
+                        <option value="">Seleccione</option>
+                        {galeras.map(opt => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
 
-                  </div>
+                      <input
+                        type="number"
+                        value={g.cantidad}
+                        onChange={(e) =>
+                          handleGaleraChange(
+                            fila.id,
+                            index,
+                            "cantidad",
+                            e.target.value
+                          )
+                        }
+                        style={inputStyle}
+                      />
+
+                    </div>
+                  ))}
+
                 </td>
 
                 {/* ELIMINAR */}
