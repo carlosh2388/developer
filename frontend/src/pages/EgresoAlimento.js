@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-function SalidaAlimento() {
+function EgresoAlimento() {
 
   // =========================
   // FECHA
@@ -272,4 +272,4 @@ function SalidaAlimento() {
   );
 }
 
-export default SalidaAlimento;
+export default EgresoAlimento;
