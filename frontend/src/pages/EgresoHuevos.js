@@ -849,40 +849,6 @@ function EgresoHuevos() {
 
           </tbody>
 
-          <tfoot>
-
-            <tr>
-
-              <td
-                colSpan="7"
-                style={{
-                  textAlign:
-                    "right",
-                  fontWeight:
-                    "bold"
-                }}
-              >
-                TOTAL
-              </td>
-
-              <td
-                style={{
-                  fontWeight:
-                    "bold"
-                }}
-              >
-                {
-                  calcularTotalLote(
-                    lote
-                  )
-                }
-              </td>
-
-              <td />
-
-            </tr>
-
-          </tfoot>
 
         </table>
 
@@ -1108,41 +1074,6 @@ function EgresoHuevos() {
             )}
 
           </tbody>
-
-          <tfoot>
-
-            <tr>
-
-              <td
-                colSpan="5"
-                style={{
-                  textAlign:
-                    "right",
-                  fontWeight:
-                    "bold"
-                }}
-              >
-                TOTAL
-              </td>
-
-              <td
-                style={{
-                  fontWeight:
-                    "bold"
-                }}
-              >
-                {
-                  calcularTotalLote(
-                    lote
-                  )
-                }
-              </td>
-
-              <td />
-
-            </tr>
-
-          </tfoot>
 
         </table>
 
