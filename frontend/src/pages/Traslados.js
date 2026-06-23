@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-function Traslados() {
+function EgresoReproductores() {
 
   // =========================
   // STATES
@@ -571,4 +571,4 @@ function Traslados() {
 
 }
 
-export default Traslados;
+export default EgresoReproductores;
