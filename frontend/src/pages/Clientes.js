@@ -106,13 +106,21 @@ function Clientes() {
     marginBottom: "15px"
   };
 
-  // 🔥 NUEVO: fila de precios + botón
   const priceRow = {
     display: "grid",
     gridTemplateColumns: "1fr 1fr auto",
     gap: "10px",
     alignItems: "end",
     marginBottom: "15px"
+  };
+
+  // 🔥 NUEVO: UNA SOLA LÍNEA PARA UBICACIÓN
+  const ubicacionRow = {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr 1fr 1fr auto",
+    gap: "8px",
+    alignItems: "end",
+    marginBottom: "10px"
   };
 
   const inputStyle = {
@@ -138,7 +146,8 @@ function Clientes() {
     color: "#fff",
     border: "none",
     borderRadius: "5px",
-    cursor: "pointer"
+    cursor: "pointer",
+    height: "42px"
   };
 
   // =========================
@@ -220,7 +229,7 @@ function Clientes() {
             onChange={(e) => setRegion(e.target.value)}
             style={inputStyle}
           >
-            <option value="">Seleccione</option>
+            <option>Seleccione</option>
             <option>Norte</option>
             <option>Sur</option>
             <option>Este</option>
@@ -235,7 +244,7 @@ function Clientes() {
             onChange={(e) => setCategoria(e.target.value)}
             style={inputStyle}
           >
-            <option value="">Seleccione</option>
+            <option>Seleccione</option>
             <option>Preferencial</option>
             <option>VIP</option>
             <option>Especial</option>
@@ -243,7 +252,7 @@ function Clientes() {
         </div>
       </div>
 
-      {/* 🔥 PRECIOS + BOTÓN EN MISMA LÍNEA */}
+      {/* PRECIOS + BOTÓN */}
       <div style={priceRow}>
         <div>
           <label>Precio Caja Super Nick</label>
@@ -277,9 +286,9 @@ function Clientes() {
         </button>
       </div>
 
-      {/* UBICACIONES */}
+      {/* 🔥 UBICACIÓN EN UNA SOLA LÍNEA */}
       {ubicaciones.map((u) => (
-        <div key={u.id} style={doubleRowStyle}>
+        <div key={u.id} style={ubicacionRow}>
           <input
             placeholder="NIT"
             value={u.nit}
