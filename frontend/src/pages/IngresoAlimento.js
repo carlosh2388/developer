@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-function ControlAlimento() {
+function IngresoAlimento() {
 
   // =========================
   // STATES
@@ -437,4 +437,4 @@ function ControlAlimento() {
   );
 }
 
-export default ControlAlimento;
+export default IngresoAlimento;
