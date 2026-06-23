@@ -11,6 +11,44 @@ function EgresoAlimento() {
   );
 
   // =========================
+  // CATÁLOGOS
+  // =========================
+
+  const alimentos = [
+    "Crecimiento",
+    "Desarrollo",
+    "Fase 1",
+    "Fase 2",
+    "Inicio",
+    "Preinicio",
+    "Prepostura"
+  ];
+
+  const medicamentos = [
+    "MED-001",
+    "MED-002"
+  ];
+
+  const vacunas = [
+    "VAC-001",
+    "VAC-002"
+  ];
+
+  const aditivos = [
+    "AD-001",
+    "AD-002"
+  ];
+
+  const galeras = [
+    "Crianza",
+    "Galera 1",
+    "Galera 2",
+    "Galera 3",
+    "Galera 4",
+    "Galera 5"
+  ];
+
+  // =========================
   // CREAR REGISTRO
   // =========================
 
@@ -19,8 +57,6 @@ function EgresoAlimento() {
     id: Date.now() + Math.random(),
 
     galera: "",
-
-    numero: "",
 
     alimento: "",
     cantidadAlimento: "",
@@ -44,7 +80,7 @@ function EgresoAlimento() {
     useState([]);
 
   // =========================
-  // AGREGAR
+  // AGREGAR REGISTRO
   // =========================
 
   const agregarRegistro = () => {
@@ -57,7 +93,7 @@ function EgresoAlimento() {
   };
 
   // =========================
-  // ELIMINAR
+  // ELIMINAR REGISTRO
   // =========================
 
   const eliminarRegistro = (id) => {
@@ -135,9 +171,9 @@ function EgresoAlimento() {
 
     fontWeight: "bold",
 
-    marginBottom: "4px",
+    display: "block",
 
-    display: "block"
+    marginBottom: "4px"
 
   };
 
@@ -192,18 +228,13 @@ function EgresoAlimento() {
 
         <button
           type="button"
-          onClick={
-            agregarRegistro
-          }
+          onClick={agregarRegistro}
           style={{
-            padding:
-              "10px 15px",
-            background:
-              "#1976d2",
+            padding: "10px 15px",
+            background: "#1976d2",
             color: "#fff",
             border: "none",
-            borderRadius:
-              "5px",
+            borderRadius: "5px",
             cursor: "pointer"
           }}
         >
@@ -219,15 +250,11 @@ function EgresoAlimento() {
           <div
             key={registro.id}
             style={{
-              border:
-                "1px solid #ccc",
-              borderRadius:
-                "8px",
+              border: "1px solid #ccc",
+              borderRadius: "8px",
               padding: "15px",
-              marginBottom:
-                "20px",
-              background:
-                "#fafafa"
+              marginBottom: "20px",
+              background: "#fafafa"
             }}
           >
 
@@ -237,27 +264,20 @@ function EgresoAlimento() {
               style={{
                 display: "grid",
                 gridTemplateColumns:
-                  "2fr 1fr auto",
+                  "1fr auto",
                 gap: "15px",
-                marginBottom:
-                  "20px"
+                marginBottom: "20px"
               }}
             >
 
               <div>
 
-                <label
-                  style={
-                    labelStyle
-                  }
-                >
+                <label style={labelStyle}>
                   Galera
                 </label>
 
                 <select
-                  value={
-                    registro.galera
-                  }
+                  value={registro.galera}
                   onChange={(e) =>
                     handleChange(
                       registro.id,
@@ -265,78 +285,30 @@ function EgresoAlimento() {
                       e.target.value
                     )
                   }
-                  style={
-                    inputStyle
-                  }
+                  style={inputStyle}
                 >
 
                   <option value="">
                     Seleccione
                   </option>
 
-                  <option>
-                    Galera 1
-                  </option>
-
-                  <option>
-                    Galera 2
-                  </option>
-
-                  <option>
-                    Galera 3
-                  </option>
-
-                  <option>
-                    Galera 4
-                  </option>
-
-                  <option>
-                    Galera 5
-                  </option>
-
-                  <option>
-                    Crianza
-                  </option>
+                  {galeras.map(g => (
+                    <option
+                      key={g}
+                      value={g}
+                    >
+                      {g}
+                    </option>
+                  ))}
 
                 </select>
 
               </div>
 
-              <div>
-
-                <label
-                  style={
-                    labelStyle
-                  }
-                >
-                  Número
-                </label>
-
-                <input
-                  type="number"
-                  value={
-                    registro.numero
-                  }
-                  onChange={(e) =>
-                    handleChange(
-                      registro.id,
-                      "numero",
-                      e.target.value
-                    )
-                  }
-                  style={
-                    inputStyle
-                  }
-                />
-
-              </div>
-
               <div
                 style={{
-                  display:
-                    "flex",
-                  alignItems:
-                    "end"
+                  display: "flex",
+                  alignItems: "end"
                 }}
               >
 
@@ -348,18 +320,12 @@ function EgresoAlimento() {
                     )
                   }
                   style={{
-                    background:
-                      "#d9534f",
-                    color:
-                      "#fff",
-                    border:
-                      "none",
-                    padding:
-                      "10px 15px",
-                    borderRadius:
-                      "5px",
-                    cursor:
-                      "pointer"
+                    background: "#d9534f",
+                    color: "#fff",
+                    border: "none",
+                    padding: "10px 15px",
+                    borderRadius: "5px",
+                    cursor: "pointer"
                   }}
                 >
                   X
@@ -373,113 +339,119 @@ function EgresoAlimento() {
 
             <table
               style={{
-                width: "100%",
-                borderCollapse:
-                  "collapse"
+                width: "100%"
               }}
             >
 
-              <thead>
-
-                <tr
-                  style={{
-                    background:
-                      "#f5f5f5"
-                  }}
-                >
-
-                  <th
-                    style={{
-                      padding:
-                        "8px"
-                    }}
-                  >
-                    Concepto
-                  </th>
-
-                  <th
-                    style={{
-                      padding:
-                        "8px"
-                    }}
-                  >
-                    Selección
-                  </th>
-
-                  <th
-                    style={{
-                      padding:
-                        "8px"
-                    }}
-                  >
-                    Cantidad
-                  </th>
-
-                </tr>
-
-              </thead>
-
               <tbody>
 
-                {/* ALIMENTO */}
+                {/* ADITIVO */}
 
                 <tr>
 
-                  <td>
-                    Alimento
+                  <td
+                    style={{
+                      width: "180px",
+                      fontWeight: "bold"
+                    }}
+                  >
+                    Aditivo
                   </td>
 
                   <td>
 
                     <select
-                      value={
-                        registro.alimento
-                      }
-                      onChange={(
-                        e
-                      ) =>
+                      value={registro.aditivo}
+                      onChange={(e) =>
                         handleChange(
                           registro.id,
-                          "alimento",
+                          "aditivo",
                           e.target.value
                         )
                       }
-                      style={
-                        inputStyle
-                      }
+                      style={inputStyle}
                     >
 
                       <option value="">
                         Seleccione
                       </option>
 
-                      <option>
-                        Preinicio
+                      {aditivos.map(a => (
+                        <option
+                          key={a}
+                          value={a}
+                        >
+                          {a}
+                        </option>
+                      ))}
+
+                    </select>
+
+                  </td>
+
+                  <td
+                    style={{
+                      width: "150px"
+                    }}
+                  >
+
+                    <input
+                      type="number"
+                      value={
+                        registro.cantidadAditivo
+                      }
+                      onChange={(e) =>
+                        handleChange(
+                          registro.id,
+                          "cantidadAditivo",
+                          e.target.value
+                        )
+                      }
+                      style={inputStyle}
+                    />
+
+                  </td>
+
+                </tr>
+
+                {/* ALIMENTO */}
+
+                <tr>
+
+                  <td
+                    style={{
+                      fontWeight: "bold"
+                    }}
+                  >
+                    Alimento
+                  </td>
+
+                  <td>
+
+                    <select
+                      value={registro.alimento}
+                      onChange={(e) =>
+                        handleChange(
+                          registro.id,
+                          "alimento",
+                          e.target.value
+                        )
+                      }
+                      style={inputStyle}
+                    >
+
+                      <option value="">
+                        Seleccione
                       </option>
 
-                      <option>
-                        Inicio
-                      </option>
-
-                      <option>
-                        Desarrollo
-                      </option>
-
-                      <option>
-                        Crecimiento
-                      </option>
-
-                      <option>
-                        Prepostura
-                      </option>
-
-                      <option>
-                        Fase 1
-                      </option>
-
-                      <option>
-                        Fase 2
-                      </option>
+                      {alimentos.map(a => (
+                        <option
+                          key={a}
+                          value={a}
+                        >
+                          {a}
+                        </option>
+                      ))}
 
                     </select>
 
@@ -492,18 +464,14 @@ function EgresoAlimento() {
                       value={
                         registro.cantidadAlimento
                       }
-                      onChange={(
-                        e
-                      ) =>
+                      onChange={(e) =>
                         handleChange(
                           registro.id,
                           "cantidadAlimento",
                           e.target.value
                         )
                       }
-                      style={
-                        inputStyle
-                      }
+                      style={inputStyle}
                     />
 
                   </td>
@@ -514,7 +482,11 @@ function EgresoAlimento() {
 
                 <tr>
 
-                  <td>
+                  <td
+                    style={{
+                      fontWeight: "bold"
+                    }}
+                  >
                     Medicamento
                   </td>
 
@@ -524,31 +496,28 @@ function EgresoAlimento() {
                       value={
                         registro.medicamento
                       }
-                      onChange={(
-                        e
-                      ) =>
+                      onChange={(e) =>
                         handleChange(
                           registro.id,
                           "medicamento",
                           e.target.value
                         )
                       }
-                      style={
-                        inputStyle
-                      }
+                      style={inputStyle}
                     >
 
                       <option value="">
                         Seleccione
                       </option>
 
-                      <option>
-                        MED-001
-                      </option>
-
-                      <option>
-                        MED-002
-                      </option>
+                      {medicamentos.map(m => (
+                        <option
+                          key={m}
+                          value={m}
+                        >
+                          {m}
+                        </option>
+                      ))}
 
                     </select>
 
@@ -561,18 +530,14 @@ function EgresoAlimento() {
                       value={
                         registro.cantidadMedicamento
                       }
-                      onChange={(
-                        e
-                      ) =>
+                      onChange={(e) =>
                         handleChange(
                           registro.id,
                           "cantidadMedicamento",
                           e.target.value
                         )
                       }
-                      style={
-                        inputStyle
-                      }
+                      style={inputStyle}
                     />
 
                   </td>
@@ -583,41 +548,40 @@ function EgresoAlimento() {
 
                 <tr>
 
-                  <td>
+                  <td
+                    style={{
+                      fontWeight: "bold"
+                    }}
+                  >
                     Vacuna
                   </td>
 
                   <td>
 
                     <select
-                      value={
-                        registro.vacuna
-                      }
-                      onChange={(
-                        e
-                      ) =>
+                      value={registro.vacuna}
+                      onChange={(e) =>
                         handleChange(
                           registro.id,
                           "vacuna",
                           e.target.value
                         )
                       }
-                      style={
-                        inputStyle
-                      }
+                      style={inputStyle}
                     >
 
                       <option value="">
                         Seleccione
                       </option>
 
-                      <option>
-                        VAC-001
-                      </option>
-
-                      <option>
-                        VAC-002
-                      </option>
+                      {vacunas.map(v => (
+                        <option
+                          key={v}
+                          value={v}
+                        >
+                          {v}
+                        </option>
+                      ))}
 
                     </select>
 
@@ -630,87 +594,14 @@ function EgresoAlimento() {
                       value={
                         registro.cantidadVacuna
                       }
-                      onChange={(
-                        e
-                      ) =>
+                      onChange={(e) =>
                         handleChange(
                           registro.id,
                           "cantidadVacuna",
                           e.target.value
                         )
                       }
-                      style={
-                        inputStyle
-                      }
-                    />
-
-                  </td>
-
-                </tr>
-
-                {/* ADITIVO */}
-
-                <tr>
-
-                  <td>
-                    Aditivo
-                  </td>
-
-                  <td>
-
-                    <select
-                      value={
-                        registro.aditivo
-                      }
-                      onChange={(
-                        e
-                      ) =>
-                        handleChange(
-                          registro.id,
-                          "aditivo",
-                          e.target.value
-                        )
-                      }
-                      style={
-                        inputStyle
-                      }
-                    >
-
-                      <option value="">
-                        Seleccione
-                      </option>
-
-                      <option>
-                        AD-001
-                      </option>
-
-                      <option>
-                        AD-002
-                      </option>
-
-                    </select>
-
-                  </td>
-
-                  <td>
-
-                    <input
-                      type="number"
-                      value={
-                        registro.cantidadAditivo
-                      }
-                      onChange={(
-                        e
-                      ) =>
-                        handleChange(
-                          registro.id,
-                          "cantidadAditivo",
-                          e.target.value
-                        )
-                      }
-                      style={
-                        inputStyle
-                      }
+                      style={inputStyle}
                     />
 
                   </td>
@@ -728,14 +619,11 @@ function EgresoAlimento() {
         <button
           type="submit"
           style={{
-            padding:
-              "10px 20px",
-            background:
-              "#1976d2",
+            padding: "10px 20px",
+            background: "#1976d2",
             color: "#fff",
             border: "none",
-            borderRadius:
-              "5px",
+            borderRadius: "5px",
             cursor: "pointer"
           }}
         >
