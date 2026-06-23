@@ -11,20 +11,14 @@ function IngresoAlimento() {
   );
 
   // =========================
-  // LOTES (solo salida opcional eliminado)
+  // CATÁLOGOS
   // =========================
 
-  const [lote] = useState("REP-260401-1600");
-
-  // =========================
-  // FILAS DE INGRESO
-  // =========================
-
-  const alimentosDisponibles = [
+  const alimentos = [
     "Preinicio",
-    "Inicio Polla",
-    "Desarrollo Polla",
-    "Crecimiento Polla",
+    "Inicio",
+    "Desarrollo",
+    "Crecimiento",
     "Prepostura",
     "Fase 1",
     "Fase 2"
@@ -38,41 +32,35 @@ function IngresoAlimento() {
     "MD-001 Ejemplo"
   ];
 
-  const crearFila = () => ({
-    alimento: "",
+  // =========================
+  // ESTADO POR FILA (FIJO)
+  // =========================
+
+  const crearEstadoFila = () => ({
     aditivo: "",
-    medicamento: "",
-    cantidadAlimento: "",
-    cantidadAditivo: "",
-    cantidadMedicamento: ""
+    medicamento: ""
   });
 
-  const [filas, setFilas] = useState([
-    crearFila()
-  ]);
+  const inicial = {};
+
+  alimentos.forEach(a => {
+    inicial[a] = crearEstadoFila();
+  });
+
+  const [data, setData] = useState(inicial);
 
   // =========================
-  // MANEJO FILAS
+  // MANEJO DE CAMBIOS
   // =========================
 
-  const handleChange = (index, campo, value) => {
-    setFilas(prev =>
-      prev.map((fila, i) =>
-        i === index
-          ? { ...fila, [campo]: value }
-          : fila
-      )
-    );
-  };
-
-  const agregarFila = () => {
-    setFilas(prev => [...prev, crearFila()]);
-  };
-
-  const eliminarFila = (index) => {
-    setFilas(prev =>
-      prev.filter((_, i) => i !== index)
-    );
+  const handleChange = (alimento, campo, value) => {
+    setData(prev => ({
+      ...prev,
+      [alimento]: {
+        ...prev[alimento],
+        [campo]: value
+      }
+    }));
   };
 
   // =========================
@@ -82,19 +70,18 @@ function IngresoAlimento() {
   const guardar = (e) => {
     e.preventDefault();
 
-    const data = {
+    const payload = {
       fecha,
-      lote,
-      movimientos: filas
+      movimientos: data
     };
 
-    console.log(data);
+    console.log(payload);
 
     alert("Ingreso registrado correctamente");
   };
 
   // =========================
-  // ESTILOS
+  // ESTILO
   // =========================
 
   const inputStyle = {
@@ -104,20 +91,11 @@ function IngresoAlimento() {
     borderRadius: "4px"
   };
 
-  const btnSmall = {
-    padding: "4px 8px",
-    cursor: "pointer"
-  };
-
-  // =========================
-  // RENDER
-  // =========================
-
   return (
 
     <div
       style={{
-        maxWidth: "1000px",
+        maxWidth: "900px",
         margin: "0 auto",
         padding: "20px",
         fontFamily: "Arial"
@@ -152,69 +130,29 @@ function IngresoAlimento() {
           <thead>
             <tr style={{ background: "#f5f5f5" }}>
               <th>Alimento</th>
-              <th>Cant. Alimento</th>
               <th>Aditivo</th>
-              <th>Cant. Aditivo</th>
               <th>Medicamento</th>
-              <th>Cant. Medicamento</th>
-              <th>Acciones</th>
             </tr>
           </thead>
 
           <tbody>
 
-            {filas.map((fila, index) => (
+            {alimentos.map((item) => (
 
-              <tr key={index}>
+              <tr key={item}>
 
                 {/* ALIMENTO */}
                 <td>
-                  <select
-                    value={fila.alimento}
-                    onChange={(e) =>
-                      handleChange(
-                        index,
-                        "alimento",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  >
-                    <option value="">
-                      Seleccione
-                    </option>
-
-                    {alimentosDisponibles.map(a => (
-                      <option key={a} value={a}>
-                        {a}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-
-                {/* CANTIDAD ALIMENTO */}
-                <td>
-                  <input
-                    type="number"
-                    value={fila.cantidadAlimento}
-                    onChange={(e) =>
-                      handleChange(
-                        index,
-                        "cantidadAlimento",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  />
+                  {item}
                 </td>
 
                 {/* ADITIVO */}
                 <td>
                   <select
-                    value={fila.aditivo}
+                    value={data[item].aditivo}
                     onChange={(e) =>
                       handleChange(
-                        index,
+                        item,
                         "aditivo",
                         e.target.value
                       )
@@ -233,29 +171,13 @@ function IngresoAlimento() {
                   </select>
                 </td>
 
-                {/* CANTIDAD ADITIVO */}
-                <td>
-                  <input
-                    type="number"
-                    value={fila.cantidadAditivo}
-                    onChange={(e) =>
-                      handleChange(
-                        index,
-                        "cantidadAditivo",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  />
-                </td>
-
                 {/* MEDICAMENTO */}
                 <td>
                   <select
-                    value={fila.medicamento}
+                    value={data[item].medicamento}
                     onChange={(e) =>
                       handleChange(
-                        index,
+                        item,
                         "medicamento",
                         e.target.value
                       )
@@ -274,40 +196,6 @@ function IngresoAlimento() {
                   </select>
                 </td>
 
-                {/* CANTIDAD MEDICAMENTO */}
-                <td>
-                  <input
-                    type="number"
-                    value={fila.cantidadMedicamento}
-                    onChange={(e) =>
-                      handleChange(
-                        index,
-                        "cantidadMedicamento",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  />
-                </td>
-
-                {/* ACCIONES */}
-                <td>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      eliminarFila(index)
-                    }
-                    style={{
-                      ...btnSmall,
-                      background: "#d9534f",
-                      color: "#fff",
-                      border: "none"
-                    }}
-                  >
-                    x
-                  </button>
-                </td>
-
               </tr>
 
             ))}
@@ -316,31 +204,18 @@ function IngresoAlimento() {
 
         </table>
 
-        {/* BOTONES */}
-        <div
-          style={{
-            marginTop: "15px",
-            display: "flex",
-            gap: "10px"
-          }}
-        >
-
-          <button
-            type="button"
-            onClick={agregarFila}
-            style={btnSmall}
-          >
-            + Agregar fila
-          </button>
+        {/* BOTÓN GUARDAR */}
+        <div style={{ marginTop: "15px" }}>
 
           <button
             type="submit"
             style={{
-              padding: "8px 16px",
+              padding: "10px 20px",
               background: "#1976d2",
               color: "#fff",
               border: "none",
-              borderRadius: "4px"
+              borderRadius: "5px",
+              cursor: "pointer"
             }}
           >
             Guardar
