@@ -16,6 +16,7 @@ import ControlPesoAves from "./pages/ControlPesoAves";
 import ControlPesoHuevos from "./pages/ControlPesoHuevos";
 
 import IngresoAlimento from "./pages/IngresoAlimento";
+import EgresoAlimento from "./pages/EgresoAlimento";
 import IngresoHuevos from "./pages/IngresoHuevos";
 import EgresoHuevos from "./pages/EgresoHuevos";
 import EgresoReproductores from "./pages/EgresoReproductores";
@@ -52,6 +53,9 @@ function App() {
 	  case "IngresoAlimento":
         return <IngresoAlimento />;
 
+	   case "EgresoAlimento":
+        return <EgresoAlimento />;
+			
 	  case "ingresoHuevos":
         return <IngresoHuevos />;
 
