@@ -36,9 +36,6 @@ function Sidebar({ setVista }) {
         <li className="menu-item">
           Controles
           <ul>
-            <li onClick={() => setVista("controlAlimento")}>
-              Control de Alimento
-            </li>
             <li onClick={() => setVista("controlPesoAves")}>
               Control de Peso en Aves
             </li>
@@ -52,6 +49,10 @@ function Sidebar({ setVista }) {
         <li className="menu-item">
           Movimientos
           <ul>
+            <li onClick={() => setVista("IngresoAlimento")}>
+              Ingreso de Alimento
+            </li>
+          
             <li onClick={() => setVista("ingresoHuevos")}>
               Ingreso de Huevos
             </li>
