@@ -11,53 +11,81 @@ function EgresoAlimento() {
   );
 
   // =========================
-  // CATÁLOGO DE ALIMENTOS
+  // CREAR FILA
   // =========================
 
-  const alimentos = [
-    "Preinicio",
-    "Inicio",
-    "Desarrollo",
-    "Crecimiento",
-    "Prepostura",
-    "Fase 1",
-    "Fase 2"
-  ];
+  const crearFila = () => ({
 
-  // =========================
-  // ESTADO POR FILA
-  // =========================
+    id: Date.now() + Math.random(),
 
-  const crearEstadoFila = () => ({
-    cantidad: "",
-    galera1: "",
-    galera2: "",
-    galera3: "",
-    galera4: "",
-    galera5: "",
-    crianza: ""
+    galera: "",
+
+    alimento: "",
+    cantidadAlimento: "",
+
+    medicamento: "",
+    cantidadMedicamento: "",
+
+    vacuna: "",
+    cantidadVacuna: "",
+
+    aditivo: "",
+    cantidadAditivo: ""
+
   });
 
-  const inicial = {};
-
-  alimentos.forEach(a => {
-    inicial[a] = crearEstadoFila();
-  });
-
-  const [data, setData] = useState(inicial);
-
   // =========================
-  // MANEJO DE CAMBIOS
+  // FILAS
   // =========================
 
-  const handleChange = (alimento, campo, value) => {
-    setData(prev => ({
+  const [filas, setFilas] = useState([]);
+
+  // =========================
+  // AGREGAR FILA
+  // =========================
+
+  const agregarFila = () => {
+
+    setFilas(prev => [
       ...prev,
-      [alimento]: {
-        ...prev[alimento],
-        [campo]: value
-      }
-    }));
+      crearFila()
+    ]);
+
+  };
+
+  // =========================
+  // ELIMINAR FILA
+  // =========================
+
+  const eliminarFila = (id) => {
+
+    setFilas(prev =>
+      prev.filter(f => f.id !== id)
+    );
+
+  };
+
+  // =========================
+  // HANDLE CHANGE
+  // =========================
+
+  const handleChange = (
+    id,
+    campo,
+    value
+  ) => {
+
+    setFilas(prev =>
+      prev.map(f =>
+        f.id === id
+          ? {
+              ...f,
+              [campo]: value
+            }
+          : f
+      )
+    );
+
   };
 
   // =========================
@@ -65,28 +93,41 @@ function EgresoAlimento() {
   // =========================
 
   const guardar = (e) => {
+
     e.preventDefault();
 
     const payload = {
+
       fecha,
-      movimientos: data
+
+      movimientos: filas
+
     };
 
     console.log(payload);
 
-    alert("Salida de alimento registrada correctamente");
+    alert(
+      "Salida de alimento registrada correctamente"
+    );
+
   };
 
   // =========================
-  // ESTILO
+  // ESTILO INPUT
   // =========================
 
   const inputStyle = {
+
     width: "100%",
+
     padding: "6px",
+
     border: "1px solid #ccc",
+
     borderRadius: "4px",
+
     fontSize: "12px"
+
   };
 
   // =========================
@@ -97,30 +138,68 @@ function EgresoAlimento() {
 
     <div
       style={{
-        maxWidth: "1200px",
+        maxWidth: "1600px",
         margin: "0 auto",
         padding: "20px",
         fontFamily: "Arial"
       }}
     >
 
-      <h2>Salida de Alimento</h2>
+      <h2>
+        Salida de Alimento
+      </h2>
 
-      {/* FECHA */}
-      <div style={{ marginBottom: "15px" }}>
-        <label>Fecha</label>
-        <input
-          type="date"
-          value={fecha}
-          onChange={(e) =>
-            setFecha(e.target.value)
-          }
-          style={inputStyle}
-        />
+      {/* FECHA Y BOTÓN */}
+
+      <div
+        style={{
+          display: "flex",
+          gap: "15px",
+          alignItems: "flex-end",
+          marginBottom: "20px"
+        }}
+      >
+
+        <div>
+
+          <label>
+            Fecha
+          </label>
+
+          <input
+            type="date"
+            value={fecha}
+            onChange={(e) =>
+              setFecha(
+                e.target.value
+              )
+            }
+            style={inputStyle}
+          />
+
+        </div>
+
+        <button
+          type="button"
+          onClick={agregarFila}
+          style={{
+            padding: "10px 15px",
+            background: "#1976d2",
+            color: "#fff",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+            height: "38px"
+          }}
+        >
+          Proporcionar Alimento a Galera
+        </button>
+
       </div>
 
-      {/* TABLA */}
-      <form onSubmit={guardar}>
+      <form
+        onSubmit={guardar}
+      >
 
         <table
           style={{
@@ -130,113 +209,340 @@ function EgresoAlimento() {
         >
 
           <thead>
-            <tr style={{ background: "#f5f5f5" }}>
+
+            <tr
+              style={{
+                background: "#f5f5f5"
+              }}
+            >
+
+              <th>Galera</th>
 
               <th>Alimento</th>
               <th>Cantidad</th>
 
-              <th>% Galera 1</th>
-              <th>% Galera 2</th>
-              <th>% Galera 3</th>
-              <th>% Galera 4</th>
-              <th>% Galera 5</th>
-              <th>% Crianza</th>
+              <th>Medicamento</th>
+              <th>Cantidad</th>
+
+              <th>Vacuna</th>
+              <th>Cantidad</th>
+
+              <th>Aditivo</th>
+              <th>Cantidad</th>
+
+              <th>Acción</th>
 
             </tr>
+
           </thead>
 
           <tbody>
 
-            {alimentos.map((item) => (
+            {filas.map((fila) => (
 
-              <tr key={item}>
+              <tr key={fila.id}>
 
-                {/* ALIMENTO */}
+                {/* GALERA */}
+
                 <td>
-                  {item}
-                </td>
 
-                {/* CANTIDAD */}
-                <td>
-                  <input
-                    type="number"
-                    value={data[item].cantidad}
+                  <select
+                    value={fila.galera}
                     onChange={(e) =>
                       handleChange(
-                        item,
-                        "cantidad",
+                        fila.id,
+                        "galera",
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  >
+
+                    <option value="">
+                      Seleccione
+                    </option>
+
+                    <option value="Galera 1">
+                      Galera 1
+                    </option>
+
+                    <option value="Galera 2">
+                      Galera 2
+                    </option>
+
+                    <option value="Galera 3">
+                      Galera 3
+                    </option>
+
+                    <option value="Galera 4">
+                      Galera 4
+                    </option>
+
+                    <option value="Galera 5">
+                      Galera 5
+                    </option>
+
+                    <option value="Crianza">
+                      Crianza
+                    </option>
+
+                  </select>
+
+                </td>
+
+                {/* ALIMENTO */}
+
+                <td>
+
+                  <select
+                    value={fila.alimento}
+                    onChange={(e) =>
+                      handleChange(
+                        fila.id,
+                        "alimento",
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  >
+
+                    <option value="">
+                      Seleccione
+                    </option>
+
+                    <option value="Preinicio">
+                      Preinicio
+                    </option>
+
+                    <option value="Inicio">
+                      Inicio
+                    </option>
+
+                    <option value="Desarrollo">
+                      Desarrollo
+                    </option>
+
+                    <option value="Crecimiento">
+                      Crecimiento
+                    </option>
+
+                    <option value="Prepostura">
+                      Prepostura
+                    </option>
+
+                    <option value="Fase 1">
+                      Fase 1
+                    </option>
+
+                    <option value="Fase 2">
+                      Fase 2
+                    </option>
+
+                  </select>
+
+                </td>
+
+                <td>
+
+                  <input
+                    type="number"
+                    step="1"
+                    value={
+                      fila.cantidadAlimento
+                    }
+                    onChange={(e) =>
+                      handleChange(
+                        fila.id,
+                        "cantidadAlimento",
                         e.target.value
                       )
                     }
                     style={inputStyle}
                   />
+
                 </td>
 
-                {/* GALERAS */}
-                <td>
-                  <input
-                    type="number"
-                    value={data[item].galera1}
-                    onChange={(e) =>
-                      handleChange(item, "galera1", e.target.value)
-                    }
-                    style={inputStyle}
-                  />
-                </td>
+                {/* MEDICAMENTO */}
 
                 <td>
-                  <input
-                    type="number"
-                    value={data[item].galera2}
-                    onChange={(e) =>
-                      handleChange(item, "galera2", e.target.value)
-                    }
-                    style={inputStyle}
-                  />
-                </td>
 
-                <td>
-                  <input
-                    type="number"
-                    value={data[item].galera3}
+                  <select
+                    value={fila.medicamento}
                     onChange={(e) =>
-                      handleChange(item, "galera3", e.target.value)
+                      handleChange(
+                        fila.id,
+                        "medicamento",
+                        e.target.value
+                      )
                     }
                     style={inputStyle}
-                  />
-                </td>
+                  >
 
-                <td>
-                  <input
-                    type="number"
-                    value={data[item].galera4}
-                    onChange={(e) =>
-                      handleChange(item, "galera4", e.target.value)
-                    }
-                    style={inputStyle}
-                  />
+                    <option value="">
+                      Seleccione
+                    </option>
+
+                    <option value="MED-001">
+                      MED-001
+                    </option>
+
+                    <option value="MED-002">
+                      MED-002
+                    </option>
+
+                  </select>
+
                 </td>
 
                 <td>
+
                   <input
                     type="number"
-                    value={data[item].galera5}
+                    step="1"
+                    value={
+                      fila.cantidadMedicamento
+                    }
                     onChange={(e) =>
-                      handleChange(item, "galera5", e.target.value)
+                      handleChange(
+                        fila.id,
+                        "cantidadMedicamento",
+                        e.target.value
+                      )
                     }
                     style={inputStyle}
                   />
+
+                </td>
+
+                {/* VACUNA */}
+
+                <td>
+
+                  <select
+                    value={fila.vacuna}
+                    onChange={(e) =>
+                      handleChange(
+                        fila.id,
+                        "vacuna",
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  >
+
+                    <option value="">
+                      Seleccione
+                    </option>
+
+                    <option value="VAC-001">
+                      VAC-001
+                    </option>
+
+                    <option value="VAC-002">
+                      VAC-002
+                    </option>
+
+                  </select>
+
                 </td>
 
                 <td>
+
                   <input
                     type="number"
-                    value={data[item].crianza}
+                    step="1"
+                    value={
+                      fila.cantidadVacuna
+                    }
                     onChange={(e) =>
-                      handleChange(item, "crianza", e.target.value)
+                      handleChange(
+                        fila.id,
+                        "cantidadVacuna",
+                        e.target.value
+                      )
                     }
                     style={inputStyle}
                   />
+
+                </td>
+                {/* ADITIVO */}
+
+                <td>
+
+                  <select
+                    value={fila.aditivo}
+                    onChange={(e) =>
+                      handleChange(
+                        fila.id,
+                        "aditivo",
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  >
+
+                    <option value="">
+                      Seleccione
+                    </option>
+
+                    <option value="AD-001">
+                      AD-001
+                    </option>
+
+                    <option value="AD-002">
+                      AD-002
+                    </option>
+
+                  </select>
+
+                </td>
+
+                {/* CANTIDAD ADITIVO */}
+
+                <td>
+
+                  <input
+                    type="number"
+                    step="1"
+                    value={
+                      fila.cantidadAditivo
+                    }
+                    onChange={(e) =>
+                      handleChange(
+                        fila.id,
+                        "cantidadAditivo",
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  />
+
+                </td>
+
+                {/* ELIMINAR */}
+
+                <td>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      eliminarFila(
+                        fila.id
+                      )
+                    }
+                    style={{
+                      background:
+                        "#d9534f",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      padding: "6px 10px"
+                    }}
+                  >
+                    X
+                  </button>
+
                 </td>
 
               </tr>
@@ -247,14 +553,20 @@ function EgresoAlimento() {
 
         </table>
 
-        {/* BOTÓN */}
-        <div style={{ marginTop: "15px" }}>
+        {/* BOTÓN GUARDAR */}
+
+        <div
+          style={{
+            marginTop: "20px"
+          }}
+        >
 
           <button
             type="submit"
             style={{
               padding: "10px 20px",
-              background: "#1976d2",
+              background:
+                "#1976d2",
               color: "#fff",
               border: "none",
               borderRadius: "5px",
@@ -269,7 +581,10 @@ function EgresoAlimento() {
       </form>
 
     </div>
+
   );
+
 }
 
-export default EgresoAlimento;
+export default EgresoAlimento;          
+          
