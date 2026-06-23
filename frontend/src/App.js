@@ -17,7 +17,7 @@ import ControlPesoHuevos from "./pages/ControlPesoHuevos";
 
 import IngresoHuevos from "./pages/IngresoHuevos";
 import EgresoHuevos from "./pages/EgresoHuevos";
-import Traslados from "./pages/Traslados";
+import EgresoReproductores from "./pages/EgresoReproductores";
 
 function App() {
 
@@ -57,8 +57,8 @@ function App() {
       case "egresoHuevos":
         return <EgresoHuevos />;
 
-      case "traslados":
-        return <Traslados />;
+      case "EgresoReproductores":
+        return <EgresoReproductores />;
       
 
       default:
