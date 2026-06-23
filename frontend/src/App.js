@@ -20,6 +20,7 @@ import EgresoAlimento from "./pages/EgresoAlimento";
 import IngresoHuevos from "./pages/IngresoHuevos";
 import EgresoHuevos from "./pages/EgresoHuevos";
 import IngresoInsumos from "./pages/IngresoInsumos";
+import EgresoInsumos from "./pages/EgresoInsumos";
 import EgresoReproductores from "./pages/EgresoReproductores";
 
 function App() {
@@ -65,6 +66,9 @@ function App() {
 
 		case "IngresoInsumos":
         return <IngresoInsumos />;
+			
+		case "EgresoInsumos":
+        return <EgresoInsumos />;
 
       case "EgresoReproductores":
         return <EgresoReproductores />;
