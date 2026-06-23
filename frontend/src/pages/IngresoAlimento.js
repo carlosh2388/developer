@@ -14,7 +14,7 @@ function IngresoAlimento() {
   // CATÁLOGOS
   // =========================
 
-  const alimentos = [
+  const alimentosOptions = [
     "Preinicio",
     "Inicio",
     "Desarrollo",
@@ -33,35 +33,37 @@ function IngresoAlimento() {
   ];
 
   // =========================
-  // ESTADO POR FILA
+  // CREAR FILA
   // =========================
 
-  const crearEstadoFila = () => ({
+  const crearFila = () => ({
+    id: Date.now() + Math.random(),
+    alimento: "",
     cantidad: "",
     aditivo: "",
     medicamento: ""
   });
 
-  const inicial = {};
-
-  alimentos.forEach(a => {
-    inicial[a] = crearEstadoFila();
-  });
-
-  const [data, setData] = useState(inicial);
+  const [filas, setFilas] = useState([]);
 
   // =========================
-  // MANEJO CAMBIOS
+  // MANEJO
   // =========================
 
-  const handleChange = (alimento, campo, value) => {
-    setData(prev => ({
-      ...prev,
-      [alimento]: {
-        ...prev[alimento],
-        [campo]: value
-      }
-    }));
+  const agregarFila = () => {
+    setFilas(prev => [...prev, crearFila()]);
+  };
+
+  const eliminarFila = (id) => {
+    setFilas(prev => prev.filter(f => f.id !== id));
+  };
+
+  const handleChange = (id, campo, value) => {
+    setFilas(prev =>
+      prev.map(f =>
+        f.id === id ? { ...f, [campo]: value } : f
+      )
+    );
   };
 
   // =========================
@@ -73,7 +75,7 @@ function IngresoAlimento() {
 
     const payload = {
       fecha,
-      movimientos: data
+      movimientos: filas
     };
 
     console.log(payload);
@@ -90,6 +92,24 @@ function IngresoAlimento() {
     padding: "6px",
     border: "1px solid #ccc",
     borderRadius: "4px"
+  };
+
+  const btnDelete = {
+    padding: "6px 10px",
+    background: "#d9534f",
+    color: "#fff",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer"
+  };
+
+  const btnAdd = {
+    padding: "10px 15px",
+    background: "#1976d2",
+    color: "#fff",
+    border: "none",
+    borderRadius: "5px",
+    cursor: "pointer"
   };
 
   return (
@@ -111,14 +131,23 @@ function IngresoAlimento() {
         <input
           type="date"
           value={fecha}
-          onChange={(e) =>
-            setFecha(e.target.value)
-          }
+          onChange={(e) => setFecha(e.target.value)}
           style={inputStyle}
         />
       </div>
 
-      {/* TABLA */}
+      {/* BOTÓN AGREGAR */}
+      <div style={{ marginBottom: "15px" }}>
+        <button
+          type="button"
+          onClick={agregarFila}
+          style={btnAdd}
+        >
+          Agregar Alimento
+        </button>
+      </div>
+
+      {/* FORM */}
       <form onSubmit={guardar}>
 
         <table
@@ -134,28 +163,49 @@ function IngresoAlimento() {
               <th>Cantidad</th>
               <th>Aditivo</th>
               <th>Medicamento</th>
+              <th>Acción</th>
             </tr>
           </thead>
 
           <tbody>
 
-            {alimentos.map((item) => (
+            {filas.map((fila) => (
 
-              <tr key={item}>
+              <tr key={fila.id}>
 
                 {/* ALIMENTO */}
                 <td>
-                  {item}
+                  <select
+                    value={fila.alimento}
+                    onChange={(e) =>
+                      handleChange(
+                        fila.id,
+                        "alimento",
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  >
+                    <option value="">
+                      Seleccione
+                    </option>
+
+                    {alimentosOptions.map(a => (
+                      <option key={a} value={a}>
+                        {a}
+                      </option>
+                    ))}
+                  </select>
                 </td>
 
                 {/* CANTIDAD */}
                 <td>
                   <input
                     type="number"
-                    value={data[item].cantidad}
+                    value={fila.cantidad}
                     onChange={(e) =>
                       handleChange(
-                        item,
+                        fila.id,
                         "cantidad",
                         e.target.value
                       )
@@ -167,10 +217,10 @@ function IngresoAlimento() {
                 {/* ADITIVO */}
                 <td>
                   <select
-                    value={data[item].aditivo}
+                    value={fila.aditivo}
                     onChange={(e) =>
                       handleChange(
-                        item,
+                        fila.id,
                         "aditivo",
                         e.target.value
                       )
@@ -180,7 +230,6 @@ function IngresoAlimento() {
                     <option value="">
                       Seleccione
                     </option>
-
                     {aditivosDisponibles.map(a => (
                       <option key={a} value={a}>
                         {a}
@@ -192,10 +241,10 @@ function IngresoAlimento() {
                 {/* MEDICAMENTO */}
                 <td>
                   <select
-                    value={data[item].medicamento}
+                    value={fila.medicamento}
                     onChange={(e) =>
                       handleChange(
-                        item,
+                        fila.id,
                         "medicamento",
                         e.target.value
                       )
@@ -205,13 +254,23 @@ function IngresoAlimento() {
                     <option value="">
                       Seleccione
                     </option>
-
                     {medicamentosDisponibles.map(m => (
                       <option key={m} value={m}>
                         {m}
                       </option>
                     ))}
                   </select>
+                </td>
+
+                {/* ACCIÓN */}
+                <td>
+                  <button
+                    type="button"
+                    onClick={() => eliminarFila(fila.id)}
+                    style={btnDelete}
+                  >
+                    X
+                  </button>
                 </td>
 
               </tr>
@@ -222,9 +281,8 @@ function IngresoAlimento() {
 
         </table>
 
-        {/* BOTÓN */}
+        {/* GUARDAR */}
         <div style={{ marginTop: "15px" }}>
-
           <button
             type="submit"
             style={{
@@ -238,7 +296,6 @@ function IngresoAlimento() {
           >
             Guardar
           </button>
-
         </div>
 
       </form>
