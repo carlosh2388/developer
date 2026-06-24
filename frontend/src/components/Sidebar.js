@@ -73,7 +73,6 @@ function Sidebar({ setVista }) {
             <li onClick={() => setVista("AjusteSalida")}> 
               Ajustes de Salida
             </li>
-                
       			<li onClick={() => setVista("EgresoReproductores")}>
               Egreso de Reproductores
             </li>
