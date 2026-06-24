@@ -113,7 +113,7 @@ function AjusteSalida() {
     });
 
     alert(
-      "Ajuste de entrada registrado correctamente"
+      "Ajuste de salida registrado correctamente"
     );
   };
 
@@ -176,7 +176,7 @@ function AjusteSalida() {
       }}
     >
 
-      <h2>Ajustes de Entrada</h2>
+      <h2>Ajustes de Salida</h2>
 
       {/* FECHA */}
       <div style={{ marginBottom: "15px" }}>
