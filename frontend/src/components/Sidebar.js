@@ -70,7 +70,7 @@ function Sidebar({ setVista }) {
             <li onClick={() => setVista("AjustesEntrada")}> 
               Ajustes de Entrada
             </li>
-            <li>
+            <li onClick={() => setVista("AjusteSalida")}> 
               Ajustes de Salida
             </li>
                 
