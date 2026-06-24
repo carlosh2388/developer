@@ -21,6 +21,7 @@ import IngresoHuevos from "./pages/IngresoHuevos";
 import EgresoHuevos from "./pages/EgresoHuevos";
 import IngresoInsumos from "./pages/IngresoInsumos";
 import EgresoInsumos from "./pages/EgresoInsumos";
+import AjustesEntrada from "./pages/AjustesEntrada";
 import EgresoReproductores from "./pages/EgresoReproductores";
 
 function App() {
@@ -69,11 +70,16 @@ function App() {
 			
 		case "EgresoInsumos":
         return <EgresoInsumos />;
-
+			
+      case "AjustesEntrada":
+        return <AjustesEntrada />;
+			
       case "EgresoReproductores":
         return <EgresoReproductores />;
-      
 
+      case "AjustesEntrada":
+        return <AjustesEntrada />;
+     			
       default:
         return <h1>Bienvenido</h1>;
     }
