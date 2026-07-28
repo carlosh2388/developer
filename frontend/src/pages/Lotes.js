@@ -19,13 +19,14 @@ function Lotes() {
     "Galera 3",
     "Galera 4",
     "Galera 5",
-    "Galera de Crianza"
+    "Galera de Crianza",
+    "Galera de Producción"
   ]);
 
   const [linea, setLinea] = useState("");
   const [galera, setGalera] = useState("");
 
-  // NUEVO: PROVEEDOR Y ORIGEN
+  // PROVEEDOR Y ORIGEN
   const [proveedor, setProveedor] = useState("");
   const [origen, setOrigen] = useState("");
 
@@ -36,8 +37,10 @@ function Lotes() {
   const [machos, setMachos] = useState(0);
   const [cantidadImportada, setCantidadImportada] = useState(0);
 
-  const [costo, setCosto] = useState(0);
+  // COSTOS
   const [costoUnitario, setCostoUnitario] = useState(0);
+  const [costoTotal, setCostoTotal] = useState(0);
+  const [moneda, setMoneda] = useState("Quetzal");
 
   const [estado, setEstado] = useState("Activo");
 
@@ -79,14 +82,10 @@ function Lotes() {
 
     setCantidadImportada(total);
 
-    if (total > 0 && Number(costo) > 0) {
-      setCostoUnitario(
-        Number(costo) / total
-      );
-    } else {
-      setCostoUnitario(0);
-    }
-  }, [hembras, machos, costo]);
+    setCostoTotal(
+      total * Number(costoUnitario || 0)
+    );
+  }, [hembras, machos, costoUnitario]);
 
   // =========================
   // INIT
@@ -113,8 +112,9 @@ function Lotes() {
       hembras,
       machos,
       cantidadImportada,
-      costo,
       costoUnitario,
+      costoTotal,
+      moneda,
       estado
     };
 
@@ -203,7 +203,7 @@ function Lotes() {
             onChange={(e) =>
               setLote(e.target.value.toUpperCase())
             }
-            placeholder="LI-XXX"
+            placeholder="SL038 o BL038 Automático"
             style={styles.input}
           />
         </div>
@@ -242,13 +242,16 @@ function Lotes() {
           >
             <option value="">Seleccione</option>
             {lineas.map((v, i) => (
-              <option key={i} value={v}>{v}</option>
+              <option key={i} value={v}>
+                {v}
+              </option>
             ))}
           </select>
         </div>
 
         <div style={styles.field}>
           <label>Galera</label>
+
           <div style={styles.row}>
             <select
               value={galera}
@@ -256,15 +259,20 @@ function Lotes() {
               style={styles.input}
             >
               <option value="">Seleccione</option>
+
               {galeras.map((g, i) => (
-                <option key={i} value={g}>{g}</option>
+                <option key={i} value={g}>
+                  {g}
+                </option>
               ))}
             </select>
 
             {mostrarNuevaGalera && (
               <input
                 value={nuevaGalera}
-                onChange={(e) => setNuevaGalera(e.target.value)}
+                onChange={(e) =>
+                  setNuevaGalera(e.target.value)
+                }
                 style={styles.input}
                 placeholder="Nueva galera"
               />
@@ -285,15 +293,16 @@ function Lotes() {
         </div>
       </div>
 
-      {/* ========================= */}
-      {/* NUEVA FILA: PROVEEDOR Y ORIGEN */}
-      {/* ========================= */}
+      {/* PROVEEDOR Y ORIGEN */}
       <div style={styles.row}>
         <div style={styles.field}>
           <label>Proveedor</label>
+
           <select
             value={proveedor}
-            onChange={(e) => setProveedor(e.target.value)}
+            onChange={(e) =>
+              setProveedor(e.target.value)
+            }
             style={styles.input}
           >
             <option value="">Seleccione</option>
@@ -304,13 +313,18 @@ function Lotes() {
 
         <div style={styles.field}>
           <label>Origen</label>
+
           <select
             value={origen}
-            onChange={(e) => setOrigen(e.target.value)}
+            onChange={(e) =>
+              setOrigen(e.target.value)
+            }
             style={styles.input}
           >
             <option value="">Seleccione</option>
-            <option value="Estados Unidos">Estados Unidos</option>
+            <option value="Estados Unidos">
+              Estados Unidos
+            </option>
             <option value="Canada">Canada</option>
             <option value="Mexico">Mexico</option>
           </select>
@@ -321,49 +335,92 @@ function Lotes() {
       <div style={styles.row}>
         <div style={styles.field}>
           <label>Cantidad Hembras</label>
+
           <input
             type="number"
             value={hembras}
-            onChange={(e) => setHembras(e.target.value)}
+            onChange={(e) =>
+              setHembras(e.target.value)
+            }
             style={styles.input}
           />
         </div>
 
         <div style={styles.field}>
           <label>Cantidad Machos</label>
+
           <input
             type="number"
             value={machos}
-            onChange={(e) => setMachos(e.target.value)}
+            onChange={(e) =>
+              setMachos(e.target.value)
+            }
             style={styles.input}
           />
         </div>
 
         <div style={styles.field}>
-          <label>Total Importada</label>
-          <input value={cantidadImportada} readOnly style={styles.input} />
+          <label>Total Importado</label>
+
+          <input
+            value={cantidadImportada}
+            readOnly
+            style={styles.input}
+          />
         </div>
       </div>
 
       {/* COSTOS */}
       <div style={styles.row}>
         <div style={styles.field}>
-          <label>Costo Total</label>
+          <label>Costo Unitario</label>
+
           <input
             type="number"
-            value={costo}
-            onChange={(e) => setCosto(e.target.value)}
+            step="0.0001"
+            value={costoUnitario}
+            onChange={(e) =>
+              setCostoUnitario(e.target.value)
+            }
             style={styles.input}
           />
         </div>
 
         <div style={styles.field}>
-          <label>Costo Unitario</label>
-          <input value={costoUnitario} readOnly style={styles.input} />
+          <label>Costo Total</label>
+
+          <input
+            value={Number(costoTotal).toFixed(2)}
+            readOnly
+            style={styles.input}
+          />
+        </div>
+
+        <div style={styles.field}>
+          <label>Moneda</label>
+
+          <select
+            value={moneda}
+            onChange={(e) =>
+              setMoneda(e.target.value)
+            }
+            style={styles.input}
+          >
+            <option value="">Seleccione</option>
+            <option value="Quetzal">
+              Quetzal
+            </option>
+            <option value="Dólar">
+              Dólar
+            </option>
+          </select>
         </div>
       </div>
 
-      <button type="submit" style={styles.button}>
+      <button
+        type="submit"
+        style={styles.button}
+      >
         Guardar
       </button>
     </form>
