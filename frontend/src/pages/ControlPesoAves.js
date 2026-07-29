@@ -24,15 +24,22 @@ function ControlPesoAves() {
   const [expandH, setExpandH] = useState(true);
   const [expandM, setExpandM] = useState(true);
 
-  // =========================
-  // PESOS
-  // =========================
+// =========================
+// PESOS
+// =========================
 
-  const [hembras, setHembras] = useState({});
-  const [machos, setMachos] = useState({});
+const [hembras, setHembras] = useState({});
+const [machos, setMachos] = useState({});
 
-  const [promHembras, setPromHembras] = useState(0);
-  const [promMachos, setPromMachos] = useState(0);
+const [promHembras, setPromHembras] = useState(0);
+const [promMachos, setPromMachos] = useState(0);
+
+// NUEVO
+const [uniformidadHembras, setUniformidadHembras] =
+  useState(0);
+
+const [uniformidadMachos, setUniformidadMachos] =
+  useState(0);
 
   // =========================
   // INIT
@@ -86,13 +93,75 @@ function ControlPesoAves() {
   // PROMEDIOS
   // =========================
 
-  useEffect(() => {
-    setPromHembras(calcularPromedio(hembras));
-  }, [hembras]);
+useEffect(() => {
+  setPromHembras(
+    calcularPromedio(hembras)
+  );
+}, [hembras]);
 
-  useEffect(() => {
-    setPromMachos(calcularPromedio(machos));
-  }, [machos]);
+useEffect(() => {
+  const valores = Object.values(hembras)
+    .map(Number)
+    .filter((v) => !isNaN(v));
+
+  if (!valores.length || !promHembras) {
+    setUniformidadHembras(0);
+    return;
+  }
+
+  const min = promHembras * 0.9;
+  const max = promHembras * 1.1;
+
+  const dentroRango =
+    valores.filter(
+      (v) =>
+        v >= min &&
+        v <= max
+    ).length;
+
+  setUniformidadHembras(
+    (
+      (dentroRango /
+        valores.length) *
+      100
+    ).toFixed(2)
+  );
+}, [hembras, promHembras]);
+
+useEffect(() => {
+  setPromMachos(
+    calcularPromedio(machos)
+  );
+}, [machos]);
+
+useEffect(() => {
+  const valores = Object.values(machos)
+    .map(Number)
+    .filter((v) => !isNaN(v));
+
+  if (!valores.length || !promMachos) {
+    setUniformidadMachos(0);
+    return;
+  }
+
+  const min = promMachos * 0.9;
+  const max = promMachos * 1.1;
+
+  const dentroRango =
+    valores.filter(
+      (v) =>
+        v >= min &&
+        v <= max
+    ).length;
+
+  setUniformidadMachos(
+    (
+      (dentroRango /
+        valores.length) *
+      100
+    ).toFixed(2)
+  );
+}, [machos, promMachos]);
 
   useEffect(() => {
     const g =
@@ -188,7 +257,9 @@ function ControlPesoAves() {
       promedioGeneral,
       uniformidad,
       hembras,
-      machos
+      machos,
+      uniformidadHembras,
+      uniformidadMachos
     });
 
     alert("Guardado");
@@ -273,7 +344,11 @@ function ControlPesoAves() {
         <h3 style={{ margin: 0 }}>Hembras</h3>
       
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <span>Prom: {promHembras.toFixed(2)}</span>
+          <span>
+            Uni: {uniformidadHembras}% |
+            {" "}
+            Prom: {promHembras.toFixed(2)}
+          </span>
       
           <button
             type="button"
@@ -303,7 +378,11 @@ function ControlPesoAves() {
         <h3 style={{ margin: 0 }}>Machos</h3>
       
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <span>Prom: {promMachos.toFixed(2)}</span>
+        <span>
+          Uni: {uniformidadMachos}% |
+          {" "}
+          Prom: {promMachos.toFixed(2)}
+        </span>
       
           <button
             type="button"
