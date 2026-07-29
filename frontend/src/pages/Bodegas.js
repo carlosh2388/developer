@@ -18,7 +18,6 @@ function Bodegas() {
   const [estado, setEstado] = useState("Activo");
   const [descripcion, setDescripcion] = useState("");
 
-  // NUEVA LOCALIDAD
   const [mostrarNuevaLocalidad, setMostrarNuevaLocalidad] =
     useState(false);
   const [nuevaLocalidad, setNuevaLocalidad] =
@@ -85,10 +84,7 @@ function Bodegas() {
     };
 
     console.log(data);
-
-    alert(
-      "Bodega guardada correctamente"
-    );
+    alert("Bodega guardada correctamente");
   };
 
   // =========================
@@ -99,7 +95,8 @@ function Bodegas() {
     width: "100%",
     padding: "8px",
     borderRadius: "5px",
-    border: "1px solid #ccc"
+    border: "1px solid #ccc",
+    boxSizing: "border-box"
   };
 
   const rowStyle = {
@@ -143,21 +140,18 @@ function Bodegas() {
         {/* FECHA */}
         <div style={{ flex: 1 }}>
           <label>Fecha</label>
-
           <input
             type="date"
             value={fecha}
             onChange={(e) =>
-              setFecha(
-                e.target.value
-              )
+              setFecha(e.target.value)
             }
             style={inputStyle}
           />
         </div>
 
         {/* LOCALIDAD */}
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 2 }}>
           <label>Localidad</label>
 
           <div
@@ -167,30 +161,48 @@ function Bodegas() {
               alignItems: "center"
             }}
           >
-            <select
-              value={localidad}
-              onChange={(e) =>
-                setLocalidad(
-                  e.target.value
-                )
-              }
-              style={inputStyle}
-            >
-              <option value="Seleccione">
-                Seleccione
-              </option>
+            <div style={{ flex: 1 }}>
+              <select
+                value={localidad}
+                onChange={(e) =>
+                  setLocalidad(
+                    e.target.value
+                  )
+                }
+                style={inputStyle}
+              >
+                <option value="Seleccione">
+                  Seleccione
+                </option>
 
-              {localidades.map(
-                (loc, index) => (
-                  <option
-                    key={index}
-                    value={loc}
-                  >
-                    {loc}
-                  </option>
-                )
-              )}
-            </select>
+                {localidades.map(
+                  (loc, index) => (
+                    <option
+                      key={index}
+                      value={loc}
+                    >
+                      {loc}
+                    </option>
+                  )
+                )}
+              </select>
+            </div>
+
+            {mostrarNuevaLocalidad && (
+              <div style={{ flex: 1 }}>
+                <input
+                  type="text"
+                  value={nuevaLocalidad}
+                  onChange={(e) =>
+                    setNuevaLocalidad(
+                      e.target.value
+                    )
+                  }
+                  placeholder="Nueva localidad"
+                  style={inputStyle}
+                />
+              </div>
+            )}
 
             <button
               type="button"
@@ -206,32 +218,11 @@ function Bodegas() {
               +
             </button>
           </div>
-
-          {mostrarNuevaLocalidad && (
-            <div
-              style={{
-                marginTop: "10px"
-              }}
-            >
-              <input
-                type="text"
-                value={nuevaLocalidad}
-                onChange={(e) =>
-                  setNuevaLocalidad(
-                    e.target.value
-                  )
-                }
-                placeholder="Nueva localidad"
-                style={inputStyle}
-              />
-            </div>
-          )}
         </div>
 
         {/* ESTADO */}
         <div style={{ flex: 1 }}>
           <label>Estado</label>
-
           <select
             value={estado}
             onChange={(e) =>
@@ -256,7 +247,6 @@ function Bodegas() {
         {/* ID BODEGA */}
         <div style={{ flex: 1 }}>
           <label>Id Bodega</label>
-
           <input
             type="text"
             value={idBodega}
@@ -273,7 +263,6 @@ function Bodegas() {
           <label>
             Nombre de la Bodega
           </label>
-
           <input
             type="text"
             value={nombreBodega}
@@ -296,7 +285,6 @@ function Bodegas() {
         <label>
           Descripción (opcional)
         </label>
-
         <input
           type="text"
           value={descripcion}
