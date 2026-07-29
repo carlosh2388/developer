@@ -35,13 +35,14 @@ function Productos() {
     setTipoInventario(value);
 
     const prefijos = {
-      ADI: "ADI-XXX",
-      ALI: "ALI-XXX",
-      HCO: "HCO-XXX",
-      HIC: "HIC-XXX",
-      MAT: "MAT-XXX",
-      MED: "MED-XXX",
-      VAC: "VAC-XXX"
+      AD: "AD01 Automatico",
+      AL: "AL01 Automatico",
+      HC: "HC01 Automatico",
+      HI: "HI01 Automatico",
+      IN: "IN01 Automatico",
+      ME: "ME01 Automatico",
+      MD: "MD01 Automatico",
+      VA: "VA01 Automatico"
     };
 
     if (value) {
@@ -50,7 +51,7 @@ function Productos() {
 
       setHelpId(prefijos[value] || "");
 
-      if (value === "MED" || value === "VAC") {
+      if (value === "MD" || value === "VA") {
         setMostrarInsumos(true);
       } else {
         setMostrarInsumos(false);
@@ -153,33 +154,40 @@ function Productos() {
             Seleccione
           </option>
 
-          <option value="ADI">
+          <option value="AD">
             Aditivos
           </option>
 
-          <option value="ALI">
+          <option value="AL">
             Alimento Balanceado
           </option>
 
-          <option value="HCO">
+          <option value="HC">
             Huevo Comercial
           </option>
 
-          <option value="HIC">
+          <option value="HI">
             Huevo Incubable
           </option>
 
-          <option value="MAT">
-            Materiales
+          <option value="IN">
+            Insumos
+          </option>
+            
+          <option value="ME">
+            Material de Empaque
           </option>
 
-          <option value="MED">
+          <option value="MD">
             Medicamentos
           </option>
 
-          <option value="VAC">
+          <option value="VA">
             Vacunas
           </option>
+          
+
+            
         </select>
       </div>
 
