@@ -345,7 +345,7 @@ useEffect(() => {
       
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <span>
-            Uni: {uniformidadHembras}% |
+            Uniformidad: {uniformidadHembras}% |
             {" "}
             Prom: {promHembras.toFixed(2)}
           </span>
@@ -379,7 +379,7 @@ useEffect(() => {
       
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
         <span>
-          Uni: {uniformidadMachos}% |
+          Uniformidad: {uniformidadMachos}% |
           {" "}
           Prom: {promMachos.toFixed(2)}
         </span>
