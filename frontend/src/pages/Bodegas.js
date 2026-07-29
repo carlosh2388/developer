@@ -253,7 +253,7 @@ function Bodegas() {
             onChange={
               handleIdBodega
             }
-            placeholder="BO001 Automático"
+            placeholder="BO01 Automático"
             style={inputStyle}
           />
         </div>
