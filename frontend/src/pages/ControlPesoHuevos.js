@@ -12,6 +12,7 @@ function ControlPesoHuevos() {
   const [numMuestras, setNumMuestras] = useState(0);
 
   const [promedio, setPromedio] = useState(0);
+  const [uniformidad, setUniformidad] = useState(0);
 
   const [filas, setFilas] = useState([]);
 
@@ -123,19 +124,52 @@ function ControlPesoHuevos() {
     setPromedio(avg.toFixed(2));
   }, [filas]);
 
+
+  // =========================
+// UNIFORMIDAD ±10%
+// =========================
+
+useEffect(() => {
+  const valores = filas
+    .map((f) => parseFloat(f.pesoUnitario))
+    .filter((v) => !isNaN(v));
+
+  const prom = parseFloat(promedio);
+
+  if (!valores.length || !prom) {
+    setUniformidad(0);
+    return;
+  }
+
+  const min = prom * 0.9;
+  const max = prom * 1.1;
+
+  const dentroRango = valores.filter(
+    (v) => v >= min && v <= max
+  ).length;
+
+  setUniformidad(
+    (
+      (dentroRango / valores.length) *
+      100
+    ).toFixed(2)
+  );
+}, [filas, promedio]);
+  
   // =========================
   // GUARDAR
   // =========================
 
   const guardar = () => {
-    console.log({
-      fecha,
-      lote,
-      semana,
-      numMuestras,
-      promedio,
-      filas
-    });
+console.log({
+  fecha,
+  lote,
+  semana,
+  numMuestras,
+  promedio,
+  uniformidad,
+  filas
+});
 
     alert("Registro guardado correctamente");
   };
@@ -218,28 +252,46 @@ function ControlPesoHuevos() {
         </div>
       </div>
 
-      {/* =========================
-          MUESTRAS + PROMEDIO
-      ========================= */}
+{/* =========================
+    MUESTRAS + PROMEDIO + UNIFORMIDAD
+========================= */}
 
-      <div style={rowStyle}>
-        <div style={{ flex: 1 }}>
-          <label>Número de Muestras</label>
-          <input
-            type="number"
-            value={numMuestras}
-            onChange={(e) =>
-              setNumMuestras(Number(e.target.value))
-            }
-            style={inputStyle}
-          />
-        </div>
+<div style={rowStyle}>
+  <div style={{ flex: 1 }}>
+    <label>Número de Muestras</label>
 
-        <div style={{ flex: 1 }}>
-          <label>Peso Promedio</label>
-          <input value={promedio} readOnly style={inputStyle} />
-        </div>
-      </div>
+    <input
+      type="number"
+      value={numMuestras}
+      onChange={(e) =>
+        setNumMuestras(
+          Number(e.target.value)
+        )
+      }
+      style={inputStyle}
+    />
+  </div>
+
+  <div style={{ flex: 1 }}>
+    <label>Peso Promedio</label>
+
+    <input
+      value={promedio}
+      readOnly
+      style={inputStyle}
+    />
+  </div>
+
+  <div style={{ flex: 1 }}>
+    <label>Uniformidad (%)</label>
+
+    <input
+      value={uniformidad}
+      readOnly
+      style={inputStyle}
+    />
+  </div>
+</div>
 
       {/* =========================
           TABLA DINÁMICA
