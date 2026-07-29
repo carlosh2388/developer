@@ -284,8 +284,8 @@ useEffect(() => {
           <label># Lote</label>
           <select value={lote} onChange={(e) => setLote(e.target.value)}>
             <option value="">Seleccione</option>
-            <option value="SL-001">SL-001</option>
-            <option value="BL-001">BL-001</option>
+            <option value="SL001">SL038</option>
+            <option value="BL001">BL038</option>
           </select>
         </div>
 
