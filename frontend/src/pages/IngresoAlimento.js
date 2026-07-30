@@ -17,59 +17,154 @@ function IngresoAlimento() {
   ];
 
   const materialesDisponibles = [
-    "ME01",
-    "ME02"
+    "MAT-001",
+    "MAT-002"
   ];
 
   const aditivosDisponibles = [
-    "AD01 Ejemplo"
+    "AD01",
+    "AD02"
   ];
 
   const medicamentosDisponibles = [
-    "MD01 Ejemplo"
+    "MD01",
+    "MD02"
   ];
 
   const crearFila = (
     tipo = "Alimento"
   ) => ({
     id: Date.now() + Math.random(),
+
     tipo,
+
     alimento: "",
     material: "",
     cantidad: "",
+
     aditivo: "",
-    medicamento: ""
+
+    aditivos: [""],
+    medicamentos: [""]
   });
 
   const [filas, setFilas] = useState([]);
 
   const agregarFila = (tipo) => {
-    setFilas(prev => [
+    setFilas((prev) => [
       ...prev,
       crearFila(tipo)
     ]);
   };
 
   const eliminarFila = (id) => {
-    setFilas(prev =>
-      prev.filter(f => f.id !== id)
+    setFilas((prev) =>
+      prev.filter(
+        (f) => f.id !== id
+      )
     );
   };
 
-  const handleChange = (
-    id,
-    campo,
-    value
+const handleChange = (
+  id,
+  campo,
+  value
+) => {
+  setFilas((prev) =>
+    prev.map((f) =>
+      f.id === id
+        ? {
+            ...f,
+            value
+          }
+        : f
+    )
+  );
+};
+
+  const agregarAditivoFila = (
+    id
   ) => {
-    setFilas(prev =>
-      prev.map(f =>
+    setFilas((prev) =>
+      prev.map((f) =>
         f.id === id
           ? {
               ...f,
-              [campo]: value
+              aditivos: [
+                ...f.aditivos,
+                ""
+              ]
             }
           : f
       )
+    );
+  };
+
+  const agregarMedicamentoFila = (
+    id
+  ) => {
+    setFilas((prev) =>
+      prev.map((f) =>
+        f.id === id
+          ? {
+              ...f,
+              medicamentos: [
+                ...f.medicamentos,
+                ""
+              ]
+            }
+          : f
+      )
+    );
+  };
+
+  const cambiarAditivo = (
+    id,
+    index,
+    value
+  ) => {
+    setFilas((prev) =>
+      prev.map((f) => {
+        if (f.id !== id) {
+          return f;
+        }
+
+        const copia = [
+          ...f.aditivos
+        ];
+
+        copia[index] = value;
+
+        return {
+          ...f,
+          aditivos: copia
+        };
+      })
+    );
+  };
+
+  const cambiarMedicamento = (
+    id,
+    index,
+    value
+  ) => {
+    setFilas((prev) =>
+      prev.map((f) => {
+        if (f.id !== id) {
+          return f;
+        }
+
+        const copia = [
+          ...f.medicamentos
+        ];
+
+        copia[index] = value;
+
+        return {
+          ...f,
+          medicamentos: copia
+        };
+      })
     );
   };
 
@@ -112,7 +207,7 @@ function IngresoAlimento() {
   };
 
   return (
-    <div
+        <div
       style={{
         maxWidth: "1000px",
         margin: "0 auto",
@@ -166,6 +261,21 @@ function IngresoAlimento() {
           type="button"
           onClick={() =>
             agregarFila(
+              "Aditivo"
+            )
+          }
+          style={{
+            ...btnAdd,
+            marginLeft: "10px"
+          }}
+        >
+          Agregar Aditivo
+        </button>
+
+        <button
+          type="button"
+          onClick={() =>
+            agregarFila(
               "Material"
             )
           }
@@ -174,7 +284,7 @@ function IngresoAlimento() {
             marginLeft: "10px"
           }}
         >
-          Material de Empaque
+          Agregar Material
         </button>
       </div>
 
@@ -196,17 +306,21 @@ function IngresoAlimento() {
               }}
             >
               <th>
-                Alimento / Otros Productos
+                Alimento / Material
               </th>
+
               <th>
                 Cantidad
               </th>
+
               <th>
                 Aditivo
               </th>
+
               <th>
                 Medicamento
               </th>
+
               <th>
                 Acción
               </th>
@@ -220,9 +334,12 @@ function IngresoAlimento() {
                 <tr
                   key={fila.id}
                 >
+
                   <td>
+
                     {fila.tipo ===
                     "Material" ? (
+
                       <select
                         value={
                           fila.material
@@ -262,7 +379,44 @@ function IngresoAlimento() {
                           )
                         )}
                       </select>
+
+                    ) : fila.tipo ===
+                      "Aditivo" ? (
+
+                      <select
+                        value={
+                          fila.aditivo
+                        }
+                        onChange={(
+                          e
+                        ) =>
+                          handleChange(
+                            fila.id,
+                            "aditivo",
+                            e.target
+                              .value
+                          )
+                        }
+                        style={
+                          inputStyle
+                        }
+                      >
+                        <option value="">
+                          Seleccione
+                        </option>
+
+                        <option value="AD01">
+                          AD01
+                        </option>
+
+                        <option value="AD02">
+                          AD02
+                        </option>
+
+                      </select>
+
                     ) : (
+
                       <select
                         value={
                           fila.alimento
@@ -302,7 +456,9 @@ function IngresoAlimento() {
                           )
                         )}
                       </select>
+
                     )}
+
                   </td>
 
                   <td>
@@ -327,106 +483,194 @@ function IngresoAlimento() {
                       }
                     />
                   </td>
+                                        <td>
 
-                  <td>
-                    {fila.tipo ===
-                    "Material" ? (
+                    {fila.tipo !==
+                    "Alimento" ? (
+
                       <span>
                         No aplica
                       </span>
-                    ) : (
-                      <select
-                        value={
-                          fila.aditivo
-                        }
-                        onChange={(
-                          e
-                        ) =>
-                          handleChange(
-                            fila.id,
-                            "aditivo",
-                            e.target
-                              .value
-                          )
-                        }
-                        style={
-                          inputStyle
-                        }
-                      >
-                        <option value="">
-                          Seleccione
-                        </option>
 
-                        {aditivosDisponibles.map(
+                    ) : (
+
+                      <div>
+
+                        {fila.aditivos.map(
                           (
-                            a
+                            aditivo,
+                            index
                           ) => (
-                            <option
-                              key={
-                                a
-                              }
-                              value={
-                                a
-                              }
+
+                            <div
+                              key={index}
+                              style={{
+                                display:
+                                  "flex",
+                                gap:
+                                  "5px",
+                                marginBottom:
+                                  "5px"
+                              }}
                             >
-                              {a}
-                            </option>
+
+                              <select
+                                value={
+                                  aditivo
+                                }
+                                onChange={(
+                                  e
+                                ) =>
+                                  cambiarAditivo(
+                                    fila.id,
+                                    index,
+                                    e.target
+                                      .value
+                                  )
+                                }
+                                style={
+                                  inputStyle
+                                }
+                              >
+                                <option value="">
+                                  Seleccione
+                                </option>
+
+                                {aditivosDisponibles.map(
+                                  (
+                                    a
+                                  ) => (
+                                    <option
+                                      key={
+                                        a
+                                      }
+                                      value={
+                                        a
+                                      }
+                                    >
+                                      {a}
+                                    </option>
+                                  )
+                                )}
+                              </select>
+
+                            </div>
+
                           )
                         )}
-                      </select>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            agregarAditivoFila(
+                              fila.id
+                            )
+                          }
+                        >
+                          +
+                        </button>
+
+                      </div>
+
                     )}
+
                   </td>
 
                   <td>
-                    {fila.tipo ===
-                    "Material" ? (
+
+                    {fila.tipo !==
+                    "Alimento" ? (
+
                       <span>
                         No aplica
                       </span>
-                    ) : (
-                      <select
-                        value={
-                          fila.medicamento
-                        }
-                        onChange={(
-                          e
-                        ) =>
-                          handleChange(
-                            fila.id,
-                            "medicamento",
-                            e.target
-                              .value
-                          )
-                        }
-                        style={
-                          inputStyle
-                        }
-                      >
-                        <option value="">
-                          Seleccione
-                        </option>
 
-                        {medicamentosDisponibles.map(
+                    ) : (
+
+                      <div>
+
+                        {fila.medicamentos.map(
                           (
-                            m
+                            medicamento,
+                            index
                           ) => (
-                            <option
-                              key={
-                                m
-                              }
-                              value={
-                                m
-                              }
+
+                            <div
+                              key={index}
+                              style={{
+                                display:
+                                  "flex",
+                                gap:
+                                  "5px",
+                                marginBottom:
+                                  "5px"
+                              }}
                             >
-                              {m}
-                            </option>
+
+                              <select
+                                value={
+                                  medicamento
+                                }
+                                onChange={(
+                                  e
+                                ) =>
+                                  cambiarMedicamento(
+                                    fila.id,
+                                    index,
+                                    e.target
+                                      .value
+                                  )
+                                }
+                                style={
+                                  inputStyle
+                                }
+                              >
+                                <option value="">
+                                  Seleccione
+                                </option>
+
+                                {medicamentosDisponibles.map(
+                                  (
+                                    m
+                                  ) => (
+                                    <option
+                                      key={
+                                        m
+                                      }
+                                      value={
+                                        m
+                                      }
+                                    >
+                                      {m}
+                                    </option>
+                                  )
+                                )}
+                              </select>
+
+                            </div>
+
                           )
                         )}
-                      </select>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            agregarMedicamentoFila(
+                              fila.id
+                            )
+                          }
+                        >
+                          +
+                        </button>
+
+                      </div>
+
                     )}
+
                   </td>
 
                   <td>
+
                     <button
                       type="button"
                       onClick={() =>
@@ -440,11 +684,15 @@ function IngresoAlimento() {
                     >
                       X
                     </button>
+
                   </td>
+
                 </tr>
               )
             )}
+
           </tbody>
+
         </table>
 
         <div
@@ -473,7 +721,9 @@ function IngresoAlimento() {
             Guardar
           </button>
         </div>
+
       </form>
+
     </div>
   );
 }
