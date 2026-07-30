@@ -2,6 +2,9 @@ import { useState } from "react";
 
 function IngresoAlimento() {
 
+  const [proveedor, setProveedor] =
+  useState("");
+  
   const [fecha, setFecha] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -182,6 +185,7 @@ const agregarMedicamentoFila = (
 
     console.log({
       fecha,
+      proveedor,
       movimientos: filas
     });
 
@@ -229,25 +233,49 @@ const agregarMedicamentoFila = (
       </h2>
 
       <div
-        style={{
-          marginBottom: "15px"
-        }}
-      >
-        <label>
-          Fecha
-        </label>
+  style={{
+    display: "flex",
+    gap: "15px",
+    marginBottom: "15px"
+  }}
+>
+  <div style={{ flex: 1 }}>
+    <label>Fecha</label>
 
-        <input
-          type="date"
-          value={fecha}
-          onChange={(e) =>
-            setFecha(
-              e.target.value
-            )
-          }
-          style={inputStyle}
-        />
-      </div>
+    <input
+      type="date"
+      value={fecha}
+      onChange={(e) =>
+        setFecha(e.target.value)
+      }
+      style={inputStyle}
+    />
+  </div>
+
+  <div style={{ flex: 1 }}>
+    <label>Proveedor</label>
+
+    <select
+      value={proveedor}
+      onChange={(e) =>
+        setProveedor(
+          e.target.value
+        )
+      }
+      style={inputStyle}
+    >
+      <option value="">
+        Seleccione
+      </option>
+      <option value="PR01">
+        PR01
+      </option>
+      <option value="PR02">
+        PR02
+      </option>
+    </select>
+  </div>
+</div>
 
       <div
         style={{
