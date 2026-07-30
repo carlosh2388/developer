@@ -17,9 +17,7 @@ function Sidebar({ setVista }) {
             <li onClick={() => setVista("bodegas")}>
               Bodegas
             </li>
-//      			<li onClick={() => setVista("localidades")}>
-//              Localidades
-//            </li>
+
       			<li onClick={() => setVista("productos")}>
               Productos
             </li>
