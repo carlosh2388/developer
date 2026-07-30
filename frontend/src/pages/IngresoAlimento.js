@@ -17,16 +17,16 @@ function IngresoAlimento() {
   ];
 
   const materialesDisponibles = [
-    "MAT-001",
-    "MAT-002"
+    "ME01",
+    "ME02"
   ];
 
   const aditivosDisponibles = [
-    "AD-001 Ejemplo"
+    "AD01 Ejemplo"
   ];
 
   const medicamentosDisponibles = [
-    "MD-001 Ejemplo"
+    "MD01 Ejemplo"
   ];
 
   const crearFila = (
@@ -174,7 +174,7 @@ function IngresoAlimento() {
             marginLeft: "10px"
           }}
         >
-          Agregar Material
+          Material de Empaque
         </button>
       </div>
 
@@ -196,7 +196,7 @@ function IngresoAlimento() {
               }}
             >
               <th>
-                Alimento / Material
+                Alimento / Otros Productos
               </th>
               <th>
                 Cantidad
