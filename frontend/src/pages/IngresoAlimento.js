@@ -31,22 +31,31 @@ function IngresoAlimento() {
     "MD02"
   ];
 
-  const crearFila = (
-    tipo = "Alimento"
-  ) => ({
-    id: Date.now() + Math.random(),
+const crearFila = (
+  tipo = "Alimento"
+) => ({
+  id: Date.now() + Math.random(),
 
-    tipo,
+  tipo,
 
-    alimento: "",
-    material: "",
-    cantidad: "",
+  alimento: "",
+  material: "",
+  cantidad: "",
 
-    aditivo: "",
+  aditivo: "",
+  medicamento: "",
 
-    aditivos: [""],
-    medicamentos: [""]
-  });
+  aditivos:
+    tipo === "Alimento"
+      ? [""]
+      : [],
+
+  medicamentos:
+    tipo === "Alimento"
+      ? [""]
+      : []
+});
+
 
   const [filas, setFilas] = useState([]);
 
@@ -75,48 +84,47 @@ const handleChange = (
       f.id === id
         ? {
             ...f,
-            value
+            [campo          }
+        : f
+    )
+  );
+};
+
+const agregarAditivoFila = (
+  id
+) => {
+  setFilas((prev) =>
+    prev.map((f) =>
+      f.id === id
+        ? {
+            ...f,
+            aditivos: [
+              ...(f.aditivos || []),
+              ""
+            ]
           }
         : f
     )
   );
 };
 
-  const agregarAditivoFila = (
-    id
-  ) => {
-    setFilas((prev) =>
-      prev.map((f) =>
-        f.id === id
-          ? {
-              ...f,
-              aditivos: [
-                ...f.aditivos,
-                ""
-              ]
-            }
-          : f
-      )
-    );
-  };
-
-  const agregarMedicamentoFila = (
-    id
-  ) => {
-    setFilas((prev) =>
-      prev.map((f) =>
-        f.id === id
-          ? {
-              ...f,
-              medicamentos: [
-                ...f.medicamentos,
-                ""
-              ]
-            }
-          : f
-      )
-    );
-  };
+const agregarMedicamentoFila = (
+  id
+) => {
+  setFilas((prev) =>
+    prev.map((f) =>
+      f.id === id
+        ? {
+            ...f,
+            medicamentos: [
+              ...(f.medicamentos || []),
+              ""
+            ]
+          }
+        : f
+    )
+  );
+};
 
   const cambiarAditivo = (
     id,
@@ -496,7 +504,7 @@ const handleChange = (
 
                       <div>
 
-                        {fila.aditivos.map(
+                       {(fila.aditivos || [""]).map(
                           (
                             aditivo,
                             index
@@ -589,7 +597,7 @@ const handleChange = (
 
                       <div>
 
-                        {fila.medicamentos.map(
+                        {(fila.medicamentos || [""]).map(
                           (
                             medicamento,
                             index
