@@ -7,10 +7,10 @@ import Sidebar from "./components/Sidebar";
 
 import Lotes from "./pages/Lotes";
 import Bodegas from "./pages/Bodegas";
-import Localidades from "./pages/Localidades";
+//import Localidades from "./pages/Localidades";
 import Productos from "./pages/Productos";
 import Clientes from "./pages/Clientes";
-
+import Proveedores from "./pages/Proveedores";
 
 import ControlPesoAves from "./pages/ControlPesoAves";
 import ControlPesoHuevos from "./pages/ControlPesoHuevos";
@@ -36,8 +36,8 @@ function App() {
       case "lotes":
         return <Lotes />;
 	
-	  case "localidades":
-        return <Localidades />;
+//	  case "localidades":
+//        return <Localidades />;
 			
       case "bodegas":
         return <Bodegas />;
@@ -48,6 +48,9 @@ function App() {
 	  case "clientes":
         return <Clientes />;
 
+	  case "proveedores":
+        return <Proveedores />;
+			
       case "controlPesoAves":
         return <ControlPesoAves />;
 
