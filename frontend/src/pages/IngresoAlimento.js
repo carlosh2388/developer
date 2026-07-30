@@ -20,8 +20,8 @@ function IngresoAlimento() {
   ];
 
   const materialesDisponibles = [
-    "MAT-001",
-    "MAT-002"
+    "ME01",
+    "ME02"
   ];
 
   const aditivosDisponibles = [
@@ -321,7 +321,7 @@ const agregarMedicamentoFila = (
             marginLeft: "10px"
           }}
         >
-          Agregar Material
+          Material de Empaque
         </button>
       </div>
 
