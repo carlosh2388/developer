@@ -343,7 +343,7 @@ const agregarMedicamentoFila = (
               }}
             >
               <th>
-                Alimento / Material
+                Alimento / Otros Productos
               </th>
 
               <th>
