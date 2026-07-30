@@ -84,7 +84,8 @@ const handleChange = (
       f.id === id
         ? {
             ...f,
-            [campo          }
+            value
+          }
         : f
     )
   );
@@ -504,7 +505,7 @@ const agregarMedicamentoFila = (
 
                       <div>
 
-                       {(fila.aditivos || [""]).map(
+                       {(fila.aditivos || []).map(
                           (
                             aditivo,
                             index
@@ -597,7 +598,7 @@ const agregarMedicamentoFila = (
 
                       <div>
 
-                        {(fila.medicamentos || [""]).map(
+                        {(fila.medicamentos || []).map(
                           (
                             medicamento,
                             index
