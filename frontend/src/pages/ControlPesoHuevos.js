@@ -230,12 +230,12 @@ console.log({
               Seleccione
             </option>
         
-            <option value="SL-001">
-              SL-001
+            <option value="SL01">
+              SL01
             </option>
         
-            <option value="BL-001">
-              BL-001
+            <option value="BL01">
+              BL01
             </option>
         
           </select>
