@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
 
 function EgresoReproductores() {
-
   // =========================
   // STATES
   // =========================
 
   const [fecha, setFecha] = useState("");
-  const [tipo, setTipo] = useState("");
-  const [envio, setEnvio] = useState("");
 
   const [filas, setFilas] = useState([
     {
@@ -17,7 +14,8 @@ function EgresoReproductores() {
       subtotal: 0,
       lote: "",
       tipo: "",
-      observacion: ""
+      observacion: "",
+      envio: ""
     }
   ]);
 
@@ -55,7 +53,8 @@ function EgresoReproductores() {
         subtotal: 0,
         lote: "",
         tipo: "",
-        observacion: ""
+        observacion: "",
+        envio: ""
       }
     ]);
   };
@@ -65,13 +64,13 @@ function EgresoReproductores() {
   // =========================
 
   const eliminarFila = (index) => {
-
     if (filas.length === 1) {
       return;
     }
 
-    const nuevasFilas =
-      filas.filter((_, i) => i !== index);
+    const nuevasFilas = filas.filter(
+      (_, i) => i !== index
+    );
 
     setFilas(nuevasFilas);
   };
@@ -85,7 +84,6 @@ function EgresoReproductores() {
     campo,
     valor
   ) => {
-
     const nuevasFilas = [...filas];
 
     nuevasFilas[index][campo] = valor;
@@ -111,15 +109,10 @@ function EgresoReproductores() {
   // =========================
 
   const guardar = () => {
-
     const data = {
-
       fecha,
-      tipo,
-      envio,
       totalGeneral,
       detalles: filas
-
     };
 
     console.log(data);
@@ -152,7 +145,6 @@ function EgresoReproductores() {
   // =========================
 
   return (
-
     <div
       style={{
         maxWidth: "1200px",
@@ -161,15 +153,12 @@ function EgresoReproductores() {
         fontFamily: "Arial"
       }}
     >
-
       <h2>
         Egreso de Reproductores
       </h2>
 
-      {/* FECHA + TIPO + TOTAL */}
-
+      {/* FECHA + TOTAL + BOTÓN AGREGAR */}
       <div style={rowStyle}>
-
         <div style={{ flex: 1 }}>
           <label>Fecha</label>
 
@@ -177,43 +166,12 @@ function EgresoReproductores() {
             type="date"
             value={fecha}
             onChange={(e) =>
-              setFecha(e.target.value)
+              setFecha(
+                e.target.value
+              )
             }
             style={inputStyle}
           />
-        </div>
-
-        <div style={{ flex: 1 }}>
-          <label>Tipo</label>
-
-          <select
-            value={tipo}
-            onChange={(e) =>
-              setTipo(e.target.value)
-            }
-            style={inputStyle}
-          >
-            <option value="">
-              Seleccione
-            </option>
-
-            <option value="Error de Sexado">
-              ErrorDeSexado
-            </option>
-
-            <option value="Mortandad">
-              Mortandad
-            </option>
-
-            <option value="Selección">
-              Seleccion
-            </option>
-
-            <option value="Venta">
-              Venta
-            </option>
-
-          </select>
         </div>
 
         <div style={{ flex: 1 }}>
@@ -226,250 +184,251 @@ function EgresoReproductores() {
           />
         </div>
 
+        <button
+          type="button"
+          onClick={agregarFila}
+          style={{
+            width: "40px",
+            height: "40px",
+            border: "none",
+            borderRadius: "5px",
+            backgroundColor:
+              "#1976d2",
+            color: "#fff",
+            cursor: "pointer"
+          }}
+        >
+          +
+        </button>
       </div>
 
       {/* FILAS */}
+      {filas.map(
+        (fila, index) => (
+          <div
+            key={index}
+            style={rowStyle}
+          >
+            {/* HEMBRAS */}
+            <div
+              style={{
+                flex: 0.375
+              }}
+            >
+              <label>
+                Hembras
+              </label>
 
-      {(tipo === "Mortandad" ||
-        tipo === "Venta") && (
+              <input
+                type="number"
+                value={fila.hembras}
+                onChange={(e) =>
+                  actualizarFila(
+                    index,
+                    "hembras",
+                    e.target.value
+                  )
+                }
+                style={inputStyle}
+              />
+            </div>
 
-        <>
-          {filas.map(
-            (fila, index) => (
+            {/* MACHOS */}
+            <div
+              style={{
+                flex: 0.375
+              }}
+            >
+              <label>
+                Machos
+              </label>
 
-              <div
-                key={index}
-                style={rowStyle}
+              <input
+                type="number"
+                value={fila.machos}
+                onChange={(e) =>
+                  actualizarFila(
+                    index,
+                    "machos",
+                    e.target.value
+                  )
+                }
+                style={inputStyle}
+              />
+            </div>
+
+            {/* SUBTOTAL */}
+            <div
+              style={{
+                flex: 0.5
+              }}
+            >
+              <label>
+                Sub-Total
+              </label>
+
+              <input
+                value={fila.subtotal}
+                readOnly
+                style={inputStyle}
+              />
+            </div>
+
+            {/* LOTE */}
+            <div
+              style={{
+                flex: 1
+              }}
+            >
+              <label>
+                # Lote
+              </label>
+
+              <select
+                value={fila.lote}
+                onChange={(e) =>
+                  actualizarFila(
+                    index,
+                    "lote",
+                    e.target.value
+                  )
+                }
+                style={inputStyle}
               >
+                <option value="">
+                  Seleccione
+                </option>
 
-                {/* HEMBRAS */}
+                <option value="SL01">
+                  SL01
+                </option>
 
-                <div style={{ flex: 0.375 }}>
-                  <label>
-                    Hembras
-                  </label>
+                <option value="BL01">
+                  BL01
+                </option>
+              </select>
+            </div>
 
-                  <input
-                    type="number"
-                    value={fila.hembras}
-                    onChange={(e) =>
-                      actualizarFila(
-                        index,
-                        "hembras",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  />
-                </div>
+            {/* TIPO */}
+            <div
+              style={{
+                flex: 1
+              }}
+            >
+              <label>
+                Tipo
+              </label>
 
-                {/* MACHOS */}
+              <select
+                value={fila.tipo}
+                onChange={(e) =>
+                  actualizarFila(
+                    index,
+                    "tipo",
+                    e.target.value
+                  )
+                }
+                style={inputStyle}
+              >
+                <option value="">
+                  Seleccione
+                </option>
 
-                <div style={{ flex: 0.375 }}>
-                  <label>
-                    Machos
-                  </label>
+                <option value="Error de Sexado">
+                  Error de Sexado
+                </option>
 
-                  <input
-                    type="number"
-                    value={fila.machos}
-                    onChange={(e) =>
-                      actualizarFila(
-                        index,
-                        "machos",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  />
-                </div>
+                <option value="Mortandad">
+                  Mortandad
+                </option>
 
-                {/* SUBTOTAL */}
+                <option value="Selección">
+                  Selección
+                </option>
 
-                <div style={{ flex: 0.5 }}>
-                  <label>
-                    Sub-Total
-                  </label>
+                <option value="Venta">
+                  Venta
+                </option>
+              </select>
+            </div>
 
-                  <input
-                    value={fila.subtotal}
-                    readOnly
-                    style={inputStyle}
-                  />
-                </div>
+            {/* OBSERVACIÓN O ENVÍO */}
+            {fila.tipo ===
+            "Venta" ? (
+              <div
+                style={{
+                  flex: 1.5
+                }}
+              >
+                <label>
+                  # Envío
+                </label>
 
-                {/* LOTE */}
-
-                <div style={{ flex: 1 }}>
-                  <label>
-                    # Lote
-                  </label>
-
-                  <select
-                    value={fila.lote}
-                    onChange={(e) =>
-                      actualizarFila(
-                        index,
-                        "lote",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  >
-                    <option value="">
-                      Seleccione
-                    </option>
-
-                    <option value="SL01">
-                      SL01
-                    </option>
-
-                    <option value="BL01">
-                      BL01
-                    </option>
-
-                  </select>
-                </div>
-
-                {/* TIPO POR LÍNEA */}
-
-                <div style={{ flex: 1 }}>
-                  <label>
-                    Tipo
-                  </label>
-
-                  <select
-                    value={fila.tipo}
-                    onChange={(e) =>
-                      actualizarFila(
-                        index,
-                        "tipo",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  >
-                    <option value="">
-                      Seleccione
-                    </option>
-
-                    <option value="Error de Sexado">
-                      Error de Sexado
-                    </option>
-
-                    <option value="Mortandad">
-                      Mortandad
-                    </option>
-
-                    <option value="Selección">
-                      Selección
-                    </option>
-
-                    <option value="Venta">
-                      Venta
-                    </option>
-                  </select>
-                </div>
-
-                {/* OBSERVACIÓN */}
-
-                <div style={{ flex: 1.5 }}>
-                  <label>
-                    Observación
-                  </label>
-
-                  <input
-                    type="text"
-                    value={fila.observacion}
-                    onChange={(e) =>
-                      actualizarFila(
-                        index,
-                        "observacion",
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  />
-                </div>
-
-                {/* AGREGAR FILA */}
-
-                <button
-                  type="button"
-                  onClick={agregarFila}
-                  style={{
-                    width: "35px",
-                    height: "35px",
-                    border: "none",
-                    borderRadius: "5px",
-                    backgroundColor:
-                      "#1976d2",
-                    color: "#fff",
-                    cursor: "pointer"
-                  }}
-                >
-                  +
-                </button>
-
-                {/* ELIMINAR FILA */}
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    eliminarFila(index)
+                <input
+                  type="text"
+                  value={fila.envio}
+                  onChange={(e) =>
+                    actualizarFila(
+                      index,
+                      "envio",
+                      e.target.value
+                    )
                   }
-                  style={{
-                    width: "35px",
-                    height: "35px",
-                    border: "none",
-                    borderRadius: "5px",
-                    backgroundColor:
-                      "#d32f2f",
-                    color: "#fff",
-                    cursor: "pointer"
-                  }}
-                >
-                  X
-                </button>
-
+                  style={inputStyle}
+                />
               </div>
+            ) : (
+              <div
+                style={{
+                  flex: 1.5
+                }}
+              >
+                <label>
+                  Observación
+                </label>
 
-            )
-          )}
-        </>
-      )}
+                <input
+                  type="text"
+                  value={
+                    fila.observacion
+                  }
+                  onChange={(e) =>
+                    actualizarFila(
+                      index,
+                      "observacion",
+                      e.target.value
+                    )
+                  }
+                  style={inputStyle}
+                />
+              </div>
+            )}
 
-      {/* ENVÍO SOLO PARA VENTA */}
-
-      {tipo === "Venta" && (
-
-        <div
-          style={{
-            marginBottom: "20px"
-          }}
-        >
-
-          <label>
-            # Envío
-          </label>
-
-          <input
-            type="text"
-            value={envio}
-            onChange={(e) =>
-              setEnvio(
-                e.target.value
-              )
-            }
-            style={inputStyle}
-          />
-
-        </div>
-
+            {/* ELIMINAR FILA */}
+            <button
+              type="button"
+              onClick={() =>
+                eliminarFila(index)
+              }
+              style={{
+                width: "35px",
+                height: "35px",
+                border: "none",
+                borderRadius:
+                  "5px",
+                backgroundColor:
+                  "#d32f2f",
+                color: "#fff",
+                cursor: "pointer"
+              }}
+            >
+              X
+            </button>
+          </div>
+        )
       )}
 
       {/* GUARDAR */}
-
       <button
         onClick={guardar}
         style={{
@@ -484,9 +443,7 @@ function EgresoReproductores() {
       >
         Guardar Egreso
       </button>
-
     </div>
-
   );
 }
 
