@@ -326,43 +326,39 @@ function EgresoReproductores() {
             </select>
           </div>
 
-          {/* OBSERVACIÓN O ENVÍO */}
-
-          {fila.tipo === "Venta" ? (
-            <div style={{ flex: 1.5 }}>
-              <label># Envío</label>
-
-              <input
-                type="text"
-                value={fila.envio}
-                onChange={(e) =>
-                  actualizarFila(
-                    index,
-                    "envio",
-                    e.target.value
-                  )
-                }
-                style={inputStyle}
-              />
-            </div>
-          ) : (
-            <div style={{ flex: 1.5 }}>
-              <label>Observación</label>
-
-              <input
-                type="text"
-                value={fila.observacion}
-                onChange={(e) =>
-                  actualizarFila(
-                    index,
-                    "observacion",
-                    e.target.value
-                  )
-                }
-                style={inputStyle}
-              />
-            </div>
-          )}
+    {/* OBSERVACIÓN / ENVÍO */}
+    
+    <div style={{ flex: 1.5*}}>
+      <label>
+        {fila.tipo === "*enta"
+          ? "# Envío"
+          : "O*servación"}
+      </label>
+    
+      <input
+     *  type="text"
+        value={
+          fi*a.tipo === "Venta"
+            ? fila.*nvio
+            : fila.observacion
+      * }
+        onChange={(e) =>
+          actualizarFila(
+            index,
+            fila.tipo === "Venta"
+              ? "envio"
+              : "observacion",
+            e.target.value
+          )
+        }
+        placeholder={
+          fila.tipo === "Venta"
+            ? "Ingrese # Envío"
+            : "Ingrese observación"
+        }
+        style={inputStyle}
+      />
+    </div>
 
           {/* ELIMINAR FILA */}
 
