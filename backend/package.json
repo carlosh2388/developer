@@ -1,14 +1,24 @@
 {
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
-    "express": "^5.2.1"
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.6.0",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.22.0"
   },
   "name": "backend",
   "version": "1.0.0",
   "description": "",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js",
+    "dev": "node --watch app.js",
+    "db:migrate:keys": "node scripts/runMigration.js 002_license_key_history.sql",
+    "db:migrate:access": "node scripts/runMigration.js 003_user_scopes_quotas_sessions.sql",
+    "test": "node --test"
   },
   "keywords": [],
   "author": "",
