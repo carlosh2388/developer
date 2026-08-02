@@ -64,7 +64,9 @@ function EgresoReproductores() {
   // =========================
 
   const eliminarFila = (index) => {
-    if (filas.length === 1) return;
+    if (filas.length === 1) {
+      return;
+    }
 
     const nuevasFilas = filas.filter(
       (_, i) => i !== index
@@ -153,7 +155,8 @@ function EgresoReproductores() {
     >
       <h2>Egreso de Reproductores</h2>
 
-      {/* FECHA + TOTAL + AGREGAR */}
+      {/* FECHA + BOTÓN + TOTAL */}
+
       <div style={rowStyle}>
         <div style={{ flex: 1 }}>
           <label>Fecha</label>
@@ -168,6 +171,25 @@ function EgresoReproductores() {
           />
         </div>
 
+        <div>
+          <button
+            type="button"
+            onClick={agregarFila}
+            style={{
+              width: "40px",
+              height: "40px",
+              border: "none",
+              borderRadius: "5px",
+              backgroundColor: "#1976d2",
+              color: "#fff",
+              cursor: "pointer",
+              fontSize: "20px"
+            }}
+          >
+            +
+          </button>
+        </div>
+
         <div style={{ flex: 1 }}>
           <label>Total</label>
 
@@ -177,33 +199,18 @@ function EgresoReproductores() {
             style={inputStyle}
           />
         </div>
-
-        <button
-          type="button"
-          onClick={agregarFila}
-          style={{
-            width: "40px",
-            height: "40px",
-            border: "none",
-            borderRadius: "5px",
-            backgroundColor: "#1976d2",
-            color: "#fff",
-            fontSize: "20px",
-            cursor: "pointer"
-          }}
-        >
-          +
-        </button>
       </div>
 
       {/* FILAS */}
+
       {filas.map((fila, index) => (
         <div
           key={index}
           style={rowStyle}
         >
           {/* HEMBRAS */}
-          <div style={{ flex: 0.5 }}>
+
+          <div style={{ flex: 0.375 }}>
             <label>Hembras</label>
 
             <input
@@ -221,7 +228,8 @@ function EgresoReproductores() {
           </div>
 
           {/* MACHOS */}
-          <div style={{ flex: 0.5 }}>
+
+          <div style={{ flex: 0.375 }}>
             <label>Machos</label>
 
             <input
@@ -239,7 +247,8 @@ function EgresoReproductores() {
           </div>
 
           {/* SUBTOTAL */}
-          <div style={{ flex: 0.6 }}>
+
+          <div style={{ flex: 0.5 }}>
             <label>Sub-Total</label>
 
             <input
@@ -250,6 +259,7 @@ function EgresoReproductores() {
           </div>
 
           {/* LOTE */}
+
           <div style={{ flex: 1 }}>
             <label># Lote</label>
 
@@ -278,7 +288,8 @@ function EgresoReproductores() {
             </select>
           </div>
 
-          {/* TIPO */}
+          {/* TIPO POR LÍNEA */}
+
           <div style={{ flex: 1 }}>
             <label>Tipo</label>
 
@@ -316,6 +327,7 @@ function EgresoReproductores() {
           </div>
 
           {/* OBSERVACIÓN O ENVÍO */}
+
           {fila.tipo === "Venta" ? (
             <div style={{ flex: 1.5 }}>
               <label># Envío</label>
@@ -352,7 +364,8 @@ function EgresoReproductores() {
             </div>
           )}
 
-          {/* ELIMINAR */}
+          {/* ELIMINAR FILA */}
+
           <button
             type="button"
             onClick={() =>
@@ -363,8 +376,7 @@ function EgresoReproductores() {
               height: "35px",
               border: "none",
               borderRadius: "5px",
-              backgroundColor:
-                "#d32f2f",
+              backgroundColor: "#d32f2f",
               color: "#fff",
               cursor: "pointer"
             }}
@@ -375,6 +387,7 @@ function EgresoReproductores() {
       ))}
 
       {/* GUARDAR */}
+
       <button
         onClick={guardar}
         style={{
