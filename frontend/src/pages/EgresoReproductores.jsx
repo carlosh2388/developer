@@ -328,7 +328,7 @@ function EgresoReproductores() {
 
     {/* OBSERVACIÓN / ENVÍO */}
     
-    <div style={{ flex: 1.5*}}>
+    <div style={{ flex: 1.5}}>
       <label>
         {fila.tipo === "*enta"
           ? "# Envío"
