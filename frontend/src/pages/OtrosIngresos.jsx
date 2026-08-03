@@ -1,4 +1,4 @@
-impor* { useState } from "react";
+import { useState } from "react";
 
 funct*on OtrosIngresos() {
 
