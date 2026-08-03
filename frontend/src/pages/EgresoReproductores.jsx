@@ -330,18 +330,18 @@ function EgresoReproductores() {
     
     <div style={{ flex: 1.5}}>
       <label>
-        {fila.tipo === "*enta"
-          ? "# Envío"
-          : "O*servación"}
+        {fila.tipo === "Venta"
+          ? "# Envío"  
+          : "Observación"}
       </label>
     
       <input
-     *  type="text"
+       type="text"
         value={
-          fi*a.tipo === "Venta"
-            ? fila.*nvio
+          fila.tipo === "Venta"
+            ? fila.envio
             : fila.observacion
-      * }
+       }
         onChange={(e) =>
           actualizarFila(
             index,
