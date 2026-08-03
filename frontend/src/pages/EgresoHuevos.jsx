@@ -101,25 +101,25 @@ function EgresoHuevos() {
   // CREAR FILA INCUBADORA
   // =====================================================
 
-  const crearFilaIncubadora = () => ({
-    existencias: 0,
-    cajaBandejas336: 0,
-    cajaCartones360: 0,
-    bandeja84: 0,
-    carton30: 0,
-    unidades: 0
-  });
+const crearFilaIncubadora = () => ({
+  existencias: 0,
+  cajaBandejas336: 0,
+  cajaCartones360: 0,
+  bandeja84: 0,
+  carton30: 0,
+  unidades: 0
+});
 
   // =====================================================
   // CREAR FILA COMERCIAL
   // =====================================================
 
-  const crearFilaComercial = () => ({
-    existencias: 0,
-    cajaCartones360: 0,
-    carton30: 0,
-    unidades: 0
-  });
+const crearFilaComercial = () => ({
+  existencias: 0,
+  cajaC360: 0,
+  carton30: 0,
+  unidades: 0
+});
 
   // =====================================================
   // CREAR ESTRUCTURA INCUBADORA
@@ -366,57 +366,57 @@ function EgresoHuevos() {
   // TOTAL FILA INCUBADORA
   // =====================================================
 
-  const totalFilaIncubadora =
-    (filaData) => {
+const totalFilaIncubadora =
+  (filaData) => {
 
-      return (
+    return (
 
-        (parseInt(
-          filaData.cajaBandejas336
-        ) || 0) * 336 +
+      (parseInt(
+        filaData.cajaB336
+      ) || 0) * 336 +
 
-        (parseInt(
-          filaData.cajaCartones360
-        ) || 0) * 360 +
+      (parseInt(
+        filaData.cajaC360
+      ) || 0) * 360 +
 
-        (parseInt(
-          filaData.bandeja84
-        ) || 0) * 84 +
+      (parseInt(
+        filaData.bandeja84
+      ) || 0) * 84 +
 
-        (parseInt(
-          filaData.carton30
-        ) || 0) * 30 +
+      (parseInt(
+        filaData.carton30
+      ) || 0) * 30 +
 
-        (parseInt(
-          filaData.unidades
-        ) || 0)
+      (parseInt(
+        filaData.unidades
+      ) || 0)
 
-      );
-    };
+    );
+  };
 
   // =====================================================
   // TOTAL FILA COMERCIAL
   // =====================================================
 
-  const totalFilaComercial =
-    (filaData) => {
+const totalFilaComercial =
+  (filaData) => {
 
-      return (
+    return (
 
-        (parseInt(
-          filaData.cajaCartones360
-        ) || 0) * 360 +
+      (parseInt(
+        filaData.cajaC360
+      ) || 0) * 360 +
 
-        (parseInt(
-          filaData.carton30
-        ) || 0) * 30 +
+      (parseInt(
+        filaData.carton30
+      ) || 0) * 30 +
 
-        (parseInt(
-          filaData.unidades
-        ) || 0)
+      (parseInt(
+        filaData.unidades
+      ) || 0)
 
-      );
-    };
+    );
+  };
 
   // =====================================================
   // VALIDAR EXISTENCIAS
@@ -443,7 +443,7 @@ function EgresoHuevos() {
 
       if (
         lote.clasificacion ===
-        "INCUBADORA"
+        "Incubable"
       ) {
 
         return filasIncubadora.reduce(
@@ -458,7 +458,7 @@ function EgresoHuevos() {
 
       if (
         lote.clasificacion ===
-        "COMERCIAL"
+        "Comercial"
       ) {
 
         return filasComercial.reduce(
@@ -473,7 +473,44 @@ function EgresoHuevos() {
 
       return 0;
     };
+const calcularSubTotal = (
+  lote,
+  filtro
+) => {
 
+  const origen =
+    lote.clasificacion ===
+    "Incubable"
+      ? lote.incubadora
+      : lote.comercial;
+
+  let total = 0;
+
+  Object.keys(origen).forEach(
+    (key) => {
+
+      if (
+        key.includes(filtro)
+      ) {
+
+        total +=
+          lote.clasificacion ===
+          "Incubable"
+
+            ? totalFilaIncubadora(
+                origen[key]
+              )
+
+            : totalFilaComercial(
+                origen[key]
+              );
+      }
+
+    }
+  );
+
+  return total;
+};
   // =====================================================
   // AGREGAR PLACA
   // =====================================================
@@ -711,7 +748,7 @@ function EgresoHuevos() {
                       <input
                         type="number"
                         value={
-                          row.cajaBandejas336
+                          row.cajaB336
                         }
                         onChange={(
                           e
@@ -719,7 +756,7 @@ function EgresoHuevos() {
                           handleIncubadora(
                             lote.id,
                             fila,
-                            "cajaBandejas336",
+                            "cajaB336",
                             e.target
                               .value
                           )
@@ -733,7 +770,7 @@ function EgresoHuevos() {
                       <input
                         type="number"
                         value={
-                          row.cajaCartones360
+                          row.cajaC360
                         }
                         onChange={(
                           e
@@ -741,7 +778,7 @@ function EgresoHuevos() {
                           handleIncubadora(
                             lote.id,
                             fila,
-                            "cajaCartones360",
+                            "cajaC360",
                             e.target
                               .value
                           )
@@ -981,7 +1018,7 @@ function EgresoHuevos() {
                       <input
                         type="number"
                         value={
-                          row.cajaCartones360
+                          row.cajaC360
                         }
                         onChange={(
                           e
@@ -989,7 +1026,7 @@ function EgresoHuevos() {
                           handleComercial(
                             lote.id,
                             fila,
-                            "cajaCartones360",
+                            "cajaC360",
                             e.target
                               .value
                           )
@@ -1580,32 +1617,58 @@ function EgresoHuevos() {
                       Seleccione
                     </option>
 
-                    <option value="INCUBADORA">
-                      Lote de
-                      Incubadora
-                    </option>
+<option value="Incubable">
+  Incubable
+</option>
 
-                    <option value="COMERCIAL">
-                      Lote Comercial
-                    </option>
+<option value="Comercial">
+  Comercial
+</option>
 
                   </select>
 
                 </div>
 
-                <div
-                  style={{
-                    fontWeight:
-                      "bold",
-                    fontSize:
-                      "18px"
-                  }}
-                >
-                  Total:{" "}
-                  {calcularTotalLote(
-                    loteItem
-                  )}
-                </div>
+<div
+  style={{
+    display: "flex",
+    gap: "20px",
+    alignItems: "center"
+  }}
+>
+  <div
+    style={{
+      fontWeight: "bold",
+      fontSize: "18px"
+    }}
+  >
+    Total:
+    {calcularTotalLote(
+      loteItem
+    )}
+  </div>
+
+  {loteItem.clasificacion ===
+    "Comercial" && (
+    <>
+      <div>
+        Nido:
+        {calcularSubTotal(
+          loteItem,
+          "(Nido)"
+        )}
+      </div>
+
+      <div>
+        Piso:
+        {calcularSubTotal(
+          loteItem,
+          "(Piso)"
+        )}
+      </div>
+    </>
+  )}
+</div>
 
                 <div
                   style={{
@@ -1683,13 +1746,13 @@ function EgresoHuevos() {
                   )}
 
                   {loteItem.clasificacion ===
-                    "INCUBADORA" &&
+                    "Incubable" &&
                     renderTablaIncubadora(
                       loteItem
                     )}
 
                   {loteItem.clasificacion ===
-                    "COMERCIAL" &&
+                    "Comercial" &&
                     renderTablaComercial(
                       loteItem
                     )}
@@ -1698,6 +1761,14 @@ function EgresoHuevos() {
 
               )}
 
+              <div
+  style={{
+    marginTop: "10px",
+    fontWeight: "bold"
+  }}
+>
+  Otros = Pruebas, Lijado, Deforme y Traslúcido
+</div>
             </div>
 
           )
