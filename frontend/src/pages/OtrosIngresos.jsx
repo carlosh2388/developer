@@ -1,50 +1,50 @@
 import { useState } from "react";
 
-funct*on OtrosIngresos() {
+function OtrosIngresos() {
 
-  // =======*=================
-  // FECHA Y PRO*EEDOR
-  // =======================*=
+  // ========================
+  // FECHA Y PROVEEDOR
+  // ========================
 
-  const [fecha, setFecha] = use*tate(
-    new Date().toISOString()*split("T")[0]
+  const [fecha, setFecha] = useState(
+    new Date().toISOString().split("T")[0]
   );
 
-  const [prove*dor, setProveedor] =
-    useState(*");
+  const [proveedor, setProveedor] =
+    useState("");
 
   // ========================*
   // LISTAS
   // ================*========
 
   const vacunas = [
-    *VA01",
+    "VA01",
     "VA02"
   ];
 
-  const me*icamentos = [
+  const medicamentos = [
     "MD01",
     "MD0*"
   ];
 
   const aditivos = [
-    "*D01",
+    "AD01",
     "AD02"
   ];
 
-  const ins*mos = [
+  const insumos = [
     "IN01",
     "IN02"
   ]*
 
   const materiales = [
-    "ME01*,
+    "ME01",
     "ME02"
   ];
 
-  const aliment*s = [
+  const alimentos = [
     "Preinicio",
-    "Inicio*,
+    "Inicio",
     "Crecimiento",
     "Fase 1",
     "Fase 2"
@@ -105,7 +105,7 @@ funct*on OtrosIngresos() {
         f.id === id
           ? {
               ...f,
-              value
+              [campo]: value
             }
           : f
       )
