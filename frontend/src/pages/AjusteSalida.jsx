@@ -90,7 +90,7 @@ function AjusteSalida() {
     setFilas(prev =>
       prev.map(f =>
         f.id === id
-          ? { ...f, value }
+          ? { ...f, [campo]: value }
           : f
       )
     );
