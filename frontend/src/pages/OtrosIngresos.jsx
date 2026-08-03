@@ -13,9 +13,9 @@ function OtrosIngresos() {
   const [proveedor, setProveedor] =
     useState("");
 
-  // ========================*
+  // ========================
   // LISTAS
-  // ================*========
+  // ========================
 
   const vacunas = [
     "VA01",
@@ -24,7 +24,7 @@ function OtrosIngresos() {
 
   const medicamentos = [
     "MD01",
-    "MD0*"
+    "MD02"
   ];
 
   const aditivos = [
@@ -35,7 +35,7 @@ function OtrosIngresos() {
   const insumos = [
     "IN01",
     "IN02"
-  ]*
+  ];
 
   const materiales = [
     "ME01",
