@@ -142,7 +142,7 @@ function EgresoAlimento() {
             f.id === filaId
               ? {
                   ...f,
-                  valor
+                 [campo]: valor
                 }
               : f
           )
