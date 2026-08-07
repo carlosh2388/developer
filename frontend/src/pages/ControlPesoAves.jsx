@@ -16,9 +16,6 @@ function ControlPesoAves() {
 
   const [tamanoMuestra, setTamanoMuestra] = useState(0);
 
-  const [uniformidad, setUniformidad] = useState(0);
-  const [promedioGeneral, setPromedioGeneral] = useState(0);
-
   const [etapas, setEtapas] = useState([]);
 
   const [expandH, setExpandH] = useState(true);
@@ -163,34 +160,6 @@ useEffect(() => {
   );
 }, [machos, promMachos]);
 
-  useEffect(() => {
-    const g =
-      (parseFloat(promHembras) + parseFloat(promMachos)) / 2 || 0;
-
-    setPromedioGeneral(g);
-  }, [promHembras, promMachos]);
-
-  // =========================
-  // UNIFORMIDAD (±10%)
-  // =========================
-
-  useEffect(() => {
-    const all = [...Object.values(hembras), ...Object.values(machos)]
-      .map(Number)
-      .filter((n) => !isNaN(n));
-
-    if (!all.length || !promedioGeneral) {
-      setUniformidad(0);
-      return;
-    }
-
-    const min = promedioGeneral * 0.9;
-    const max = promedioGeneral * 1.1;
-
-    const ok = all.filter((n) => n >= min && n <= max).length;
-
-    setUniformidad(((ok / all.length) * 100).toFixed(2));
-  }, [hembras, machos, promedioGeneral]);
 
   // =========================
   // HANDLERS
@@ -254,8 +223,6 @@ useEffect(() => {
       semana,
       etapa,
       tamanoMuestra,
-      promedioGeneral,
-      uniformidad,
       hembras,
       machos,
       uniformidadHembras,
@@ -295,42 +262,53 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* ================= ETAPA / MUESTRA / PROM / UNI ================= */}
+      {/* ================= ETAPA / MUESTRA ================= */}
       <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+      
         <div style={{ flex: 2 }}>
           <label>Etapa</label>
+      
           <div style={{ display: "flex", gap: 10 }}>
-            <select value={etapa} onChange={(e) => setEtapa(e.target.value)}>
-              <option value="">Seleccione</option>
+            <select
+              value={etapa}
+              onChange={(e) => setEtapa(e.target.value)}
+            >
+              <option value="">
+                Seleccione
+              </option>
+      
               {etapas.map((e, i) => (
-                <option key={i}>{e}</option>
+                <option key={i}>
+                  {e}
+                </option>
               ))}
             </select>
-
-            <button type="button" onClick={agregarEtapa}>+</button>
+      
+            <button
+              type="button"
+              onClick={agregarEtapa}
+            >
+              +
+            </button>
           </div>
         </div>
-
+      
         <div style={{ flex: 1 }}>
           <label>Tamaño de la Muestra</label>
+      
           <input
             type="number"
             value={tamanoMuestra}
-            onChange={(e) => setTamanoMuestra(Number(e.target.value))}
+            onChange={(e) =>
+              setTamanoMuestra(
+                Number(e.target.value)
+              )
+            }
           />
         </div>
-
-        <div style={{ flex: 1 }}>
-          <label>Promedio General</label>
-          <input value={promedioGeneral.toFixed(2)} readOnly />
-        </div>
-
-        <div style={{ flex: 1 }}>
-          <label>% Uniformidad</label>
-          <input value={uniformidad} readOnly />
-        </div>
+      
       </div>
-
+      
       {/* ========================= HEMBRAS ========================= */}
       
       <div
