@@ -11,27 +11,43 @@ function IngresoInsumos() {
   );
 
   // =========================
+  // PROVEEDOR
+  // =========================
+
+  const [proveedor, setProveedor] = useState("");
+
+  const proveedores = [
+    "PR01",
+    "PR02"
+  ];
+
+  // =========================
   // LISTAS
   // =========================
 
   const vacunas = [
-    "VAC-001",
-    "VAC-002"
+    "VA01",
+    "VA02"
   ];
 
   const medicamentos = [
-    "MED-001",
-    "MED-002"
+    "MD01",
+    "MD02"
   ];
 
   const aditivos = [
-    "AD-001",
-    "AD-002"
+    "AD01",
+    "AD02"
   ];
 
-  const materiales = [
-    "MAT-001",
-    "MAT-002"
+  const insumos = [
+    "IN01",
+    "IN02"
+  ];
+
+  const materialesEmpaque = [
+    "ME01",
+    "ME02"
   ];
 
   const alimentos = [
@@ -56,7 +72,8 @@ function IngresoInsumos() {
     id: Date.now() + Math.random(),
     tipo,
     item: "",
-    cantidad: ""
+    cantidad: "",
+    precio: ""
   });
 
   // =========================
@@ -88,7 +105,7 @@ function IngresoInsumos() {
     setFilas(prev =>
       prev.map(f =>
         f.id === id
-          ? { ...f, [campo]: value }
+          ? { ...f, value }
           : f
       )
     );
@@ -103,6 +120,7 @@ function IngresoInsumos() {
 
     console.log({
       fecha,
+      proveedor,
       insumos: filas
     });
 
@@ -110,7 +128,7 @@ function IngresoInsumos() {
   };
 
   // =========================
-  // ESTILO
+  // ESTILOS
   // =========================
 
   const btn = {
@@ -135,6 +153,7 @@ function IngresoInsumos() {
   // =========================
 
   const getOptions = (tipo) => {
+
     switch (tipo) {
 
       case "Vacunas":
@@ -146,8 +165,11 @@ function IngresoInsumos() {
       case "Aditivos":
         return aditivos;
 
-      case "Materiales":
-        return materiales;
+      case "Insumos":
+        return insumos;
+
+      case "Material de Empaque":
+        return materialesEmpaque;
 
       case "Alimento":
         return alimentos;
@@ -164,27 +186,54 @@ function IngresoInsumos() {
   return (
     <div
       style={{
-        maxWidth: "1000px",
+        maxWidth: "1100px",
         margin: "0 auto",
         padding: "20px",
         fontFamily: "Arial"
       }}
     >
-
       <h2>Ingreso de Insumos</h2>
 
-      {/* FECHA */}
-      <div style={{ marginBottom: "15px" }}>
-        <label>Fecha</label>
-        <input
-          type="date"
-          value={fecha}
-          onChange={(e) => setFecha(e.target.value)}
-          style={inputStyle}
-        />
+      {/* FECHA Y PROVEEDOR */}
+      <div
+        style={{
+          display: "flex",
+          gap: "20px",
+          marginBottom: "20px"
+        }}
+      >
+        <div style={{ flex: 1 }}>
+          <label>Fecha</label>
+          <input
+            type="date"
+            value={fecha}
+            onChange={(e) => setFecha(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
+
+        <div style={{ flex: 1 }}>
+          <label>Proveedor</label>
+
+          <select
+            value={proveedor}
+            onChange={(e) => setProveedor(e.target.value)}
+            style={inputStyle}
+          >
+            <option value="">
+              Seleccione
+            </option>
+
+            {proveedores.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {/* BOTONES (ORDENADOS + NUEVO ALIMENTO) */}
+      {/* BOTONES */}
       <div
         style={{
           display: "flex",
@@ -193,27 +242,53 @@ function IngresoInsumos() {
           flexWrap: "wrap"
         }}
       >
-
-        <button type="button" style={btn} onClick={() => agregarFila("Aditivos")}>
+        <button
+          type="button"
+          style={btn}
+          onClick={() => agregarFila("Aditivos")}
+        >
           Aditivos
         </button>
 
-        <button type="button" style={btn} onClick={() => agregarFila("Alimento")}>
+        <button
+          type="button"
+          style={btn}
+          onClick={() => agregarFila("Alimento")}
+        >
           Alimento
         </button>
 
-        <button type="button" style={btn} onClick={() => agregarFila("Materiales")}>
-          Materiales
+        <button
+          type="button"
+          style={btn}
+          onClick={() => agregarFila("Insumos")}
+        >
+          Insumos
         </button>
 
-        <button type="button" style={btn} onClick={() => agregarFila("Medicamentos")}>
+        <button
+          type="button"
+          style={btn}
+          onClick={() => agregarFila("Material de Empaque")}
+        >
+          Material de Empaque
+        </button>
+
+        <button
+          type="button"
+          style={btn}
+          onClick={() => agregarFila("Medicamentos")}
+        >
           Medicamentos
         </button>
 
-        <button type="button" style={btn} onClick={() => agregarFila("Vacunas")}>
+        <button
+          type="button"
+          style={btn}
+          onClick={() => agregarFila("Vacunas")}
+        >
           Vacunas
         </button>
-
       </div>
 
       {/* TABLA */}
@@ -225,38 +300,48 @@ function IngresoInsumos() {
             borderCollapse: "collapse"
           }}
         >
-
           <thead>
             <tr style={{ background: "#f5f5f5" }}>
-              <th>Tipo</th>
-              <th>Nombre</th>
-              <th>Cantidad</th>
-              <th>Acción</th>
+              <th style={{ padding: "10px" }}>Tipo</th>
+              <th style={{ padding: "10px" }}>Nombre</th>
+              <th style={{ padding: "10px" }}>Cantidad</th>
+              <th style={{ padding: "10px" }}>Precio (Q)</th>
+              <th style={{ padding: "10px" }}>Acción</th>
             </tr>
           </thead>
 
           <tbody>
-
-            {filas.map(fila => (
+            {filas.map((fila) => (
 
               <tr key={fila.id}>
 
                 {/* TIPO */}
-                <td>{fila.tipo}</td>
+                <td style={{ padding: "8px" }}>
+                  {fila.tipo}
+                </td>
 
                 {/* NOMBRE */}
-                <td>
+                <td style={{ padding: "8px" }}>
                   <select
                     value={fila.item}
                     onChange={(e) =>
-                      handleChange(fila.id, "item", e.target.value)
+                      handleChange(
+                        fila.id,
+                        "item",
+                        e.target.value
+                      )
                     }
                     style={inputStyle}
                   >
-                    <option value="">Seleccione</option>
+                    <option value="">
+                      Seleccione
+                    </option>
 
                     {getOptions(fila.tipo).map(op => (
-                      <option key={op} value={op}>
+                      <option
+                        key={op}
+                        value={op}
+                      >
                         {op}
                       </option>
                     ))}
@@ -264,22 +349,48 @@ function IngresoInsumos() {
                 </td>
 
                 {/* CANTIDAD */}
-                <td>
+                <td style={{ padding: "8px" }}>
                   <input
                     type="number"
+                    min="0"
                     value={fila.cantidad}
                     onChange={(e) =>
-                      handleChange(fila.id, "cantidad", e.target.value)
+                      handleChange(
+                        fila.id,
+                        "cantidad",
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  />
+                </td>
+
+                {/* PRECIO */}
+                <td style={{ padding: "8px" }}>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={fila.precio}
+                    onChange={(e) =>
+                      handleChange(
+                        fila.id,
+                        "precio",
+                        e.target.value
+                      )
                     }
                     style={inputStyle}
                   />
                 </td>
 
                 {/* ACCIÓN */}
-                <td>
+                <td style={{ padding: "8px" }}>
                   <button
                     type="button"
-                    onClick={() => eliminarFila(fila.id)}
+                    onClick={() =>
+                      eliminarFila(fila.id)
+                    }
                     style={{
                       padding: "5px 10px",
                       background: "#d9534f",
@@ -296,9 +407,7 @@ function IngresoInsumos() {
               </tr>
 
             ))}
-
           </tbody>
-
         </table>
 
         {/* GUARDAR */}
