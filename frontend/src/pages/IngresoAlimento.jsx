@@ -587,7 +587,76 @@ const agregarMedicamentoFila = (
                       }
                     />
                   </td>
-                                        <td>
+
+                  {/* PRECIO */}
+<td>
+  <input
+    type="number"
+    min="0"
+    step="0.01"
+    placeholder="0.00"
+    value={fila.precio}
+    onChange={(e) =>
+      handleChange(
+        fila.id,
+        "precio",
+        e.target.value
+      )
+    }
+    style={inputStyle}
+  />
+</td>
+
+{/* MODO */}
+<td>
+
+  <button
+    type="button"
+    onClick={() =>
+      cambiarModoPrecio(
+        fila.id
+      )
+    }
+    style={{
+      width: "100%",
+      padding: "6px",
+      border: "none",
+      borderRadius: "4px",
+      cursor: "pointer",
+      background:
+        fila.modoPrecio ===
+        "TOTAL"
+          ? "#28a745"
+          : "#6c757d",
+      color: "#fff"
+    }}
+  >
+    {fila.modoPrecio}
+  </button>
+
+</td>
+
+{/* VALOR UNITARIO */}
+<td>
+
+  <input
+    type="text"
+    readOnly
+    value={
+      calcularValorUnitario(
+        fila
+      )
+    }
+    style={{
+      ...inputStyle,
+      background:
+        "#f5f5f5"
+    }}
+  />
+
+</td>
+                  
+                  <td>
 
                     {fila.tipo !==
                     "Alimento" ? (
