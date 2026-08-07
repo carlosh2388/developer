@@ -45,6 +45,10 @@ const crearFila = (
   material: "",
   cantidad: "",
 
+  precio: "",
+
+  modoPrecio: "TOTAL",
+
   aditivo: "",
   medicamento: "",
 
@@ -94,6 +98,57 @@ const handleChange = (
   );
 };
 
+const cambiarModoPrecio = (id) => {
+  setFilas((prev) =>
+    prev.map((f) =>
+      f.id === id
+        ? {
+            ...f,
+            modoPrecio:
+              f.modoPrecio === "TOTAL"
+                ? "UNITARIO"
+                : "TOTAL"
+          }
+        : f
+    )
+  );
+};
+
+const calcularValorUnitario = (
+  fila
+) => {
+
+  const cantidad =
+    parseFloat(
+      fila.cantidad
+    ) || 0;
+
+  const precio =
+    parseFloat(
+      fila.precio
+    ) || 0;
+
+  if (
+    cantidad <= 0 ||
+    precio <= 0
+  ) {
+    return "0.00";
+  }
+
+  if (
+    fila.modoPrecio ===
+    "TOTAL"
+  ) {
+    return (
+      precio / cantidad
+    ).toFixed(2);
+  }
+
+  return (
+    precio * cantidad
+  ).toFixed(2);
+};
+  
 const agregarAditivoFila = (
   id
 ) => {
@@ -349,7 +404,19 @@ const agregarMedicamentoFila = (
               <th>
                 Cantidad
               </th>
-
+              
+              <th>
+                Precio
+              </th>
+              
+              <th>
+                Modo
+              </th>
+              
+              <th>
+                Valor Unitario
+              </th>
+              
               <th>
                 Aditivo
               </th>
