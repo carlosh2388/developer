@@ -1,11 +1,20 @@
 import { useEffect, useState } from "react";
+import { saveOperation } from "../services/operations";
+import { api } from "../services/api";
+import { useOperationalCatalogs, useReferenceValues } from "../hooks/useOperationalCatalogs";
+import OperationRecordsModal from "../components/OperationRecordsModal";
+import OperationPanel from "../components/OperationPanel";
 
 function EgresoReproductores() {
+  const { opciones } = useOperationalCatalogs(["lotes"]);
+  const referencias = useReferenceValues(["BIRD_EXIT_REASON"]);
   // =========================
   // STATES
   // =========================
 
   const [fecha, setFecha] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const cargarEdicion = async (row) => { try { const data = await api(`/reproductores/egresos/${row.id}`); setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setFilas(data.detalles.map((item) => ({ hembras: String(item.female_count), machos: String(item.male_count), subtotal: Number(item.female_count) + Number(item.male_count), lote: item.flock_code, tipo: item.reason_code, observacion: item.observation || "", envio: data.shipment_number || "" }))); } catch (error) { alert(error.message); } };
 
   const [filas, setFilas] = useState([
     {
@@ -108,18 +117,14 @@ function EgresoReproductores() {
   // GUARDAR
   // =========================
 
-  const guardar = () => {
-    const data = {
-      fecha,
-      totalGeneral,
-      detalles: filas
-    };
-
-    console.log(data);
-
-    alert(
-      "Egreso registrado correctamente"
-    );
+  const guardar = async () => {
+    const reasons = { "Error de Sexado": "SEXING_ERROR", Mortandad: "MORTALITY", "Selección": "SELECTION", "SelecciÃ³n": "SELECTION", Venta: "SALE" };
+    try {
+      await saveOperation("/reproductores/egresos", { fecha, numeroEnvio: filas.find((x) => x.envio)?.envio || undefined,
+        detalles: filas.map((fila) => ({ lote: fila.lote, motivo: reasons[fila.tipo] || fila.tipo,
+          hembras: Number(fila.hembras), machos: Number(fila.machos), observacion: fila.observacion })) }, editingId);
+      alert(editingId ? "Egreso actualizado correctamente" : "Egreso registrado correctamente"); setEditingId(null);
+    } catch (error) { alert(error.message); }
   };
 
   // =========================
@@ -144,7 +149,9 @@ function EgresoReproductores() {
   // RENDER
   // =========================
 
-  return (
+  return (<OperationPanel><OperationRecordsModal title="Egresos de reproductores" path="/reproductores/egresos" annulPath={(row) => `/operaciones/reproductores/${row.id}/anular`} dateField="movement_date" columns={[
+    { key: "document_number", label: "Documento" }, { key: "movement_date", label: "Fecha" }, { key: "shipment_number", label: "Envío" }, { key: "status", label: "Estado" },
+  ]} onEdit={cargarEdicion}/>
     <div
       style={{
         maxWidth: "1200px",
@@ -278,13 +285,7 @@ function EgresoReproductores() {
                 Seleccione
               </option>
 
-              <option value="SL01">
-                SL01
-              </option>
-
-              <option value="BL01">
-                BL01
-              </option>
+              {opciones("lotes").map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </div>
 
@@ -308,21 +309,7 @@ function EgresoReproductores() {
                 Seleccione
               </option>
 
-              <option value="Error de Sexado">
-                Error de Sexado
-              </option>
-
-              <option value="Mortandad">
-                Mortandad
-              </option>
-
-              <option value="Selección">
-                Selección
-              </option>
-
-              <option value="Venta">
-                Venta
-              </option>
+              {(referencias.BIRD_EXIT_REASON || []).map((item) => <option key={item.valueCode} value={item.valueCode}>{item.label}</option>)}
             </select>
           </div>
 
@@ -398,7 +385,7 @@ function EgresoReproductores() {
         Guardar Egreso
       </button>
     </div>
-  );
+  </OperationPanel>);
 }
 
 export default EgresoReproductores;

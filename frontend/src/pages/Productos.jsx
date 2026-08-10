@@ -1,6 +1,12 @@
 import { useState } from "react";
+import { api } from "../services/api";
+import { useReferenceValues } from "../hooks/useOperationalCatalogs";
+import ConfigRecordsTable from "../components/ConfigRecordsTable";
+import { assertUniqueCode, useCatalogList } from "../hooks/useCatalogList";
 
 function Productos() {
+  const referencias = useReferenceValues(["PRODUCT_TYPE", "UNIT", "VACCINE_KIND"]);
+  const list = useCatalogList("/productos");
   // =========================
   // STATES
   // =========================
@@ -24,6 +30,7 @@ function Productos() {
 
   const [helpId, setHelpId] = useState("");
   const [mostrarGuardar, setMostrarGuardar] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   // =========================
   // CAMBIO DE TIPO INVENTARIO
@@ -78,29 +85,22 @@ function Productos() {
   // SUBMIT
   // =========================
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const data = {
-      tipoInventario,
-      idProducto,
-      nombre,
-      unidad,
-      estado,
-      precio,
-      existencia,
-      costo,
-      presentacion,
-      enfermedad,
-      dosis,
-      tipo
-    };
-
-    console.log(data);
-
-    alert(
-      "Producto guardado correctamente"
-    );
+    const units = { Caja: "BOX", Gramo: "GRAM", Kilogramo: "KILOGRAM", Libra: "POUND", Quintal: "QUINTAL" };
+    try {
+      assertUniqueCode(list.rows, idProducto, "código de producto", editingId);
+      await api(editingId ? `/productos/${editingId}` : "/productos", { method: editingId ? "PUT" : "POST", body: JSON.stringify({
+        tipoProducto: tipoInventario, codigo: idProducto, nombre, unidad: units[unidad] || unidad,
+        estado: estado === "Activo" ? "ACTIVE" : "INACTIVE", precioVenta: precio || 0,
+        existenciaInicial: existencia || 0, costoEstandar: costo || 0, presentacion,
+        enfermedadObjetivo: enfermedad, dosis, tipoVacuna: tipo || null,
+      }) });
+      alert("Producto guardado correctamente");
+      setIdProducto(""); setNombre(""); setPrecio(""); setExistencia(""); setCosto("");
+      setEditingId(null);
+      await list.reload();
+    } catch (error) { alert(error.message); }
   };
 
   // =========================
@@ -132,6 +132,7 @@ function Productos() {
         maxWidth: "900px",
         margin: "0 auto",
         padding: "20px",
+        position: "relative",
         fontFamily: "Arial"
       }}
     >
@@ -154,37 +155,7 @@ function Productos() {
             Seleccione
           </option>
 
-          <option value="AD">
-            Aditivos
-          </option>
-
-          <option value="AL">
-            Alimento Balanceado
-          </option>
-
-          <option value="HC">
-            Huevo Comercial
-          </option>
-
-          <option value="HI">
-            Huevo Incubable
-          </option>
-
-          <option value="IN">
-            Insumos
-          </option>
-            
-          <option value="ME">
-            Material de Empaque
-          </option>
-
-          <option value="MD">
-            Medicamentos
-          </option>
-
-          <option value="VA">
-            Vacunas
-          </option>
+          {(referencias.PRODUCT_TYPE || []).map((item) => <option key={item.valueCode} value={item.valueCode}>{item.label}</option>)}
           
 
             
@@ -231,25 +202,7 @@ function Productos() {
                   Seleccione
                 </option>
 
-                <option value="Caja">
-                  Caja
-                </option>
-
-                <option value="Gramo">
-                  Gramo
-                </option>
-
-                <option value="Kilogramo">
-                  Kilogramo
-                </option>
-
-                <option value="Libra">
-                  Libra
-                </option>
-
-                <option value="Quintal">
-                  Quintal
-                </option>
+                {(referencias.UNIT || []).map((item) => <option key={item.valueCode} value={item.valueCode}>{item.label}</option>)}
               </select>
             </div>
 
@@ -437,13 +390,7 @@ function Productos() {
                   Seleccione
                 </option>
 
-                <option value="Viva">
-                  Viva
-                </option>
-
-                <option value="Oleosa">
-                  Oleosa
-                </option>
+                {(referencias.VACCINE_KIND || []).map((item) => <option key={item.valueCode} value={item.valueCode}>{item.label}</option>)}
               </select>
             </div>
           </div>
@@ -463,9 +410,24 @@ function Productos() {
             cursor: "pointer"
           }}
         >
-          Guardar
+          {editingId ? "Guardar cambios" : "Guardar"}
         </button>
       )}
+      <ConfigRecordsTable title="Productos registrados" rows={list.rows} loading={list.loading} error={list.error} columns={[
+        { key: "code", label: "Código" }, { key: "productType", label: "Tipo" }, { key: "name", label: "Producto" },
+        { key: "unitCode", label: "Unidad" }, { key: "openingStock", label: "Existencia inicial" },
+        { key: "standardCost", label: "Costo" }, { key: "salePrice", label: "Precio" }, { key: "status", label: "Estado" },
+      ]} onEdit={(row) => {
+        setEditingId(row.id); setTipoInventario(row.productType); setIdProducto(row.code); setNombre(row.name);
+        setUnidad(row.unitCode); setEstado(row.status === "INACTIVE" ? "Inactivo" : "Activo"); setPrecio(row.salePrice || "");
+        setExistencia(row.openingStock || ""); setCosto(row.standardCost || ""); setPresentacion(row.presentation || "");
+        setEnfermedad(row.targetDisease || ""); setDosis(row.dosage || ""); setTipo(row.vaccineKind || "");
+        setMostrarGenerales(true); setMostrarGuardar(true); setMostrarInsumos(["MD", "VA"].includes(row.productType));
+      }} onDeactivate={async (row) => {
+        if (!window.confirm(`¿Deseas dar de baja el producto ${row.name}?`)) return;
+        try { await api(`/productos/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); }
+        catch (error) { alert(error.message); }
+      }}/>
     </form>
   );
 }

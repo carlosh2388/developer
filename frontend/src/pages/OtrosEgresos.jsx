@@ -1,6 +1,11 @@
 import { useState } from "react";
+import { loadInventoryDocument, saveInventory } from "../services/operations";
+import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
+import OperationRecordsModal, { inventoryColumns } from "../components/OperationRecordsModal";
+import OperationPanel from "../components/OperationPanel";
 
 function OtrosEgresos() {
+  const { productosPorTipo, opciones } = useOperationalCatalogs(["productos", "galeras"]);
 
   // =========================
   // FECHA
@@ -14,30 +19,20 @@ function OtrosEgresos() {
   // OPCIONES
   // =========================
 
-  const vacunas = ["VA01", "VA02"];
-
-  const medicamentos = ["MD01", "MD02"];
-
-  const aditivos = ["AD01", "AD02"];
-
-  const insumos = ["IN01", "IN02"];
-
-  const materiales = ["ME01", "ME02"];
-
-  const galeras = [
-    "Galera 1",
-    "Galera 2",
-    "Galera 3",
-    "Galera 4",
-    "Galera 5",
-    "Crecimiento"
-  ];
+  const vacunas = productosPorTipo(["VA"]).map((x) => x.value);
+  const medicamentos = productosPorTipo(["MD"]).map((x) => x.value);
+  const aditivos = productosPorTipo(["AD"]).map((x) => x.value);
+  const insumos = productosPorTipo(["IN"]).map((x) => x.value);
+  const materiales = productosPorTipo(["ME"]).map((x) => x.value);
+  const galeras = opciones("galeras").map((x) => x.value);
 
   // =========================
   // FILAS
   // =========================
 
   const [filas, setFilas] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setFilas(data.rows.map((item) => ({ ...item, tipo: item.tipo === "Materiales" ? "Material de Empaque" : item.tipo === "Vacunas" ? "Vacuna" : item.tipo }))); } catch (error) { alert(error.message); } };
 
   const crearFila = (tipo) => ({
     id: Date.now() + Math.random(),
@@ -63,7 +58,7 @@ function OtrosEgresos() {
     setFilas(prev =>
       prev.map(f =>
         f.id === id
-          ? { ...f, value }
+          ? { ...f, [campo]: value }
           : f
       )
     );
@@ -106,7 +101,7 @@ function OtrosEgresos() {
 
         nuevas[index] = {
           ...nuevas[index],
-          value
+          [campo]: value
         };
 
         return {
@@ -148,17 +143,11 @@ function OtrosEgresos() {
   // GUARDAR
   // =========================
 
-  const guardar = (e) => {
+  const guardar = async (e) => {
     e.preventDefault();
-
-    console.log({
-      fecha,
-      insumos: filas
-    });
-
-    alert(
-      "Egreso de insumos registrado correctamente"
-    );
+    try { await saveInventory({ id: editingId, fecha, rows: filas, movementType: "OUTPUT", module: "OTHER", allocate: true });
+      alert(editingId ? "Egreso actualizado correctamente" : "Egreso de insumos registrado correctamente"); setFilas([]); setEditingId(null);
+    } catch (error) { alert(error.message); }
   };
 
   // =========================
@@ -202,7 +191,7 @@ function OtrosEgresos() {
   // RENDER
   // =========================
 
-  return (
+  return (<OperationPanel maxWidth={1000}><OperationRecordsModal title="Otros egresos" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={inventoryColumns} rowFilter={(row) => row.movement_type === "OUTPUT" && row.module_code === "OTHER"} onEdit={cargarEdicion}/>
     <div
       style={{
         maxWidth: "1200px",
@@ -475,7 +464,7 @@ function OtrosEgresos() {
       </form>
 
     </div>
-  );
+  </OperationPanel>);
 }
 
 export default OtrosEgresos;

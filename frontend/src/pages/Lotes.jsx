@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
+import { api } from "../services/api";
+import { useReferenceValues } from "../hooks/useOperationalCatalogs";
+import ConfigRecordsTable from "../components/ConfigRecordsTable";
+import { assertUniqueCode, useCatalogList } from "../hooks/useCatalogList";
 
 function Lotes() {
+  const referencias = useReferenceValues(["CURRENCY"]);
+  const list = useCatalogList("/lotes");
   // =========================
   // STATES
   // =========================
@@ -8,20 +14,10 @@ function Lotes() {
   const [lote, setLote] = useState("");
   const [fecha, setFecha] = useState("");
 
-  const [lineas] = useState([
-    "Super Nick +",
-    "Brown Nick +"
-  ]);
+  const [lineas, setLineas] = useState([]);
 
-  const [galeras, setGaleras] = useState([
-    "Galera 1",
-    "Galera 2",
-    "Galera 3",
-    "Galera 4",
-    "Galera 5",
-    "Galera de Crianza",
-    "Galera de Producción"
-  ]);
+  const [galeras, setGaleras] = useState([]);
+  const [proveedores, setProveedores] = useState([]);
 
   const [linea, setLinea] = useState("");
   const [galera, setGalera] = useState("");
@@ -40,9 +36,10 @@ function Lotes() {
   // COSTOS
   const [costoUnitario, setCostoUnitario] = useState(0);
   const [costoTotal, setCostoTotal] = useState(0);
-  const [moneda, setMoneda] = useState("Quetzal");
+  const [moneda, setMoneda] = useState("GTQ");
 
   const [estado, setEstado] = useState("Activo");
+  const [editingId, setEditingId] = useState(null);
 
   // =========================
   // FECHA ACTUAL
@@ -60,16 +57,14 @@ function Lotes() {
   // AGREGAR GALERA
   // =========================
 
-  const agregarGalera = () => {
+  const agregarGalera = async () => {
     if (!nuevaGalera.trim()) return;
-
-    const nueva = nuevaGalera.trim();
-
-    setGaleras([...galeras, nueva]);
-    setGalera(nueva);
-
-    setNuevaGalera("");
-    setMostrarNuevaGalera(false);
+    try {
+      const nueva = await api("/galeras", { method: "POST", body: JSON.stringify({
+        codigo: `GAL-${Date.now().toString().slice(-6)}`, nombre: nuevaGalera.trim(), estado: "ACTIVE",
+      }) });
+      setGaleras([...galeras, nueva]); setGalera(nueva.id); setNuevaGalera(""); setMostrarNuevaGalera(false);
+    } catch (error) { alert(error.message); }
   };
 
   // =========================
@@ -93,34 +88,32 @@ function Lotes() {
 
   useEffect(() => {
     setFechaActual();
+    Promise.allSettled([api("/lineas-avicolas"), api("/galeras"), api("/proveedores")])
+      .then(([lines, houses, suppliers]) => {
+        if (lines.status === "fulfilled") setLineas(lines.value);
+        if (houses.status === "fulfilled") setGaleras(houses.value);
+        if (suppliers.status === "fulfilled") setProveedores(suppliers.value);
+        const failed = [lines, houses, suppliers].find((result) => result.status === "rejected");
+        if (failed) alert(failed.reason.message);
+      });
   }, []);
 
   // =========================
   // SUBMIT
   // =========================
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const data = {
-      lote,
-      fecha,
-      linea,
-      galera,
-      proveedor,
-      origen,
-      hembras,
-      machos,
-      cantidadImportada,
-      costoUnitario,
-      costoTotal,
-      moneda,
-      estado
-    };
-
-    console.log(data);
-
-    alert("Lote guardado correctamente");
+    try {
+      assertUniqueCode(list.rows, lote, "número de lote", editingId);
+      await api(editingId ? `/lotes/${editingId}` : "/lotes", { method: editingId ? "PUT" : "POST", body: JSON.stringify({ codigo: lote, fechaRecepcion: fecha,
+        lineaAvicolaId: linea, galeraId: galera || undefined, proveedorId: proveedor || undefined, paisOrigen: origen,
+        cantidadHembras: Number(hembras), cantidadMachos: Number(machos), costoUnitario: Number(costoUnitario),
+        moneda, estado: estado === "Activo" ? "ACTIVE" : "INACTIVE" }) });
+      alert("Lote guardado correctamente"); setLote(""); setHembras(0); setMachos(0); setCostoUnitario(0);
+      setEditingId(null);
+      await list.reload();
+    } catch (error) { alert(error.message); }
   };
 
   // =========================
@@ -129,6 +122,7 @@ function Lotes() {
 
   const styles = {
     form: {
+      position: "relative",
       maxWidth: "1100px",
       margin: "0 auto",
       padding: "20px",
@@ -241,9 +235,9 @@ function Lotes() {
             style={styles.input}
           >
             <option value="">Seleccione</option>
-            {lineas.map((v, i) => (
-              <option key={i} value={v}>
-                {v}
+            {lineas.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.name}
               </option>
             ))}
           </select>
@@ -260,9 +254,9 @@ function Lotes() {
             >
               <option value="">Seleccione</option>
 
-              {galeras.map((g, i) => (
-                <option key={i} value={g}>
-                  {g}
+              {galeras.map((g) => (
+                <option key={g.id || g} value={g.id || g}>
+                  {g.name || g}
                 </option>
               ))}
             </select>
@@ -306,8 +300,7 @@ function Lotes() {
             style={styles.input}
           >
             <option value="">Seleccione</option>
-            <option value="PRO-001">PRO-001</option>
-            <option value="PRO-002">PRO-002</option>
+            {proveedores.map((item) => <option key={item.id} value={item.id}>{item.code} - {item.name}</option>)}
           </select>
         </div>
 
@@ -407,12 +400,7 @@ function Lotes() {
             style={styles.input}
           >
             <option value="">Seleccione</option>
-            <option value="Quetzal">
-              Quetzal
-            </option>
-            <option value="Dólar">
-              Dólar
-            </option>
+            {(referencias.CURRENCY || []).map((item) => <option key={item.valueCode} value={item.valueCode}>{item.label}</option>)}
           </select>
         </div>
       </div>
@@ -421,8 +409,22 @@ function Lotes() {
         type="submit"
         style={styles.button}
       >
-        Guardar
+        {editingId ? "Guardar cambios" : "Guardar"}
       </button>
+      <ConfigRecordsTable title="Lotes registrados" rows={list.rows} loading={list.loading} error={list.error} dateField="receivedOn" columns={[
+        { key: "code", label: "Lote" }, { key: "receivedOn", label: "Recepción" }, { key: "originCountry", label: "Origen" },
+        { key: "femaleCount", label: "Hembras" }, { key: "maleCount", label: "Machos" }, { key: "unitCost", label: "Costo unitario" },
+        { key: "currencyCode", label: "Moneda" }, { key: "status", label: "Estado" },
+      ]} onEdit={(row) => {
+        setEditingId(row.id); setLote(row.code); setFecha(row.receivedOn?.slice(0, 10) || ""); setLinea(row.poultryLineId || "");
+        setGalera(row.houseId || ""); setProveedor(row.supplierId || ""); setOrigen(row.originCountry || "");
+        setHembras(row.femaleCount || 0); setMachos(row.maleCount || 0); setCostoUnitario(row.unitCost || 0);
+        setMoneda(row.currencyCode || "GTQ"); setEstado(row.status === "INACTIVE" ? "Inactivo" : "Activo");
+      }} onDeactivate={async (row) => {
+        if (!window.confirm(`¿Deseas dar de baja el lote ${row.code}?`)) return;
+        try { await api(`/lotes/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); }
+        catch (error) { alert(error.message); }
+      }}/>
     </form>
   );
 }

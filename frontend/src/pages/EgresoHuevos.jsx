@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
+import { eggGradeCode, eggGradeLabel, eggPackageDetail, post, saveOperation } from "../services/operations";
+import { api } from "../services/api";
+import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
+import OperationRecordsModal from "../components/OperationRecordsModal";
+import OperationPanel from "../components/OperationPanel";
 
 function EgresoHuevos() {
+  const { opciones } = useOperationalCatalogs(["lotes", "personal", "vehiculos", "bodegas"]);
 
   // =====================================================
   // DATOS GENERALES
@@ -37,10 +43,8 @@ function EgresoHuevos() {
   const [mostrarNuevaPlaca,
     setMostrarNuevaPlaca] = useState(false);
 
-  const [placas, setPlacas] = useState([
-    "L-123ABC",
-    "L-456DEF"
-  ]);
+  const [placasNuevas, setPlacasNuevas] = useState([]);
+  const placas = [...opciones("vehiculos", "plate", "plate").map((x) => x.value), ...placasNuevas];
 
   // =====================================================
   // PILOTOS
@@ -54,19 +58,14 @@ function EgresoHuevos() {
   const [mostrarNuevoPiloto,
     setMostrarNuevoPiloto] = useState(false);
 
-  const [pilotos, setPilotos] = useState([
-    "Juan Pérez",
-    "Carlos López"
-  ]);
+  const [pilotosNuevos, setPilotosNuevos] = useState([]);
+  const pilotos = [...opciones("personal", "id", "fullName").map((x) => x.label), ...pilotosNuevos];
 
   // =====================================================
   // LOTES DISPONIBLES
   // =====================================================
 
-  const lotesDisponibles = [
-    "SL01",
-    "BL01"
-  ];
+  const lotesDisponibles = opciones("lotes").map((x) => x.value);
 
   // =====================================================
   // FILAS INCUBADORA
@@ -156,7 +155,7 @@ const crearFilaComercial = () => ({
   // =====================================================
 
   const crearLote = (
-    codigo = "Lote 1"
+    codigo = ""
   ) => ({
 
     id: Date.now() + Math.random(),
@@ -180,6 +179,8 @@ const crearFilaComercial = () => ({
   const [lotes, setLotes] = useState([
     crearLote()
   ]);
+  const [editingId, setEditingId] = useState(null);
+  const cargarEdicion = async (row) => { try { const data = await api(`/huevos/movimientos/${row.id}`); const editLots = data.detalles.map((item) => { const classification = item.grade_code.startsWith("INC_") ? "Incubable" : "Comercial"; const lot = crearLote(item.flock_code); lot.clasificacion = classification; const target = classification === "Comercial" ? lot.comercial : lot.incubadora; target[eggGradeLabel(item.grade_code)] = { existencias: item.existing_units, cajaBandejas336: item.boxes_trays_336, cajaCartones360: item.boxes_cartons_360, cajaC360: item.boxes_cartons_360, bandeja84: item.trays_84, carton30: item.cartons_30, unidades: item.loose_units }; return lot; }); setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setHora(String(data.movement_time || "").slice(0, 5)); setFechaProduccion(String(data.production_date || "").slice(0, 10)); setEgreso(data.destination_type || ""); setBodegaSalida(data.source_warehouse_code || ""); setBodegaDestino(data.destination_warehouse_code || data.destination_name || ""); setPlaca(data.vehicle_plate || ""); setPiloto(data.driver_name || ""); setLotes(editLots); } catch (error) { alert(error.message); } };
 
   // =====================================================
   // FECHA Y HORA ACTUAL
@@ -202,15 +203,43 @@ const crearFilaComercial = () => ({
 
   }, []);
 
+  // El catálogo llega después del primer render. Se debe guardar en el estado
+  // el mismo lote que el select muestra visualmente.
+  useEffect(() => {
+    if (!lotesDisponibles.length) return;
+    setLotes((actuales) => actuales.map((item) =>
+      lotesDisponibles.includes(item.lote) ? item : { ...item, lote: lotesDisponibles[0] }
+    ));
+  }, [lotesDisponibles.join("|")]);
+
   // =====================================================
   // CAMBIAR LOTE
   // =====================================================
+
+  const cargarExistencias = async (id, codigoLote, clasificacion) => {
+    if (!codigoLote || !clasificacion) return;
+    try {
+      const saldos = await api(`/huevos/existencias?lote=${encodeURIComponent(codigoLote)}`);
+      setLotes((actuales) => actuales.map((item) => {
+        if (item.id !== id) return item;
+        const campo = clasificacion === "Comercial" ? "comercial" : "incubadora";
+        const actualizado = { ...item[campo] };
+        Object.keys(actualizado).forEach((calidad) => {
+          const codigo = eggGradeCode(calidad, clasificacion);
+          const saldo = saldos.find((registro) => registro.grade_code === codigo);
+          actualizado[calidad] = { ...actualizado[calidad], existencias: Number(saldo?.available_units || 0) };
+        });
+        return { ...item, [campo]: actualizado };
+      }));
+    } catch (error) { alert(`No fue posible consultar las existencias: ${error.message}`); }
+  };
 
   const handleLote = (
     id,
     value
   ) => {
 
+    const actual = lotes.find((item) => item.id === id);
     setLotes(prev =>
       prev.map(l =>
         l.id === id
@@ -221,6 +250,7 @@ const crearFilaComercial = () => ({
           : l
       )
     );
+    cargarExistencias(id, value, actual?.clasificacion);
   };
 
   // =====================================================
@@ -232,16 +262,20 @@ const crearFilaComercial = () => ({
     value
   ) => {
 
+    const actual = lotes.find((item) => item.id === id);
+    const codigoLote = lotesDisponibles.includes(actual?.lote) ? actual.lote : (lotesDisponibles[0] || "");
     setLotes(prev =>
       prev.map(l =>
         l.id === id
           ? {
               ...l,
+              lote: codigoLote,
               clasificacion: value
             }
           : l
       )
     );
+    cargarExistencias(id, codigoLote, value);
   };
 
   // =====================================================
@@ -515,15 +549,14 @@ const calcularSubTotal = (
   // AGREGAR PLACA
   // =====================================================
 
-  const agregarPlaca = () => {
+  const agregarPlaca = async () => {
 
     if (!nuevaPlaca.trim())
       return;
 
-    setPlacas([
-      ...placas,
-      nuevaPlaca
-    ]);
+    try { await post("/vehiculos", { placa: nuevaPlaca, estado: "ACTIVE" }); }
+    catch (error) { alert(error.message); return; }
+    setPlacasNuevas((current) => [...current, nuevaPlaca]);
 
     setPlaca(
       nuevaPlaca
@@ -540,16 +573,15 @@ const calcularSubTotal = (
   // AGREGAR PILOTO
   // =====================================================
 
-  const agregarPiloto = () => {
+  const agregarPiloto = async () => {
 
     if (
       !nuevoPiloto.trim()
     ) return;
 
-    setPilotos([
-      ...pilotos,
-      nuevoPiloto
-    ]);
+    try { await post("/personal", { codigo: `PIL-${Date.now().toString().slice(-6)}`, nombreCompleto: nuevoPiloto, roles: ["DRIVER"] }); }
+    catch (error) { alert(error.message); return; }
+    setPilotosNuevos((current) => [...current, nuevoPiloto]);
 
     setPiloto(
       nuevoPiloto
@@ -566,35 +598,21 @@ const calcularSubTotal = (
   // GUARDAR
   // =====================================================
 
-  const guardar = () => {
-
-    const data = {
-
-      egreso,
-
-      fecha,
-
-      hora,
-
-      fechaProduccion,
-
-      bodegaSalida,
-
-      bodegaDestino,
-
-      placa,
-
-      piloto,
-
-      lotes
-
-    };
-
-    console.log(data);
-
-    alert(
-      "Egreso registrado correctamente"
-    );
+  const guardar = async () => {
+    try {
+      const detalles = lotes.flatMap((item) => {
+        const source = item.clasificacion === "Comercial" ? item.comercial : item.incubadora;
+        return Object.entries(source || {}).map(([calidad, datos]) => ({
+          lote: item.lote, clasificacion: eggGradeCode(calidad, item.clasificacion), existencia: Number(datos.existencias || 0),
+          ...eggPackageDetail(datos),
+        })).filter((d) => d.cajasBandejas336 + d.cajasCartones360 + d.bandejas84 + d.cartones30 + d.unidades > 0);
+      });
+      await saveOperation("/huevos/movimientos", { tipoMovimiento: "OUTPUT", fecha, hora, fechaProduccion,
+        bodegaOrigen: bodegaSalida || undefined, bodegaDestino: bodegaDestino || undefined,
+        tipoDestino: egreso || undefined, nombreDestino: bodegaDestino || undefined, placa: placa || undefined,
+        piloto: piloto || undefined, detalles }, editingId);
+      alert(editingId ? "Egreso actualizado correctamente" : "Egreso registrado correctamente"); setLotes([crearLote()]); setEditingId(null);
+    } catch (error) { alert(error.message); }
   };
 
   // =====================================================
@@ -1123,7 +1141,9 @@ const calcularSubTotal = (
   // RENDER PRINCIPAL
   // =====================================================
 
-  return (
+  return (<OperationPanel><OperationRecordsModal title="Egresos de huevos" path="/huevos/movimientos" annulPath={(row) => `/operaciones/huevos/${row.id}/anular`} dateField="movement_date" columns={[
+    { key: "movement_number", label: "Movimiento" }, { key: "movement_date", label: "Fecha" }, { key: "production_date", label: "Producción" }, { key: "destination_name", label: "Destino" }, { key: "status", label: "Estado" },
+  ]} rowFilter={(row) => row.movement_type === "OUTPUT"} onEdit={cargarEdicion}/>
 
     <div className="form-container">
 
@@ -1216,7 +1236,8 @@ const calcularSubTotal = (
             }
           >
 
-            <option>Granja</option>
+            <option value="">Seleccione</option>
+            {opciones("bodegas").map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
 
            </select>
 
@@ -1241,8 +1262,7 @@ const calcularSubTotal = (
               Seleccione
             </option>
 
-            <option>Incubadora</option>
-            <option>Otra</option>
+            {opciones("bodegas").map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
 
 
           </select>
@@ -1567,7 +1587,7 @@ const calcularSubTotal = (
                       )
                     }
                   >
-
+                    <option value="">Seleccione</option>
                     {lotesDisponibles.map(
                       (
                         lote,
@@ -1787,7 +1807,7 @@ const calcularSubTotal = (
 
     </div>
 
-  );
+  </OperationPanel>);
 
 }
 

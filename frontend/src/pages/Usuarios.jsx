@@ -19,6 +19,8 @@ export default function Usuarios() {
   const [loading, setLoading] = useState(true);
   const [passwordUser, setPasswordUser] = useState(null);
   const [passwordForm, setPasswordForm] = useState({ password: "", confirmation: "" });
+  const [userSearch, setUserSearch] = useState("");
+  const filteredUsers = users.filter((user) => `${user.full_name} ${user.username} ${user.role_name} ${user.status}`.toLowerCase().includes(userSearch.toLowerCase()));
   const load = useCallback(async () => {
     try {
       const [u, r, q] = await Promise.all([
@@ -216,8 +218,9 @@ export default function Usuarios() {
         <section className="panel table-panel">
           <div className="panel-title">
             <h2>Usuarios registrados</h2>
-            <span className="count-badge">{users.length}</span>
+            <span className="count-badge">{filteredUsers.length}</span>
           </div>
+          <input value={userSearch} onChange={(e) => setUserSearch(e.target.value)} placeholder="Buscar usuario, rol o estado" style={{ width: "100%", padding: 9, marginBottom: 12, boxSizing: "border-box" }}/>
           {loading ? (
             <p>Cargando usuarios…</p>
           ) : (
@@ -233,7 +236,7 @@ export default function Usuarios() {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((u) => (
+                  {filteredUsers.map((u) => (
                     <tr key={u.id}>
                       <td>
                         <strong>{u.full_name}</strong>
@@ -273,6 +276,7 @@ export default function Usuarios() {
                           <button
                             type="button"
                             className="btn-link danger"
+                            style={u.status === "ACTIVE" ? { background: "#c62828", color: "#fff", border: 0, borderRadius: 5, padding: "6px 10px", fontWeight: 700 } : undefined}
                             onClick={() => toggle(u)}
                           >
                             {u.status === "ACTIVE" ? "Dar de baja" : "Activar"}

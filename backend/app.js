@@ -24,6 +24,9 @@ app.use("/api/license", require("./routes/license"));
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/usuarios", require("./routes/usuarios"));
 app.use("/api/platform", require("./routes/platform"));
+app.use("/api", require("./routes/catalogos"));
+app.use("/api", require("./routes/operaciones"));
+app.use("/api/reportes", require("./routes/reportes"));
 app.get("/api/health", async (_req, res, next) => {
   try { await db.query("SELECT 1"); res.json({ status: "ok", service: "AVINEXT API" }); }
   catch (error) { next(error); }

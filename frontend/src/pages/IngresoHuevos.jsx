@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
+import { eggGradeCode, eggGradeLabel, eggPackageDetail, post, saveOperation } from "../services/operations";
+import { api } from "../services/api";
+import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
+import OperationRecordsModal from "../components/OperationRecordsModal";
+import OperationPanel from "../components/OperationPanel";
 
 function IngresoHuevos() {
+  const { opciones, personal = [] } = useOperationalCatalogs(["lotes", "personal"]);
   // =========================
   // FECHA
   // =========================
@@ -9,10 +15,7 @@ function IngresoHuevos() {
   // =========================
   // LOTES
   // =========================
-  const lotes = [
-    "SL01",
-    "BL01"
-  ];
+  const lotes = opciones("lotes").map((x) => x.value);
 
   // =========================
   // TIPOS CLASIFICACIÓN (ACTUALIZADO)
@@ -25,7 +28,22 @@ function IngresoHuevos() {
   // =========================
   // PERSONAS
   // =========================
-  const personas = ["Tomas Pérez", "María Gomez"];
+  const [personalNuevo, setPersonalNuevo] = useState([]);
+  const personalDisponible = [...personal, ...personalNuevo].filter((item) => item.status !== "INACTIVE");
+  const recolectores = personalDisponible.filter((item) => (item.roles || []).includes("COLLECTOR")).map((item) => item.fullName);
+  const clasificadores = personalDisponible.filter((item) => (item.roles || []).includes("CLASSIFIER")).map((item) => item.fullName);
+
+  const crearPersonal = async (role, grupoId) => {
+    const etiqueta = role === "COLLECTOR" ? "recolector" : "clasificador";
+    const nombre = window.prompt(`Nombre completo del ${etiqueta}:`);
+    if (!nombre?.trim()) return;
+    const prefijo = role === "COLLECTOR" ? "REC" : "CLA";
+    try {
+      const creado = await post("/personal", { codigo: `${prefijo}-${Date.now().toString().slice(-6)}`, nombreCompleto: nombre.trim(), roles: [role] });
+      setPersonalNuevo((actual) => [...actual, creado]);
+      actualizarGrupo(grupoId, role === "COLLECTOR" ? "recolector" : "clasificador", creado.fullName);
+    } catch (error) { alert(error.message); }
+  };
 
   // =========================
   // CREAR FILA
@@ -54,6 +72,8 @@ function IngresoHuevos() {
   // ESTADO PRINCIPAL
   // =========================
   const [grupos, setGrupos] = useState([crearGrupo()]);
+  const [editingId, setEditingId] = useState(null);
+  const cargarEdicion = async (row) => { try { const data = await api(`/huevos/movimientos/${row.id}`); setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setGrupos(data.detalles.map((item) => ({ id: crypto.randomUUID(), abierto: true, tipo: item.grade_code.startsWith("INC_") ? "Incubable" : "Comercial", lote: item.flock_code, recolector: item.collector_name || "", clasificador: item.classifier_name || "", peso: item.total_weight_grams || 0, datos: { [eggGradeLabel(item.grade_code)]: { cajaB336: item.boxes_trays_336, cajaC360: item.boxes_cartons_360, bandeja84: item.trays_84, carton30: item.cartons_30, unidades: item.loose_units } } }))); } catch (error) { alert(error.message); } };
 
   // =========================
   // INIT FECHA
@@ -62,6 +82,13 @@ function IngresoHuevos() {
     const now = new Date();
     setFecha(now.toISOString().split("T")[0]);
   }, []);
+
+  // Los catálogos llegan después del primer render. Sin esta sincronización el
+  // navegador podía mostrar el primer lote aunque el estado aún fuera undefined.
+  useEffect(() => {
+    if (!lotes.length) return;
+    setGrupos((actuales) => actuales.map((grupo) => grupo.lote ? grupo : { ...grupo, lote: lotes[0] }));
+  }, [lotes.join("|")]);
 
   // =========================
   // CRUD
@@ -294,29 +321,27 @@ const calcularSubTotal = (grupo, filtro) => {
               {/* RECOLECTOR */}
               <div>
                 <label>Recolector</label>
-                <select
-                  value={grupo.recolector}
-                  onChange={(e) => actualizarGrupo(grupo.id, "recolector", e.target.value)}
-                >
-                  <option value="">Seleccione</option>
-                  {personas.map(p => (
-                    <option key={p}>{p}</option>
-                  ))}
-                </select>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <select value={grupo.recolector} onChange={(e) => actualizarGrupo(grupo.id, "recolector", e.target.value)}>
+                    <option value="">Seleccione</option>
+                    {recolectores.map((nombre) => <option key={nombre} value={nombre}>{nombre}</option>)}
+                  </select>
+                  <button type="button" onClick={() => crearPersonal("COLLECTOR", grupo.id)} title="Agregar recolector">+</button>
+                </div>
+                {!recolectores.length && <small style={{ color: "#92400e" }}>No hay recolectores. Presiona + para registrar uno.</small>}
               </div>
 
               {/* CLASIFICADOR */}
               <div>
                 <label>Clasificador</label>
-                <select
-                  value={grupo.clasificador}
-                  onChange={(e) => actualizarGrupo(grupo.id, "clasificador", e.target.value)}
-                >
-                  <option value="">Seleccione</option>
-                  {personas.map(p => (
-                    <option key={p}>{p}</option>
-                  ))}
-                </select>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <select value={grupo.clasificador} onChange={(e) => actualizarGrupo(grupo.id, "clasificador", e.target.value)}>
+                    <option value="">Seleccione</option>
+                    {clasificadores.map((nombre) => <option key={nombre} value={nombre}>{nombre}</option>)}
+                  </select>
+                  <button type="button" onClick={() => crearPersonal("CLASSIFIER", grupo.id)} title="Agregar clasificador">+</button>
+                </div>
+                {!clasificadores.length && <small style={{ color: "#92400e" }}>No hay clasificadores. Presiona + para registrar uno.</small>}
               </div>
 
               {/* PESO (solo Incubable) */}
@@ -511,12 +536,35 @@ const calcularSubTotal = (grupo, filtro) => {
   // =========================
   // GUARDAR
   // =========================
-  const guardar = () => {
-    console.log({ fecha, clasificaciones: grupos });
-    alert("Guardado");
+  const guardar = async () => {
+    try {
+      const gruposConDatos = grupos.filter((grupo) => Object.values(grupo.datos || {}).some((datos) => {
+        const cantidades = eggPackageDetail(datos);
+        return cantidades.cajasBandejas336 + cantidades.cajasCartones360 + cantidades.bandejas84 + cantidades.cartones30 + cantidades.unidades > 0;
+      }));
+      if (!gruposConDatos.length) throw new Error("Ingresa al menos una cantidad de huevos.");
+      if (gruposConDatos.some((grupo) => !grupo.lote)) throw new Error("Selecciona el lote en todos los grupos que contienen cantidades.");
+      const detalles = grupos.flatMap((grupo) => Object.entries(grupo.datos || {}).map(([calidad, datos]) => ({
+        lote: grupo.lote, clasificacion: eggGradeCode(calidad, grupo.tipo), recolector: grupo.recolector || undefined,
+        clasificador: grupo.clasificador || undefined, pesoTotalGramos: Number(grupo.peso) || undefined,
+        ...eggPackageDetail(datos),
+      })).filter((d) => d.cajasBandejas336 + d.cajasCartones360 + d.bandejas84 + d.cartones30 + d.unidades > 0));
+      await saveOperation("/huevos/movimientos", { tipoMovimiento: "INPUT", fecha, detalles }, editingId);
+      alert(editingId ? "Ingreso actualizado correctamente" : "Ingreso de huevos guardado correctamente"); setGrupos([crearGrupo()]); setEditingId(null);
+    } catch (error) { alert(error.message); }
   };
 
-  return (
+  return (<OperationPanel maxWidth={1100}><OperationRecordsModal title="Ingresos de huevos" path="/huevos/movimientos" annulPath={(row) => `/operaciones/huevos/${row.id}/anular`} dateField="movement_date" columns={[
+    { key: "movement_number", label: "Movimiento" },
+    { key: "movement_date", label: "Fecha", render: (value) => String(value || "").slice(0, 10) },
+    { key: "flock_codes", label: "Lote" },
+    { key: "grade_labels", label: "Clasificaciones" },
+    { key: "collector_names", label: "Recolector", render: (value) => value || "Sin recolector" },
+    { key: "classifier_names", label: "Clasificador", render: (value) => value || "Sin clasificador" },
+    { key: "line_count", label: "Detalles" },
+    { key: "total_units", label: "Total unidades", render: (value) => Number(value || 0).toLocaleString("es-GT") },
+    { key: "status", label: "Estado", render: (value) => ({ POSTED: "Registrado", VOID: "Anulado" }[value] || value) },
+  ]} rowFilter={(row) => row.movement_type === "INPUT"} onEdit={cargarEdicion}/>
     <div>
       <h2>Ingreso Huevos</h2>
 
@@ -532,7 +580,7 @@ const calcularSubTotal = (grupo, filtro) => {
 
       <button onClick={guardar}>Guardar</button>
     </div>
-  );
+  </OperationPanel>);
 }
 
 export default IngresoHuevos;

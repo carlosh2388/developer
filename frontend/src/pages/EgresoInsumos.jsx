@@ -1,6 +1,11 @@
 import { useState } from "react";
+import { loadInventoryDocument, saveInventory } from "../services/operations";
+import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
+import OperationRecordsModal, { inventoryColumns } from "../components/OperationRecordsModal";
+import OperationPanel from "../components/OperationPanel";
 
 function EgresoInsumos() {
+  const { productosPorTipo, opciones } = useOperationalCatalogs(["productos", "galeras"]);
 
   // =========================
   // FECHA
@@ -14,25 +19,19 @@ function EgresoInsumos() {
   // OPCIONES
   // =========================
 
-  const vacunas = ["VAC-001", "VAC-002"];
-  const medicamentos = ["MED-001", "MED-002"];
-  const aditivos = ["AD-001", "AD-002"];
-  const materiales = ["MAT-001", "MAT-002"];
-
-  const galeras = [
-    "Galera 1",
-    "Galera 2",
-    "Galera 3",
-    "Galera 4",
-    "Galera 5",
-    "Crecimiento"
-  ];
+  const vacunas = productosPorTipo(["VA"]).map((x) => x.value);
+  const medicamentos = productosPorTipo(["MD"]).map((x) => x.value);
+  const aditivos = productosPorTipo(["AD"]).map((x) => x.value);
+  const materiales = productosPorTipo(["ME", "IN"]).map((x) => x.value);
+  const galeras = opciones("galeras").map((x) => x.value);
 
   // =========================
   // FILAS
   // =========================
 
   const [filas, setFilas] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setFilas(data.rows.map((item) => ({ ...item, tipo: item.tipo === "Vacunas" ? "Vacuna" : item.tipo }))); } catch (error) { alert(error.message); } };
 
   const crearFila = (tipo) => ({
     id: Date.now() + Math.random(),
@@ -129,15 +128,11 @@ function EgresoInsumos() {
   // GUARDAR
   // =========================
 
-  const guardar = (e) => {
+  const guardar = async (e) => {
     e.preventDefault();
-
-    console.log({
-      fecha,
-      insumos: filas
-    });
-
-    alert("Egreso de insumos registrado correctamente");
+    try { await saveInventory({ id: editingId, fecha, rows: filas, movementType: "OUTPUT", module: "SUPPLIES", allocate: true });
+      alert(editingId ? "Egreso actualizado correctamente" : "Egreso de insumos registrado correctamente"); setFilas([]); setEditingId(null);
+    } catch (error) { alert(error.message); }
   };
 
   // =========================
@@ -181,7 +176,7 @@ function EgresoInsumos() {
   // RENDER
   // =========================
 
-  return (
+  return (<OperationPanel maxWidth={1000}><OperationRecordsModal title="Egresos de insumos" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={inventoryColumns} rowFilter={(row) => row.movement_type === "OUTPUT" && row.module_code === "SUPPLIES"} onEdit={cargarEdicion}/>
 
     <div
       style={{
@@ -384,7 +379,7 @@ function EgresoInsumos() {
       </form>
 
     </div>
-  );
+  </OperationPanel>);
 }
 
 export default EgresoInsumos;

@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
+import { saveOperation } from "../services/operations";
+import { api } from "../services/api";
+import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
+import OperationRecordsModal from "../components/OperationRecordsModal";
+import OperationPanel from "../components/OperationPanel";
 
 function ControlPesoHuevos() {
+  const { opciones } = useOperationalCatalogs(["lotes"]);
   // =========================
   // STATES
   // =========================
@@ -15,6 +21,8 @@ function ControlPesoHuevos() {
   const [uniformidad, setUniformidad] = useState(0);
 
   const [filas, setFilas] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const cargarEdicion = async (row) => { try { const data = await api(`/controles/peso-huevos/${row.id}`); const editRows = data.muestras.map((item, index) => ({ id: index, pesoCaja: String(item.gross_box_weight_grams), material: item.packaging_type === "CARTONS_360" ? "Cartones 360" : "Bandejas 336", pesoMaterial: String(item.packaging_weight_grams), pesoUnitario: String(item.unit_weight_grams) })); setEditingId(row.id); setFecha(String(data.control_date).slice(0, 10)); setLote(data.flock_code); setSemana(data.week_number); setNumMuestras(editRows.length); setFilas(editRows); } catch (error) { alert(error.message); } };
 
   // =========================
   // FECHA AUTOMÁTICA
@@ -42,7 +50,7 @@ function ControlPesoHuevos() {
       });
     }
 
-    setFilas(nuevas);
+    setFilas((actuales) => actuales.length === Number(numMuestras) ? actuales : nuevas);
   }, [numMuestras]);
 
   // =========================
@@ -94,7 +102,7 @@ function ControlPesoHuevos() {
       : 0;
 
   fila.pesoUnitario =
-    pesoCaja > 0 && factor > 0
+    pesoCaja > pesoMaterial && factor > 0
       ? (
           (pesoCaja - pesoMaterial) /
           factor
@@ -160,18 +168,27 @@ useEffect(() => {
   // GUARDAR
   // =========================
 
-  const guardar = () => {
-console.log({
-  fecha,
-  lote,
-  semana,
-  numMuestras,
-  promedio,
-  uniformidad,
-  filas
-});
-
-    alert("Registro guardado correctamente");
+  const guardar = async () => {
+    try {
+      if (!fecha || !lote || Number(semana) <= 0) throw new Error("Selecciona fecha, lote y una semana válida.");
+      if (!filas.length) throw new Error("Agrega al menos una muestra.");
+      const invalida = filas.find((fila) => !fila.material || Number(fila.pesoCaja) <= Number(fila.pesoMaterial) || Number(fila.pesoUnitario) <= 0);
+      if (invalida) throw new Error("El peso total de cada caja, en gramos, debe ser mayor que el peso del empaque vacío.");
+      const muestras = filas.filter((fila) => Number(fila.pesoCaja) > 0).map((fila) => ({
+        pesoCaja: Number(fila.pesoCaja), tipoEmpaque: fila.material === "Cartones 360" ? "CARTONS_360" : "TRAYS_336",
+        pesoEmpaque: Number(fila.pesoMaterial), pesoUnitario: Number(fila.pesoUnitario),
+      }));
+      await saveOperation("/controles/peso-huevos", { fecha, lote, semana, pesoPromedio: promedio, uniformidad, muestras }, editingId);
+      alert(editingId ? "Registro actualizado correctamente" : "Registro guardado correctamente");
+      setEditingId(null);
+      setFecha(new Date().toISOString().split("T")[0]);
+      setLote("");
+      setSemana("");
+      setNumMuestras(0);
+      setFilas([]);
+      setPromedio(0);
+      setUniformidad(0);
+    } catch (error) { alert(error.message); }
   };
 
   // =========================
@@ -195,7 +212,11 @@ console.log({
   // RENDER
   // =========================
 
-  return (
+  return (<OperationPanel maxWidth={950}><OperationRecordsModal title="Controles de peso de huevos" path="/controles/peso-huevos" annulPath={(row) => `/operaciones/peso-huevos/${row.id}/anular`} dateField="control_date" columns={[
+    { key: "control_date", label: "Fecha", render: (value) => String(value || "").slice(0, 10) },
+    { key: "flock_code", label: "Lote", render: (value, row) => value || row.flockCode || "Sin lote" },
+    { key: "week_number", label: "Semana" }, { key: "sample_size", label: "Muestras" }, { key: "average_weight_grams", label: "Promedio" }, { key: "uniformity_percentage", label: "Uniformidad" }, { key: "status", label: "Estado" },
+  ]} onEdit={cargarEdicion}/>
     <div
       style={{
         maxWidth: "900px",
@@ -230,13 +251,7 @@ console.log({
               Seleccione
             </option>
         
-            <option value="SL01">
-              SL01
-            </option>
-        
-            <option value="BL01">
-              BL01
-            </option>
+            {opciones("lotes").map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
         
           </select>
         </div>
@@ -301,9 +316,12 @@ console.log({
         <div key={i} style={rowStyle}>
           {/* PESO CAJA */}
           <div style={{ flex: 1 }}>
-            <label>Peso Caja</label>
+            <label>Peso total de la caja (g)</label>
             <input
               type="number"
+              min={Number(fila.pesoMaterial || 0) + 0.01}
+              step="0.01"
+              placeholder="Ejemplo: 22500"
               value={fila.pesoCaja}
               onChange={(e) =>
                 handleChange(i, "pesoCaja", e.target.value)
@@ -342,6 +360,7 @@ console.log({
           <div style={{ flex: 1 }}>
             <label>Peso Unitario</label>
             <input value={fila.pesoUnitario} readOnly style={inputStyle} />
+            {fila.pesoCaja && Number(fila.pesoCaja) <= Number(fila.pesoMaterial) && <small style={{ color: "#b91c1c", display: "block" }}>Debe superar {fila.pesoMaterial} g.</small>}
           </div>
         </div>
       ))}
@@ -365,7 +384,7 @@ console.log({
         Guardar Registro
       </button>
     </div>
-  );
+  </OperationPanel>);
 }
 
 export default ControlPesoHuevos;

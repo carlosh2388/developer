@@ -1,6 +1,11 @@
 import { useState } from "react";
+import { loadInventoryDocument, saveInventory } from "../services/operations";
+import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
+import OperationRecordsModal, { inventoryColumns } from "../components/OperationRecordsModal";
+import OperationPanel from "../components/OperationPanel";
 
 function EgresoAlimento() {
+  const { productosPorTipo, opciones } = useOperationalCatalogs(["productos", "galeras"]);
 
   const [fecha, setFecha] = useState(
     new Date().toISOString().split("T")[0]
@@ -9,39 +14,11 @@ function EgresoAlimento() {
   const [galeraSeleccionada, setGaleraSeleccionada] =
     useState("");
 
-  const galeras = [
-    "Crianza",
-    "Galera 1",
-    "Galera 2",
-    "Galera 3",
-    "Galera 4",
-    "Galera 5"
-  ];
-
-  const alimentosOptions = [
-    "Preinicio",
-    "Inicio",
-    "Desarrollo",
-    "Crecimiento",
-    "Prepostura",
-    "Fase 1",
-    "Fase 2"
-  ];
-
-  const aditivosDisponibles = [
-    "AD01",
-    "AD02"
-  ];
-
-  const medicamentosDisponibles = [
-    "MD01",
-    "MD02"
-  ];
-
-  const vacunasDisponibles = [
-    "VA01",
-    "VA02"
-  ];
+  const galeras = opciones("galeras").map((x) => x.value);
+  const alimentosOptions = productosPorTipo(["AL"]).map((x) => x.value);
+  const aditivosDisponibles = productosPorTipo(["AD"]).map((x) => x.value);
+  const medicamentosDisponibles = productosPorTipo(["MD"]).map((x) => x.value);
+  const vacunasDisponibles = productosPorTipo(["VA"]).map((x) => x.value);
 
   const crearFila = (
     tipo = "Alimento"
@@ -72,6 +49,8 @@ function EgresoAlimento() {
   });
 
   const [grupos, setGrupos] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); const grouped = new Map(); data.rows.forEach((item) => { const galera = item.galeras[0]?.galera || ""; if (!grouped.has(galera)) grouped.set(galera, { id: crypto.randomUUID(), galera, filas: [] }); grouped.get(galera).filas.push({ id: crypto.randomUUID(), tipo: item.tipo === "Vacunas" ? "Vacuna" : "Alimento", alimento: item.tipo === "Vacunas" ? "" : item.item, vacuna: item.tipo === "Vacunas" ? item.item : "", cantidad: item.cantidad, aditivos: item.aditivos.map((x) => x.producto), medicamentos: item.medicamentos.map((x) => x.producto) }); }); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setGrupos([...grouped.values()]); } catch (error) { alert(error.message); } };
 
   const agregarGrupoGalera = () => {
 
@@ -277,16 +256,13 @@ function EgresoAlimento() {
     );
   };
 
-  const guardar = (e) => {
-
+  const guardar = async (e) => {
     e.preventDefault();
-
-    console.log({
-      fecha,
-      movimientos: grupos
-    });
-
-    alert("Registro guardado correctamente");
+    try {
+      const rows = grupos.flatMap((grupo) => grupo.filas.filter((fila) => fila.alimento || fila.vacuna).map((fila) => ({ ...fila, item: fila.alimento || fila.vacuna, galeras: [{ galera: grupo.galera, cantidad: fila.cantidad }] })));
+      await saveInventory({ id: editingId, fecha, rows, movementType: "OUTPUT", module: "FOOD", allocate: true });
+      alert(editingId ? "Registro actualizado correctamente" : "Registro guardado correctamente"); setGrupos([]); setEditingId(null);
+    } catch (error) { alert(error.message); }
   };
 
   const inputStyle = {
@@ -314,7 +290,7 @@ function EgresoAlimento() {
     cursor: "pointer"
   };
 
-  return (
+  return (<OperationPanel><OperationRecordsModal title="Egresos de alimento" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={inventoryColumns} rowFilter={(row) => row.movement_type === "OUTPUT" && row.module_code === "FOOD"} onEdit={cargarEdicion}/>
     <div
       style={{
         maxWidth: "1200px",
@@ -722,7 +698,7 @@ function EgresoAlimento() {
         </button>
       </form>
     </div>
-  );
+  </OperationPanel>);
 }
 
 export default EgresoAlimento;

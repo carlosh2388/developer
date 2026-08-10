@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
+import { api } from "../services/api";
+import ConfigRecordsTable from "../components/ConfigRecordsTable";
+import { assertUniqueCode, useCatalogList } from "../hooks/useCatalogList";
 
 function Bodegas() {
+  const list = useCatalogList("/bodegas");
   // =========================
   // STATES
   // =========================
@@ -9,14 +13,12 @@ function Bodegas() {
   const [idBodega, setIdBodega] = useState("");
   const [nombreBodega, setNombreBodega] = useState("");
 
-  const [localidades, setLocalidades] = useState([
-    "Granja",
-    "Incubadora"
-  ]);
+  const [localidades, setLocalidades] = useState([]);
 
-  const [localidad, setLocalidad] = useState("Seleccione");
+  const [localidad, setLocalidad] = useState("");
   const [estado, setEstado] = useState("Activo");
   const [descripcion, setDescripcion] = useState("");
+  const [editingId, setEditingId] = useState(null);
 
   const [mostrarNuevaLocalidad, setMostrarNuevaLocalidad] =
     useState(false);
@@ -33,6 +35,7 @@ function Bodegas() {
       .split("T")[0];
 
     setFecha(hoy);
+    api("/localidades").then(setLocalidades).catch((error) => alert(error.message));
   }, []);
 
   // =========================
@@ -49,42 +52,34 @@ function Bodegas() {
   // AGREGAR LOCALIDAD
   // =========================
 
-  const agregarLocalidad = () => {
+  const agregarLocalidad = async () => {
     if (!nuevaLocalidad.trim()) return;
-
-    const nueva =
-      nuevaLocalidad.trim();
-
-    if (!localidades.includes(nueva)) {
-      setLocalidades([
-        ...localidades,
-        nueva
-      ]);
-    }
-
-    setLocalidad(nueva);
-    setNuevaLocalidad("");
-    setMostrarNuevaLocalidad(false);
+    try {
+      const nueva = await api("/localidades", { method: "POST", body: JSON.stringify({
+        codigo: `LOC-${Date.now().toString().slice(-6)}`, nombre: nuevaLocalidad.trim(), fechaApertura: fecha,
+      }) });
+      setLocalidades((current) => [...current, nueva]); setLocalidad(nueva.id);
+      setNuevaLocalidad(""); setMostrarNuevaLocalidad(false);
+    } catch (error) { alert(error.message); }
   };
 
   // =========================
   // SUBMIT
   // =========================
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const data = {
-      fecha,
-      idBodega,
-      nombreBodega,
-      localidad,
-      estado,
-      descripcion
-    };
-
-    console.log(data);
-    alert("Bodega guardada correctamente");
+    try {
+      assertUniqueCode(list.rows, idBodega, "código de bodega", editingId);
+      await api(editingId ? `/bodegas/${editingId}` : "/bodegas", { method: editingId ? "PUT" : "POST", body: JSON.stringify({
+        fechaApertura: fecha, codigo: idBodega, nombre: nombreBodega, localidadId: localidad,
+        estado: estado === "Activo" ? "ACTIVE" : "INACTIVE", descripcion,
+      }) });
+      alert("Bodega guardada correctamente");
+      setIdBodega(""); setNombreBodega(""); setDescripcion("");
+      setEditingId(null);
+      await list.reload();
+    } catch (error) { alert(error.message); }
   };
 
   // =========================
@@ -130,6 +125,7 @@ function Bodegas() {
         maxWidth: "900px",
         margin: "0 auto",
         padding: "20px",
+        position: "relative",
         fontFamily: "Arial"
       }}
     >
@@ -171,17 +167,17 @@ function Bodegas() {
                 }
                 style={inputStyle}
               >
-                <option value="Seleccione">
+                <option value="">
                   Seleccione
                 </option>
 
                 {localidades.map(
-                  (loc, index) => (
+                  (loc) => (
                     <option
-                      key={index}
-                      value={loc}
+                      key={loc.id}
+                      value={loc.id}
                     >
-                      {loc}
+                      {loc.name}
                     </option>
                   )
                 )}
@@ -310,8 +306,16 @@ function Bodegas() {
           cursor: "pointer"
         }}
       >
-        Guardar
+        {editingId ? "Guardar cambios" : "Guardar"}
       </button>
+      <ConfigRecordsTable title="Bodegas registradas" rows={list.rows} loading={list.loading} error={list.error} dateField="openedOn" columns={[
+        { key: "code", label: "Código" }, { key: "name", label: "Bodega" }, { key: "openedOn", label: "Apertura" },
+        { key: "description", label: "Descripción" }, { key: "status", label: "Estado" },
+      ]} onEdit={(row) => { setEditingId(row.id); setIdBodega(row.code); setNombreBodega(row.name); setFecha(row.openedOn?.slice(0, 10) || ""); setLocalidad(row.locationId || ""); setEstado(row.status === "INACTIVE" ? "Inactivo" : "Activo"); setDescripcion(row.description || ""); }} onDeactivate={async (row) => {
+        if (!window.confirm(`¿Deseas dar de baja la bodega ${row.name}?`)) return;
+        try { await api(`/bodegas/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); }
+        catch (error) { alert(error.message); }
+      }}/>
     </form>
   );
 }

@@ -1,6 +1,12 @@
 import { useState } from "react";
+import { api } from "../services/api";
+import { useReferenceValues } from "../hooks/useOperationalCatalogs";
+import ConfigRecordsTable from "../components/ConfigRecordsTable";
+import { assertUniqueCode, useCatalogList } from "../hooks/useCatalogList";
 
 function Clientes() {
+  const referencias = useReferenceValues(["CUSTOMER_REGION", "CUSTOMER_CATEGORY"]);
+  const list = useCatalogList("/clientes");
   // =========================
   // STATES
   // =========================
@@ -19,6 +25,7 @@ function Clientes() {
   const [precioCajaBrownNick, setPrecioCajaBrownNick] = useState("");
 
   const [ubicaciones, setUbicaciones] = useState([]);
+  const [editingId, setEditingId] = useState(null);
 
   // =========================
   // UBICACIONES
@@ -69,23 +76,19 @@ function Clientes() {
   // SUBMIT
   // =========================
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    console.log({
-      codigoCliente,
-      telefono,
-      correo,
-      contacto,
-      nombreComercial,
-      region,
-      categoria,
-      precioCajaSuperNick,
-      precioCajaBrownNick,
-      ubicaciones
-    });
-
-    alert("Cliente guardado correctamente");
+    try {
+      assertUniqueCode(list.rows, codigoCliente, "código de cliente", editingId);
+      await api(editingId ? `/clientes/${editingId}` : "/clientes", { method: editingId ? "PUT" : "POST", body: JSON.stringify({
+        codigo: codigoCliente, telefono, correo, contacto, nombreComercial,
+        region, categoria, precioCajaSuperNick, precioCajaBrownNick, ubicaciones,
+      }) });
+      alert("Cliente guardado correctamente");
+      setCodigoCliente(""); setNombreComercial(""); setContacto(""); setTelefono(""); setCorreo(""); setUbicaciones([]);
+      setEditingId(null);
+      await list.reload();
+    } catch (error) { alert(error.message); }
   };
 
   // =========================
@@ -161,6 +164,7 @@ function Clientes() {
         maxWidth: "900px",
         margin: "0 auto",
         padding: "20px",
+        position: "relative",
         fontFamily: "Arial"
       }}
     >
@@ -229,11 +233,8 @@ function Clientes() {
             onChange={(e) => setRegion(e.target.value)}
             style={inputStyle}
           >
-            <option>Seleccione</option>
-            <option>Norte</option>
-            <option>Sur</option>
-            <option>Este</option>
-            <option>Oeste</option>
+            <option value="">Seleccione</option>
+            {(referencias.CUSTOMER_REGION || []).map((item) => <option key={item.valueCode} value={item.valueCode}>{item.label}</option>)}
           </select>
         </div>
 
@@ -244,10 +245,8 @@ function Clientes() {
             onChange={(e) => setCategoria(e.target.value)}
             style={inputStyle}
           >
-            <option>Seleccione</option>
-            <option>Preferencial</option>
-            <option>VIP</option>
-            <option>Especial</option>
+            <option value="">Seleccione</option>
+            {(referencias.CUSTOMER_CATEGORY || []).map((item) => <option key={item.valueCode} value={item.valueCode}>{item.label}</option>)}
           </select>
         </div>
       </div>
@@ -337,8 +336,22 @@ function Clientes() {
 
       {/* GUARDAR */}
       <button type="submit" style={buttonStyle}>
-        Guardar
+        {editingId ? "Guardar cambios" : "Guardar"}
       </button>
+      <ConfigRecordsTable title="Clientes registrados" rows={list.rows} loading={list.loading} error={list.error} columns={[
+        { key: "code", label: "Código" }, { key: "commercialName", label: "Cliente" }, { key: "contactName", label: "Contacto" },
+        { key: "phone", label: "Teléfono" }, { key: "email", label: "Correo" }, { key: "regionCode", label: "Región" },
+        { key: "categoryCode", label: "Categoría" }, { key: "status", label: "Estado" },
+      ]} onEdit={(row) => {
+        setEditingId(row.id); setCodigoCliente(row.code); setNombreComercial(row.commercialName); setContacto(row.contactName || "");
+        setTelefono(row.phone || ""); setCorreo(row.email || ""); setRegion(row.regionCode || ""); setCategoria(row.categoryCode || "");
+        setPrecioCajaSuperNick(row.superNickBoxPrice || ""); setPrecioCajaBrownNick(row.brownNickBoxPrice || "");
+        setUbicaciones((row.addresses || []).map((item) => ({ id: item.id, nit: item.tax_id || "", razonSocial: item.legal_name || "", direccionFiscal: item.fiscal_address || "", direccionEntrega: item.delivery_address || "" })));
+      }} onDeactivate={async (row) => {
+        if (!window.confirm(`¿Deseas dar de baja al cliente ${row.commercialName}?`)) return;
+        try { await api(`/clientes/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); }
+        catch (error) { alert(error.message); }
+      }}/>
     </form>
   );
 }

@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
+import { post, saveOperation } from "../services/operations";
+import { api } from "../services/api";
+import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
+import OperationRecordsModal from "../components/OperationRecordsModal";
+import OperationPanel from "../components/OperationPanel";
 
 function ControlPesoAves() {
+  const { opciones, errors } = useOperationalCatalogs(["lotes", "etapas"]);
   // =========================
   // STATES
   // =========================
@@ -12,14 +18,17 @@ function ControlPesoAves() {
   const [nuevaEtapa, setNuevaEtapa] = useState("");
   const [mostrarNuevaEtapa, setMostrarNuevaEtapa] = useState(false);
 
-  const [semana] = useState(1);
+  const [semana, setSemana] = useState(1);
+  const [editingId, setEditingId] = useState(null);
+  const cargarEdicion = async (row) => { try { const data = await api(`/controles/peso-aves/${row.id}`); setEditingId(row.id); setFecha(String(data.control_date).slice(0, 10)); setLote(data.flock_code); setEtapa(data.stage_code || ""); setSemana(data.week_number); setTamanoMuestra(data.sample_size); const female = {}, male = {}; data.muestras.forEach((item) => (item.sex === "F" ? female : male)[item.sample_number] = String(item.weight_grams)); setHembras(female); setMachos(male); } catch (error) { alert(error.message); } };
 
   const [tamanoMuestra, setTamanoMuestra] = useState(0);
 
   const [uniformidad, setUniformidad] = useState(0);
   const [promedioGeneral, setPromedioGeneral] = useState(0);
 
-  const [etapas, setEtapas] = useState([]);
+  const [etapasNuevas, setEtapasNuevas] = useState([]);
+  const etapas = [...opciones("etapas"), ...etapasNuevas];
 
   const [expandH, setExpandH] = useState(true);
   const [expandM, setExpandM] = useState(true);
@@ -49,7 +58,6 @@ const [uniformidadMachos, setUniformidadMachos] =
     const hoy = new Date().toISOString().split("T")[0];
     setFecha(hoy);
 
-    setEtapas(["Crianza", "Producción"]);
   }, []);
 
   // =========================
@@ -206,12 +214,16 @@ useEffect(() => {
   // ETAPA
   // =========================
 
-  const agregarEtapa = () => {
+  const agregarEtapa = async () => {
     if (!mostrarNuevaEtapa) return setMostrarNuevaEtapa(true);
     if (!nuevaEtapa.trim()) return;
 
-    setEtapas([...etapas, nuevaEtapa]);
-    setEtapa(nuevaEtapa);
+    const codigo = `ETA-${Date.now().toString().slice(-6)}`;
+    let creada;
+    try { creada = await post("/etapas-produccion", { codigo, nombre: nuevaEtapa, estado: "ACTIVE" }); }
+    catch (error) { alert(error.message); return; }
+    setEtapasNuevas((current) => [...current, { value: creada.code || codigo, label: creada.name || nuevaEtapa }]);
+    setEtapa(codigo);
     setNuevaEtapa("");
     setMostrarNuevaEtapa(false);
   };
@@ -247,29 +259,39 @@ useEffect(() => {
   // GUARDAR
   // =========================
 
-  const guardar = () => {
-    console.log({
-      fecha,
-      lote,
-      semana,
-      etapa,
-      tamanoMuestra,
-      promedioGeneral,
-      uniformidad,
-      hembras,
-      machos,
-      uniformidadHembras,
-      uniformidadMachos
-    });
-
-    alert("Guardado");
+  const guardar = async () => {
+    try {
+      const muestras = [...Object.values(hembras).map((pesoGramos) => ({ sexo: "F", pesoGramos: Number(pesoGramos) })),
+        ...Object.values(machos).map((pesoGramos) => ({ sexo: "M", pesoGramos: Number(pesoGramos) }))].filter((x) => x.pesoGramos > 0);
+      await saveOperation("/controles/peso-aves", { fecha, lote, semana, etapa, promedioHembras: promHembras,
+        promedioMachos: promMachos, promedioGeneral, uniformidadHembras, uniformidadMachos, uniformidadGeneral: uniformidad, muestras }, editingId);
+      alert(editingId ? "Control actualizado correctamente" : "Control de peso guardado correctamente");
+      setEditingId(null);
+      setFecha(new Date().toISOString().split("T")[0]);
+      setLote("");
+      setEtapa("");
+      setSemana(1);
+      setTamanoMuestra(0);
+      setHembras({});
+      setMachos({});
+      setPromHembras(0);
+      setPromMachos(0);
+      setPromedioGeneral(0);
+      setUniformidadHembras(0);
+      setUniformidadMachos(0);
+      setUniformidad(0);
+    } catch (error) { alert(error.message); }
   };
 
   // =========================
   // RENDER
   // =========================
 
-  return (
+  return (<OperationPanel maxWidth={1000}><OperationRecordsModal title="Controles de peso de aves" path="/controles/peso-aves" annulPath={(row) => `/operaciones/peso-aves/${row.id}/anular`} dateField="control_date" columns={[
+    { key: "control_date", label: "Fecha", render: (value) => String(value || "").slice(0, 10) },
+    { key: "flock_code", label: "Lote", render: (value, row) => value || row.flockCode || "Sin lote" },
+    { key: "week_number", label: "Semana" }, { key: "sample_size", label: "Muestras" }, { key: "overall_average_grams", label: "Promedio" }, { key: "overall_uniformity", label: "Uniformidad" }, { key: "status", label: "Estado" },
+  ]} onEdit={cargarEdicion}/>
     <div style={{ maxWidth: 950, margin: "auto", fontFamily: "Arial" }}>
       <h2>Control Peso Aves</h2>
 
@@ -284,9 +306,10 @@ useEffect(() => {
           <label># Lote</label>
           <select value={lote} onChange={(e) => setLote(e.target.value)}>
             <option value="">Seleccione</option>
-            <option value="SL001">SL038</option>
-            <option value="BL001">BL038</option>
+            {opciones("lotes").map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
+          {errors.lotes && <small style={{ color: "#b91c1c", display: "block" }}>No se pudieron cargar los lotes: {errors.lotes}</small>}
+          {!errors.lotes && opciones("lotes").length === 0 && <small style={{ color: "#92400e", display: "block" }}>No existen lotes activos. Registra primero un lote en Configuración → Lotes.</small>}
         </div>
 
         <div style={{ flex: 1 }}>
@@ -302,13 +325,20 @@ useEffect(() => {
           <div style={{ display: "flex", gap: 10 }}>
             <select value={etapa} onChange={(e) => setEtapa(e.target.value)}>
               <option value="">Seleccione</option>
-              {etapas.map((e, i) => (
-                <option key={i}>{e}</option>
+              {etapas.map((item) => (
+                <option key={item.value} value={item.value}>{item.label}</option>
               ))}
             </select>
 
             <button type="button" onClick={agregarEtapa}>+</button>
           </div>
+          {mostrarNuevaEtapa && <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <input autoFocus value={nuevaEtapa} onChange={(event) => setNuevaEtapa(event.target.value)} placeholder="Nombre de la nueva etapa" />
+            <button type="button" onClick={agregarEtapa}>Guardar etapa</button>
+            <button type="button" onClick={() => { setMostrarNuevaEtapa(false); setNuevaEtapa(""); }}>Cancelar</button>
+          </div>}
+          {errors.etapas && <small style={{ color: "#b91c1c", display: "block" }}>No se pudieron cargar las etapas: {errors.etapas}</small>}
+          {!errors.etapas && etapas.length === 0 && !mostrarNuevaEtapa && <small style={{ color: "#92400e", display: "block" }}>No existen etapas activas. Presiona + para registrar la primera.</small>}
         </div>
 
         <div style={{ flex: 1 }}>
@@ -404,7 +434,7 @@ useEffect(() => {
         Guardar Registro
       </button>
     </div>
-  );
+  </OperationPanel>);
 }
 
 export default ControlPesoAves;

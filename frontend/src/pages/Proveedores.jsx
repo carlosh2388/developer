@@ -1,6 +1,10 @@
 import { useState } from "react";
+import { api } from "../services/api";
+import ConfigRecordsTable from "../components/ConfigRecordsTable";
+import { assertUniqueCode, useCatalogList } from "../hooks/useCatalogList";
 
 function Proveedores() {
+  const list = useCatalogList("/proveedores");
   // =========================
   // STATES
   // =========================
@@ -15,6 +19,7 @@ function Proveedores() {
 
   const [telefono, setTelefono] = useState("");
   const [correo, setCorreo] = useState("");
+  const [editingId, setEditingId] = useState(null);
 
   // =========================
   // TELÉFONO
@@ -37,22 +42,19 @@ function Proveedores() {
   // SUBMIT
   // =========================
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    console.log({
-      codigoProveedor,
-      nombreProveedor,
-      nit,
-      direccion,
-      contacto,
-      telefono,
-      correo
-    });
-
-    alert(
-      "Proveedor guardado correctamente"
-    );
+    try {
+      assertUniqueCode(list.rows, codigoProveedor, "código de proveedor", editingId);
+      await api(editingId ? `/proveedores/${editingId}` : "/proveedores", { method: editingId ? "PUT" : "POST", body: JSON.stringify({
+        codigo: codigoProveedor, nombre: nombreProveedor, nit, direccion, contacto, telefono, correo,
+      }) });
+      alert("Proveedor guardado correctamente");
+      setCodigoProveedor(""); setNombreProveedor(""); setNit(""); setDireccion("");
+      setContacto(""); setTelefono(""); setCorreo("");
+      setEditingId(null);
+      await list.reload();
+    } catch (error) { alert(error.message); }
   };
 
   // =========================
@@ -103,6 +105,7 @@ function Proveedores() {
         maxWidth: "900px",
         margin: "0 auto",
         padding: "20px",
+        position: "relative",
         fontFamily: "Arial"
       }}
     >
@@ -242,8 +245,16 @@ function Proveedores() {
         type="submit"
         style={buttonStyle}
       >
-        Guardar
+        {editingId ? "Guardar cambios" : "Guardar"}
       </button>
+      <ConfigRecordsTable title="Proveedores registrados" rows={list.rows} loading={list.loading} error={list.error} columns={[
+        { key: "code", label: "Código" }, { key: "name", label: "Proveedor" }, { key: "taxId", label: "NIT" },
+        { key: "contactName", label: "Contacto" }, { key: "phone", label: "Teléfono" }, { key: "email", label: "Correo" }, { key: "status", label: "Estado" },
+      ]} onEdit={(row) => { setEditingId(row.id); setCodigoProveedor(row.code); setNombreProveedor(row.name); setNit(row.taxId || ""); setDireccion(row.address || ""); setContacto(row.contactName || ""); setTelefono(row.phone || ""); setCorreo(row.email || ""); }} onDeactivate={async (row) => {
+        if (!window.confirm(`¿Deseas dar de baja al proveedor ${row.name}?`)) return;
+        try { await api(`/proveedores/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); }
+        catch (error) { alert(error.message); }
+      }}/>
     </form>
   );
 }

@@ -1,6 +1,11 @@
 import { useState } from "react";
+import { loadInventoryDocument, saveInventory } from "../services/operations";
+import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
+import OperationRecordsModal, { inventoryColumns } from "../components/OperationRecordsModal";
+import OperationPanel from "../components/OperationPanel";
 
 function AjustesEntrada() {
+  const { productosPorTipo } = useOperationalCatalogs(["productos"]);
 
   // =========================
   // FECHA
@@ -14,44 +19,20 @@ function AjustesEntrada() {
   // LISTAS
   // =========================
 
-  const vacunas = [
-    "VA01",
-    "VA02"
-  ];
-
-  const medicamentos = [
-    "MD01",
-    "MD02"
-  ];
-
-  const aditivos = [
-    "AD01",
-    "AD02"
-  ];
-
-  const insumos = [
-    "IN01",
-    "IN02"
-  ];
-
-  const materiales = [
-    "ME01",
-    "ME02"
-  ];
-
-  const alimentos = [
-    "Preinicio",
-    "Inicio",
-    "Crecimiento",
-    "Fase 1",
-    "Fase 2"
-  ];
+  const vacunas = productosPorTipo(["VA"]).map((x) => x.value);
+  const medicamentos = productosPorTipo(["MD"]).map((x) => x.value);
+  const aditivos = productosPorTipo(["AD"]).map((x) => x.value);
+  const insumos = productosPorTipo(["IN"]).map((x) => x.value);
+  const materiales = productosPorTipo(["ME"]).map((x) => x.value);
+  const alimentos = productosPorTipo(["AL"]).map((x) => x.value);
 
   // =========================
   // FILAS DINÁMICAS
   // =========================
 
   const [filas, setFilas] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setFilas(data.rows.map((item) => ({ ...item, tipo: item.tipo === "Materiales" ? "Material de Empaque" : item.tipo }))); } catch (error) { alert(error.message); } };
 
   // =========================
   // CREAR FILA
@@ -108,18 +89,11 @@ function AjustesEntrada() {
   // GUARDAR
   // =========================
 
-  const guardar = (e) => {
-
+  const guardar = async (e) => {
     e.preventDefault();
-
-    console.log({
-      fecha,
-      ajustes: filas
-    });
-
-    alert(
-      "Ajuste de entrada registrado correctamente"
-    );
+    try { await saveInventory({ id: editingId, fecha, rows: filas, movementType: "ADJUSTMENT_IN", module: "OTHER" });
+      alert(editingId ? "Ajuste actualizado correctamente" : "Ajuste de entrada registrado correctamente"); setFilas([]); setEditingId(null);
+    } catch (error) { alert(error.message); }
   };
 
   // =========================
@@ -174,7 +148,7 @@ function AjustesEntrada() {
     }
   };
 
-  return (
+  return (<OperationPanel maxWidth={1000}><OperationRecordsModal title="Ajustes de entrada" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={inventoryColumns} rowFilter={(row) => row.movement_type === "ADJUSTMENT_IN"} onEdit={cargarEdicion}/>
     <div
       style={{
         maxWidth: "1000px",
@@ -411,7 +385,7 @@ function AjustesEntrada() {
       </form>
 
     </div>
-  );
+  </OperationPanel>);
 }
 
 export default AjustesEntrada;

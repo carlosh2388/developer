@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
+import { api } from "../services/api";
+import ConfigRecordsTable from "../components/ConfigRecordsTable";
+import { assertUniqueCode, useCatalogList } from "../hooks/useCatalogList";
 
 function Localidades() {
+  const list = useCatalogList("/localidades");
   // =========================
   // STATES
   // =========================
@@ -10,6 +14,7 @@ function Localidades() {
   const [nombreLocalidad, setNombreLocalidad] = useState("");
   const [estatus, setEstatus] = useState("Activo");
   const [descripcion, setDescripcion] = useState("");
+  const [editingId, setEditingId] = useState(null);
 
   const [placeholder] =
     useState("LOC-XXX");
@@ -40,22 +45,19 @@ function Localidades() {
   // SUBMIT
   // =========================
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const data = {
-      fecha,
-      idLocalidad,
-      nombreLocalidad,
-      estatus,
-      descripcion
-    };
-
-    console.log(data);
-
-    alert(
-      "Localidad guardada correctamente"
-    );
+    try {
+      assertUniqueCode(list.rows, idLocalidad, "código de localidad", editingId);
+      await api(editingId ? `/localidades/${editingId}` : "/localidades", { method: editingId ? "PUT" : "POST", body: JSON.stringify({
+        codigo: idLocalidad, nombre: nombreLocalidad, fechaApertura: fecha,
+        estado: estatus === "Activo" ? "ACTIVE" : "INACTIVE", descripcion,
+      }) });
+      alert("Localidad guardada correctamente");
+      setIdLocalidad(""); setNombreLocalidad(""); setDescripcion("");
+      setEditingId(null);
+      await list.reload();
+    } catch (error) { alert(error.message); }
   };
 
   // =========================
@@ -87,6 +89,7 @@ function Localidades() {
         maxWidth: "900px",
         margin: "0 auto",
         padding: "20px",
+        position: "relative",
         fontFamily: "Arial"
       }}
     >
@@ -198,8 +201,16 @@ function Localidades() {
           cursor: "pointer"
         }}
       >
-        Guardar
+        {editingId ? "Guardar cambios" : "Guardar"}
       </button>
+      <ConfigRecordsTable title="Localidades registradas" rows={list.rows} loading={list.loading} error={list.error} dateField="openedOn" columns={[
+        { key: "code", label: "Código" }, { key: "name", label: "Localidad" }, { key: "openedOn", label: "Apertura" },
+        { key: "description", label: "Descripción" }, { key: "status", label: "Estado" },
+      ]} onEdit={(row) => { setEditingId(row.id); setIdLocalidad(row.code); setNombreLocalidad(row.name); setFecha(row.openedOn?.slice(0, 10) || ""); setEstatus(row.status === "INACTIVE" ? "Inactivo" : "Activo"); setDescripcion(row.description || ""); }} onDeactivate={async (row) => {
+        if (!window.confirm(`¿Deseas dar de baja la localidad ${row.name}?`)) return;
+        try { await api(`/localidades/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); }
+        catch (error) { alert(error.message); }
+      }}/>
     </form>
   );
 }

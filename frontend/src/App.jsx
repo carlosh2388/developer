@@ -25,11 +25,15 @@ import OtrosEgresos from "./pages/OtrosEgresos";
 import AjustesEntrada from "./pages/AjustesEntrada";
 import AjusteSalida from "./pages/AjusteSalida";
 import EgresoReproductores from "./pages/EgresoReproductores";
+import IngresoInsumos from "./pages/IngresoInsumos";
+import EgresoInsumos from "./pages/EgresoInsumos";
+import LineasAvicolas from "./pages/LineasAvicolas";
+import Reportes from "./pages/Reportes";
 
 const views = {
   lotes: <Lotes />,
   bodegas: <Bodegas />,
-//  localidades: <Localidades />,
+  localidades: <Localidades />,
   productos: <Productos />,
   clientes: <Clientes />,
   proveedores: <Proveedores />, 
@@ -44,6 +48,9 @@ const views = {
   AjustesEntrada: <AjustesEntrada />,
   AjusteSalida: <AjusteSalida />,
   EgresoReproductores: <EgresoReproductores />,
+  IngresoInsumos: <IngresoInsumos />,
+  EgresoInsumos: <EgresoInsumos />,
+  lineasAvicolas: <LineasAvicolas />,
 };
 
 export default function App() {
@@ -128,6 +135,8 @@ export default function App() {
       <Inicio user={user} />
     ) : vista === "usuarios" ? (
       <Usuarios />
+    ) : vista === "reportes" ? (
+      <Reportes user={user} />
     ) : (
       views[vista] || <Inicio user={user} />
     );

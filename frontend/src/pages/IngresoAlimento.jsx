@@ -1,6 +1,12 @@
 import { useState } from "react";
+import { saveInventory } from "../services/operations";
+import { api } from "../services/api";
+import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
+import OperationRecordsModal, { inventoryColumns } from "../components/OperationRecordsModal";
+import OperationPanel from "../components/OperationPanel";
 
 function IngresoAlimento() {
+  const { productosPorTipo, opciones } = useOperationalCatalogs(["productos", "proveedores"]);
 
   const [proveedor, setProveedor] =
   useState("");
@@ -8,31 +14,30 @@ function IngresoAlimento() {
   const [fecha, setFecha] = useState(
     new Date().toISOString().split("T")[0]
   );
+  const [editingId, setEditingId] = useState(null);
 
-  const alimentosOptions = [
-    "Preinicio",
-    "Inicio",
-    "Desarrollo",
-    "Crecimiento",
-    "Prepostura",
-    "Fase 1",
-    "Fase 2"
-  ];
-
-  const materialesDisponibles = [
-    "ME01",
-    "ME02"
-  ];
-
-  const aditivosDisponibles = [
-    "AD01",
-    "AD02"
-  ];
-
-  const medicamentosDisponibles = [
-    "MD01",
-    "MD02"
-  ];
+  const alimentosOptions = productosPorTipo(["AL"]).map((x) => x.value);
+  const materialesDisponibles = productosPorTipo(["ME", "IN"]).map((x) => x.value);
+  const aditivosDisponibles = productosPorTipo(["AD"]).map((x) => x.value);
+  const medicamentosDisponibles = productosPorTipo(["MD"]).map((x) => x.value);
+  const proveedores = opciones("proveedores");
+  const cargarEdicion = async (row) => {
+    try {
+      const document = await api(`/inventario/documentos/${row.id}`);
+      const children = new Map();
+      document.detalles.forEach((detail) => { if (detail.parent_line_id) children.set(detail.parent_line_id, [...(children.get(detail.parent_line_id) || []), detail]); });
+      const rows = document.detalles.filter((detail) => !detail.parent_line_id).map((detail) => {
+        const tipo = detail.line_role === "MATERIAL" ? "Material" : detail.line_role === "ADDITIVE" ? "Aditivo" : "Alimento";
+        const related = children.get(detail.id) || [];
+        return { ...crearFila(tipo), alimento: tipo === "Alimento" ? detail.product_code : "", material: tipo === "Material" ? detail.product_code : "",
+          aditivo: tipo === "Aditivo" ? detail.product_code : "", cantidad: detail.quantity, precio: detail.unit_cost || 0, modoPrecio: "UNITARIO",
+          aditivos: related.filter((item) => item.line_role === "ADDITIVE").map((item) => ({ producto: item.product_code, cantidad: item.quantity })),
+          medicamentos: related.filter((item) => item.line_role === "MEDICINE").map((item) => ({ producto: item.product_code, cantidad: item.quantity })) };
+      });
+      setEditingId(document.id); setFecha(String(document.movement_date).slice(0, 10)); setProveedor(document.supplier_code || ""); setFilas(rows);
+    } catch (error) { alert(error.message); }
+  };
+  const records = <OperationRecordsModal title="Ingresos de alimento" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={inventoryColumns} rowFilter={(row) => row.movement_type === "INPUT" && row.module_code === "FOOD"} onEdit={cargarEdicion}/>;
 
 const crearFila = (
   tipo = "Alimento"
@@ -44,18 +49,20 @@ const crearFila = (
   alimento: "",
   material: "",
   cantidad: "",
+  precio: "",
+  modoPrecio: "TOTAL",
 
   aditivo: "",
   medicamento: "",
 
   aditivos:
     tipo === "Alimento"
-      ? [""]
+      ? [{ producto: "", cantidad: "" }]
       : [],
 
   medicamentos:
     tipo === "Alimento"
-      ? [""]
+      ? [{ producto: "", cantidad: "" }]
       : []
 });
 
@@ -94,6 +101,19 @@ const handleChange = (
   );
 };
 
+const cambiarModoPrecio = (id) => {
+  setFilas((prev) => prev.map((fila) => fila.id === id
+    ? { ...fila, modoPrecio: fila.modoPrecio === "TOTAL" ? "UNITARIO" : "TOTAL" }
+    : fila));
+};
+
+const calcularCostoUnitario = (fila) => {
+  const cantidad = Number(fila.cantidad || 0);
+  const precio = Number(fila.precio || 0);
+  if (cantidad <= 0 || precio < 0) return "0.00";
+  return (fila.modoPrecio === "TOTAL" ? precio / cantidad : precio).toFixed(2);
+};
+
 const agregarAditivoFila = (
   id
 ) => {
@@ -104,7 +124,7 @@ const agregarAditivoFila = (
             ...f,
             aditivos: [
               ...(f.aditivos || []),
-              ""
+              { producto: "", cantidad: "" }
             ]
           }
         : f
@@ -122,7 +142,7 @@ const agregarMedicamentoFila = (
             ...f,
             medicamentos: [
               ...(f.medicamentos || []),
-              ""
+              { producto: "", cantidad: "" }
             ]
           }
         : f
@@ -130,11 +150,7 @@ const agregarMedicamentoFila = (
   );
 };
 
-  const cambiarAditivo = (
-    id,
-    index,
-    value
-  ) => {
+  const cambiarAditivo = (id, index, campo, value) => {
     setFilas((prev) =>
       prev.map((f) => {
         if (f.id !== id) {
@@ -145,7 +161,7 @@ const agregarMedicamentoFila = (
           ...f.aditivos
         ];
 
-        copia[index] = value;
+        copia[index] = { ...copia[index], [campo]: value };
 
         return {
           ...f,
@@ -155,11 +171,7 @@ const agregarMedicamentoFila = (
     );
   };
 
-  const cambiarMedicamento = (
-    id,
-    index,
-    value
-  ) => {
+  const cambiarMedicamento = (id, index, campo, value) => {
     setFilas((prev) =>
       prev.map((f) => {
         if (f.id !== id) {
@@ -170,7 +182,7 @@ const agregarMedicamentoFila = (
           ...f.medicamentos
         ];
 
-        copia[index] = value;
+        copia[index] = { ...copia[index], [campo]: value };
 
         return {
           ...f,
@@ -180,18 +192,18 @@ const agregarMedicamentoFila = (
     );
   };
 
-  const guardar = (e) => {
+  const guardar = async (e) => {
     e.preventDefault();
-
-    console.log({
-      fecha,
-      proveedor,
-      movimientos: filas
-    });
-
-    alert(
-      "Ingreso registrado correctamente"
-    );
+    try {
+      if (!proveedor) throw new Error("Selecciona el proveedor.");
+      if (!filas.length) throw new Error("Agrega al menos un producto.");
+      if (filas.some((fila) => !(fila.item || fila.alimento || fila.material || fila.aditivo || fila.medicamento) || Number(fila.cantidad) <= 0)) throw new Error("Selecciona el producto e ingresa una cantidad mayor que cero en cada fila.");
+      if (filas.some((fila) => fila.precio === "" || Number(fila.precio) < 0)) throw new Error("Ingresa un precio válido en cada fila.");
+      const componentes = filas.flatMap((fila) => [...(fila.aditivos || []), ...(fila.medicamentos || [])]).filter((item) => item.producto);
+      if (componentes.some((item) => Number(item.cantidad) <= 0)) throw new Error("Ingresa la cantidad de cada aditivo o medicamento seleccionado.");
+      await saveInventory({ id: editingId, fecha, proveedor, rows: filas, movementType: "INPUT", module: "FOOD" });
+      alert(editingId ? "Ingreso actualizado correctamente" : "Ingreso registrado correctamente"); setFilas([]); setEditingId(null);
+    } catch (error) { alert(error.message); }
   };
 
   const inputStyle = {
@@ -219,7 +231,7 @@ const agregarMedicamentoFila = (
     cursor: "pointer"
   };
 
-  return (
+  return (<OperationPanel maxWidth={1100}>{records}
         <div
       style={{
         maxWidth: "1000px",
@@ -256,6 +268,7 @@ const agregarMedicamentoFila = (
     <label>Proveedor</label>
 
     <select
+      required
       value={proveedor}
       onChange={(e) =>
         setProveedor(
@@ -267,12 +280,7 @@ const agregarMedicamentoFila = (
       <option value="">
         Seleccione
       </option>
-      <option value="PR01">
-        PR01
-      </option>
-      <option value="PR02">
-        PR02
-      </option>
+      {proveedores.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
     </select>
   </div>
 </div>
@@ -349,6 +357,10 @@ const agregarMedicamentoFila = (
               <th>
                 Cantidad
               </th>
+
+              <th>Precio (Q)</th>
+              <th>Modo</th>
+              <th>Costo unitario</th>
 
               <th>
                 Aditivo
@@ -442,13 +454,7 @@ const agregarMedicamentoFila = (
                           Seleccione
                         </option>
 
-                        <option value="AD01">
-                          AD01
-                        </option>
-
-                        <option value="AD02">
-                          AD02
-                        </option>
+                        {aditivosDisponibles.map((item) => <option key={item} value={item}>{item}</option>)}
 
                       </select>
 
@@ -501,7 +507,8 @@ const agregarMedicamentoFila = (
                   <td>
                     <input
                       type="number"
-                      step="1"
+                      min="0.0001"
+                      step="0.0001"
                       value={
                         fila.cantidad
                       }
@@ -519,6 +526,20 @@ const agregarMedicamentoFila = (
                         inputStyle
                       }
                     />
+                  </td>
+
+                  <td>
+                    <input type="number" min="0" step="0.01" value={fila.precio} onChange={(e) => handleChange(fila.id, "precio", e.target.value)} placeholder="0.00" style={inputStyle}/>
+                  </td>
+
+                  <td>
+                    <button type="button" onClick={() => cambiarModoPrecio(fila.id)} style={{ padding: "6px", border: 0, borderRadius: 4, cursor: "pointer", background: fila.modoPrecio === "TOTAL" ? "#28a745" : "#6c757d", color: "#fff" }}>
+                      {fila.modoPrecio}
+                    </button>
+                  </td>
+
+                  <td>
+                    <input readOnly value={calcularCostoUnitario(fila)} style={{ ...inputStyle, background: "#f5f5f5" }}/>
                   </td>
                                         <td>
 
@@ -553,7 +574,7 @@ const agregarMedicamentoFila = (
 
                               <select
                                 value={
-                                  aditivo
+                                  aditivo.producto
                                 }
                                 onChange={(
                                   e
@@ -561,6 +582,7 @@ const agregarMedicamentoFila = (
                                   cambiarAditivo(
                                     fila.id,
                                     index,
+                                    "producto",
                                     e.target
                                       .value
                                   )
@@ -590,6 +612,7 @@ const agregarMedicamentoFila = (
                                   )
                                 )}
                               </select>
+                              <input type="number" min="0.0001" step="0.0001" value={aditivo.cantidad} onChange={(e) => cambiarAditivo(fila.id, index, "cantidad", e.target.value)} placeholder="Cantidad" style={{ ...inputStyle, maxWidth: "105px" }}/>
 
                             </div>
 
@@ -646,7 +669,7 @@ const agregarMedicamentoFila = (
 
                               <select
                                 value={
-                                  medicamento
+                                  medicamento.producto
                                 }
                                 onChange={(
                                   e
@@ -654,6 +677,7 @@ const agregarMedicamentoFila = (
                                   cambiarMedicamento(
                                     fila.id,
                                     index,
+                                    "producto",
                                     e.target
                                       .value
                                   )
@@ -683,6 +707,7 @@ const agregarMedicamentoFila = (
                                   )
                                 )}
                               </select>
+                              <input type="number" min="0.0001" step="0.0001" value={medicamento.cantidad} onChange={(e) => cambiarMedicamento(fila.id, index, "cantidad", e.target.value)} placeholder="Cantidad" style={{ ...inputStyle, maxWidth: "105px" }}/>
 
                             </div>
 
@@ -755,14 +780,15 @@ const agregarMedicamentoFila = (
                 "pointer"
             }}
           >
-            Guardar
+            {editingId ? "Guardar cambios" : "Guardar"}
           </button>
+          {editingId && <button type="button" onClick={() => { setEditingId(null); setFilas([]); setProveedor(""); }} style={{ ...btnAdd, marginLeft: 8, background: "#6b7280" }}>Cancelar edición</button>}
         </div>
 
       </form>
 
     </div>
-  );
+  </OperationPanel>);
 }
 
 export default IngresoAlimento;

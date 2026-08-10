@@ -1,6 +1,11 @@
 import { useState } from "react";
+import { loadInventoryDocument, saveInventory } from "../services/operations";
+import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
+import OperationRecordsModal, { inventoryColumns } from "../components/OperationRecordsModal";
+import OperationPanel from "../components/OperationPanel";
 
 function IngresoInsumos() {
+  const { productosPorTipo, opciones } = useOperationalCatalogs(["productos", "proveedores"]);
 
   // =========================
   // FECHA
@@ -9,44 +14,27 @@ function IngresoInsumos() {
   const [fecha, setFecha] = useState(
     new Date().toISOString().split("T")[0]
   );
+  const [proveedor, setProveedor] = useState("");
 
   // =========================
   // LISTAS
   // =========================
 
-  const vacunas = [
-    "VAC-001",
-    "VAC-002"
-  ];
-
-  const medicamentos = [
-    "MED-001",
-    "MED-002"
-  ];
-
-  const aditivos = [
-    "AD-001",
-    "AD-002"
-  ];
-
-  const materiales = [
-    "MAT-001",
-    "MAT-002"
-  ];
-
-  const alimentos = [
-    "Preinicio",
-    "Inicio",
-    "Crecimiento",
-    "Fase 1",
-    "Fase 2"
-  ];
+  const vacunas = productosPorTipo(["VA"]).map((x) => x.value);
+  const medicamentos = productosPorTipo(["MD"]).map((x) => x.value);
+  const aditivos = productosPorTipo(["AD"]).map((x) => x.value);
+  const insumos = productosPorTipo(["IN"]).map((x) => x.value);
+  const materiales = productosPorTipo(["ME"]).map((x) => x.value);
+  const alimentos = productosPorTipo(["AL"]).map((x) => x.value);
+  const proveedores = opciones("proveedores");
 
   // =========================
   // FILAS DINÁMICAS
   // =========================
 
   const [filas, setFilas] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setProveedor(data.document.supplier_code || ""); setFilas(data.rows.map((item) => ({ ...item, tipo: item.tipo === "Materiales" ? "Material de Empaque" : item.tipo }))); } catch (error) { alert(error.message); } };
 
   // =========================
   // CREAR FILA
@@ -56,7 +44,8 @@ function IngresoInsumos() {
     id: Date.now() + Math.random(),
     tipo,
     item: "",
-    cantidad: ""
+    cantidad: "",
+    precio: ""
   });
 
   // =========================
@@ -98,15 +87,15 @@ function IngresoInsumos() {
   // GUARDAR
   // =========================
 
-  const guardar = (e) => {
+  const guardar = async (e) => {
     e.preventDefault();
-
-    console.log({
-      fecha,
-      insumos: filas
-    });
-
-    alert("Insumos registrados correctamente");
+    try {
+      if (!proveedor) throw new Error("Selecciona el proveedor.");
+      if (!filas.length) throw new Error("Agrega al menos un insumo.");
+      if (filas.some((fila) => !fila.item || Number(fila.cantidad) <= 0 || Number(fila.precio) < 0)) throw new Error("Completa producto, cantidad y precio en cada fila.");
+      await saveInventory({ id: editingId, fecha, proveedor, rows: filas, movementType: "INPUT", module: "SUPPLIES" });
+      alert(editingId ? "Ingreso actualizado correctamente" : "Insumos registrados correctamente"); setFilas([]); setEditingId(null); setProveedor("");
+    } catch (error) { alert(error.message); }
   };
 
   // =========================
@@ -146,7 +135,10 @@ function IngresoInsumos() {
       case "Aditivos":
         return aditivos;
 
-      case "Materiales":
+      case "Insumos":
+        return insumos;
+
+      case "Material de Empaque":
         return materiales;
 
       case "Alimento":
@@ -161,7 +153,7 @@ function IngresoInsumos() {
   // RENDER
   // =========================
 
-  return (
+  return (<OperationPanel maxWidth={1000}><OperationRecordsModal title="Ingresos de insumos" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={inventoryColumns} rowFilter={(row) => row.movement_type === "INPUT" && row.module_code === "SUPPLIES"} onEdit={cargarEdicion}/>
     <div
       style={{
         maxWidth: "1000px",
@@ -173,15 +165,13 @@ function IngresoInsumos() {
 
       <h2>Ingreso de Insumos</h2>
 
-      {/* FECHA */}
-      <div style={{ marginBottom: "15px" }}>
-        <label>Fecha</label>
-        <input
-          type="date"
-          value={fecha}
-          onChange={(e) => setFecha(e.target.value)}
-          style={inputStyle}
-        />
+      {/* FECHA Y PROVEEDOR */}
+      <div style={{ display: "flex", gap: 20, marginBottom: 15 }}>
+        <label style={{ flex: 1 }}>Fecha<input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} style={inputStyle}/></label>
+        <label style={{ flex: 1 }}>Proveedor<select required value={proveedor} onChange={(e) => setProveedor(e.target.value)} style={inputStyle}>
+          <option value="">Seleccione</option>
+          {proveedores.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+        </select></label>
       </div>
 
       {/* BOTONES (ORDENADOS + NUEVO ALIMENTO) */}
@@ -202,8 +192,12 @@ function IngresoInsumos() {
           Alimento
         </button>
 
-        <button type="button" style={btn} onClick={() => agregarFila("Materiales")}>
-          Materiales
+        <button type="button" style={btn} onClick={() => agregarFila("Insumos")}>
+          Insumos
+        </button>
+
+        <button type="button" style={btn} onClick={() => agregarFila("Material de Empaque")}>
+          Material de Empaque
         </button>
 
         <button type="button" style={btn} onClick={() => agregarFila("Medicamentos")}>
@@ -231,6 +225,7 @@ function IngresoInsumos() {
               <th>Tipo</th>
               <th>Nombre</th>
               <th>Cantidad</th>
+              <th>Precio unitario (Q)</th>
               <th>Acción</th>
             </tr>
           </thead>
@@ -275,6 +270,11 @@ function IngresoInsumos() {
                   />
                 </td>
 
+                {/* PRECIO UNITARIO */}
+                <td>
+                  <input type="number" min="0" step="0.01" value={fila.precio} onChange={(e) => handleChange(fila.id, "precio", e.target.value)} placeholder="0.00" style={inputStyle}/>
+                </td>
+
                 {/* ACCIÓN */}
                 <td>
                   <button
@@ -314,14 +314,15 @@ function IngresoInsumos() {
               cursor: "pointer"
             }}
           >
-            Guardar
+            {editingId ? "Guardar cambios" : "Guardar"}
           </button>
+          {editingId && <button type="button" onClick={() => { setEditingId(null); setFilas([]); setProveedor(""); }}>Cancelar edición</button>}
         </div>
 
       </form>
 
     </div>
-  );
+  </OperationPanel>);
 }
 
 export default IngresoInsumos;

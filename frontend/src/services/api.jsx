@@ -20,5 +20,8 @@ export async function api(path, options = {}) {
     error.status = response.status;
     throw error;
   }
+  if (options.method && !["GET", "HEAD"].includes(options.method.toUpperCase())) {
+    window.dispatchEvent(new CustomEvent("avinext:records-changed", { detail: { path } }));
+  }
   return data;
 }

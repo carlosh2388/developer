@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 
 const sections = [
-  { id: "config", title: "Configuración", icon: "⚙", items: [["Lotes","lotes"],["Bodegas","bodegas"],["Productos","productos"],["Clientes","clientes"],["Proveedores","proveedores"]] },
+  { id: "reports", title: "Reportes", icon: "▤", items: [["Producción por granja","reportes"]] },
+  { id: "config", title: "Configuración", icon: "⚙", items: [["Líneas avícolas","lineasAvicolas"],["Lotes","lotes"],["Bodegas","bodegas"],["Localidades","localidades"],["Productos","productos"],["Clientes","clientes"],["Proveedores","proveedores"]] },
   { id: "controls", title: "Controles", icon: "✓", items: [["Peso en aves","controlPesoAves"],["Peso en huevos","controlPesoHuevos"]] },
-  { id: "moves", title: "Movimientos", icon: "↔", items: [["Ingreso de alimento","IngresoAlimento"],["Egreso de alimento","EgresoAlimento"],["Ingreso de huevos","ingresoHuevos"],["Egreso de huevos","egresoHuevos"],["Otros Ingresos","OtrosIngresos"],["Otros Egresos","OtrosEgresos"],["Ajustes de entrada","AjustesEntrada"],["Ajustes de salida","AjusteSalida"],["Egreso de reproductores","EgresoReproductores"]] },
+  { id: "moves", title: "Movimientos", icon: "↔", items: [["Ingreso de alimento","IngresoAlimento"],["Egreso de alimento","EgresoAlimento"],["Ingreso de insumos","IngresoInsumos"],["Egreso de insumos","EgresoInsumos"],["Ingreso de huevos","ingresoHuevos"],["Egreso de huevos","egresoHuevos"],["Otros Ingresos","OtrosIngresos"],["Otros Egresos","OtrosEgresos"],["Ajustes de entrada","AjustesEntrada"],["Ajustes de salida","AjusteSalida"],["Egreso de reproductores","EgresoReproductores"]] },
 ];
 
 export default function Sidebar({ setVista, vista, user, onLogout, onChangePassword }) {
