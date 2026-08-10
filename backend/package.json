@@ -18,6 +18,10 @@
     "dev": "node --watch app.js",
     "db:migrate:keys": "node scripts/runMigration.js 002_license_key_history.sql",
     "db:migrate:access": "node scripts/runMigration.js 003_user_scopes_quotas_sessions.sql",
+    "db:migrate:operations": "node scripts/runMigration.js 004_operational_schema.sql",
+    "db:migrate:lifecycle": "node scripts/runMigration.js 005_operation_lifecycle.sql",
+    "db:migrate:inventory-edit": "node scripts/runMigration.js 006_inventory_edit_audit.sql",
+    "db:migrate:operation-edit": "node scripts/runMigration.js 007_operation_edit_audit.sql",
     "test": "node --test"
   },
   "keywords": [],
