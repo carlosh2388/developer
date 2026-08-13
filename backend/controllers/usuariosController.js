@@ -4,14 +4,24 @@ const HttpError = require("../utils/httpError");
 const audit = require("../utils/audit");
 const { getOrganizationQuota, assertUserCapacity } = require("../services/userAccessService");
 
-const publicFields = `u.id,u.full_name,u.username,u.status,u.last_login_at,u.created_at,u.personnel_id,p.code AS personnel_code,p.full_name AS personnel_name,
+const publicFields = `u.id,u.full_name,u.username,u.status,u.last_login_at,u.created_at,
                       EXISTS(SELECT 1 FROM active_user_sessions s WHERE s.user_id=u.id AND s.expires_at>NOW()) AS session_active,
                       r.code AS role_code,r.name AS role_name`;
 
+async function supportsPersonnelLink(queryable = db) {
+  const { rows } = await queryable.query(
+    "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='users' AND column_name='personnel_id') supported"
+  );
+  return rows[0].supported;
+}
+
 async function obtenerUsuarios(req, res, next) {
   try {
+    const supportsPersonnel = await supportsPersonnelLink();
+    const personnelFields = supportsPersonnel ? ",u.personnel_id,p.code AS personnel_code,p.full_name AS personnel_name" : ",NULL::uuid AS personnel_id,NULL::text AS personnel_code,NULL::text AS personnel_name";
+    const personnelJoin = supportsPersonnel ? "LEFT JOIN personnel p ON p.id=u.personnel_id AND p.organization_id=u.organization_id" : "";
     const { rows } = await db.query(
-      `SELECT ${publicFields} FROM users u JOIN roles r ON r.id=u.role_id LEFT JOIN personnel p ON p.id=u.personnel_id AND p.organization_id=u.organization_id
+      `SELECT ${publicFields}${personnelFields} FROM users u JOIN roles r ON r.id=u.role_id ${personnelJoin}
        WHERE u.organization_id=$1 AND u.user_scope='CLIENT' ORDER BY u.full_name`, [req.user.organizationId]
     );
     res.json(rows);
@@ -37,6 +47,8 @@ async function crearUsuario(req, res, next) {
     if (password.length < 8) throw new HttpError(400, "La contraseña debe tener al menos 8 caracteres.", "WEAK_PASSWORD");
     await client.query("BEGIN");
     await assertUserCapacity(client, req.user.organizationId);
+    const supportsPersonnel = await supportsPersonnelLink(client);
+    if (personnelId && !supportsPersonnel) throw new HttpError(409, "La asociación con empleados requiere habilitación en la base de datos.", "PERSONNEL_LINK_NOT_AVAILABLE");
     const role = await client.query("SELECT id FROM roles WHERE code=$1", [roleCode]);
     if (!role.rows[0]) throw new HttpError(400, "El rol seleccionado no es válido.", "INVALID_ROLE");
     let linkedPersonnelId = null;
@@ -49,11 +61,13 @@ async function crearUsuario(req, res, next) {
       fullName = personnel.rows[0].full_name;
     }
     const hash = await bcrypt.hash(password, 12);
-    const { rows } = await client.query(
-      `INSERT INTO users(organization_id,role_id,full_name,username,password_hash,user_scope,is_platform_admin,created_by,personnel_id)
-       VALUES($1,$2,$3,LOWER($4),$5,'CLIENT',FALSE,$6,$7) RETURNING id`,
-      [req.user.organizationId,role.rows[0].id,fullName.trim(),username.trim(),hash,req.user.id,linkedPersonnelId]
-    );
+    const { rows } = supportsPersonnel
+      ? await client.query(`INSERT INTO users(organization_id,role_id,full_name,username,password_hash,user_scope,is_platform_admin,created_by,personnel_id)
+          VALUES($1,$2,$3,LOWER($4),$5,'CLIENT',FALSE,$6,$7) RETURNING id`,
+        [req.user.organizationId,role.rows[0].id,fullName.trim(),username.trim(),hash,req.user.id,linkedPersonnelId])
+      : await client.query(`INSERT INTO users(organization_id,role_id,full_name,username,password_hash,user_scope,is_platform_admin,created_by)
+          VALUES($1,$2,$3,LOWER($4),$5,'CLIENT',FALSE,$6) RETURNING id`,
+        [req.user.organizationId,role.rows[0].id,fullName.trim(),username.trim(),hash,req.user.id]);
     await client.query("COMMIT");
     await audit(req,"USER_CREATED","users",rows[0].id,{ username,roleCode });
     res.status(201).json({ id:rows[0].id,message:"Usuario creado correctamente." });
@@ -69,6 +83,8 @@ async function actualizarUsuario(req, res, next) {
     if (!/^[a-zA-Z0-9._-]{3,60}$/.test(username)) throw new HttpError(400,"El nombre de usuario no tiene un formato válido.","INVALID_USERNAME");
     if (req.params.id === req.user.id && status !== "ACTIVE") throw new HttpError(400,"No puedes dar de baja tu propia cuenta.","SELF_DISABLE");
     await client.query("BEGIN");
+    const supportsPersonnel = await supportsPersonnelLink(client);
+    if (personnelId && !supportsPersonnel) throw new HttpError(409, "La asociación con empleados requiere habilitación en la base de datos.", "PERSONNEL_LINK_NOT_AVAILABLE");
     const current = await client.query("SELECT status FROM users WHERE id=$1 AND organization_id=$2 AND user_scope='CLIENT' FOR UPDATE",[req.params.id,req.user.organizationId]);
     if (!current.rows[0]) throw new HttpError(404,"Usuario no encontrado.","USER_NOT_FOUND");
     if (status === "ACTIVE" && current.rows[0].status !== "ACTIVE") await assertUserCapacity(client,req.user.organizationId,req.params.id);
@@ -81,11 +97,16 @@ async function actualizarUsuario(req, res, next) {
       linkedPersonnelId=personnelId;
       fullName=personnel.rows[0].full_name;
     }
-    await client.query(
+    if (supportsPersonnel) await client.query(
       `UPDATE users SET full_name=$1,username=LOWER($2),status=$3,token_version=token_version+1,
          role_id=(SELECT id FROM roles WHERE code=$4),personnel_id=$7,updated_at=NOW()
        WHERE id=$5 AND organization_id=$6 AND user_scope='CLIENT'`,
       [fullName.trim(),username.trim(),status,roleCode,req.params.id,req.user.organizationId,linkedPersonnelId]
+    ); else await client.query(
+      `UPDATE users SET full_name=$1,username=LOWER($2),status=$3,token_version=token_version+1,
+         role_id=(SELECT id FROM roles WHERE code=$4),updated_at=NOW()
+       WHERE id=$5 AND organization_id=$6 AND user_scope='CLIENT'`,
+      [fullName.trim(),username.trim(),status,roleCode,req.params.id,req.user.organizationId]
     );
     await client.query("DELETE FROM active_user_sessions WHERE user_id=$1",[req.params.id]);
     await client.query("COMMIT");
