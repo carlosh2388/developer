@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../services/api";
 import { useReferenceValues } from "../hooks/useOperationalCatalogs";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
-import { assertUniqueCode, useCatalogList } from "../hooks/useCatalogList";
+import { useCatalogList } from "../hooks/useCatalogList";
 
 function Productos() {
   const referencias = useReferenceValues(["PRODUCT_TYPE", "UNIT", "VACCINE_KIND"]);
@@ -36,27 +36,20 @@ function Productos() {
   // CAMBIO DE TIPO INVENTARIO
   // =========================
 
-  const handleTipo = (e) => {
+  const handleTipo = async (e) => {
     const value = e.target.value;
 
     setTipoInventario(value);
-
-    const prefijos = {
-      AD: "AD01 Automatico",
-      AL: "AL01 Automatico",
-      HC: "HC01 Automatico",
-      HI: "HI01 Automatico",
-      IN: "IN01 Automatico",
-      ME: "ME01 Automatico",
-      MD: "MD01 Automatico",
-      VA: "VA01 Automatico"
-    };
 
     if (value) {
       setMostrarGenerales(true);
       setMostrarGuardar(true);
 
-      setHelpId(prefijos[value] || "");
+      setHelpId(`${value}01 Automático`);
+      try {
+        const next = await api(`/productos/siguiente?tipo=${encodeURIComponent(value)}`);
+        setIdProducto(next.code);
+      } catch (error) { setIdProducto(""); alert(error.message); }
 
       if (value === "MD" || value === "VA") {
         setMostrarInsumos(true);
@@ -68,18 +61,13 @@ function Productos() {
       setMostrarInsumos(false);
       setMostrarGuardar(false);
       setHelpId("");
+      setIdProducto("");
     }
   };
 
   // =========================
   // MÁSCARA ID PRODUCTO
   // =========================
-
-  const handleIdProducto = (e) => {
-    setIdProducto(
-      e.target.value.toUpperCase()
-    );
-  };
 
   // =========================
   // SUBMIT
@@ -89,17 +77,20 @@ function Productos() {
     e.preventDefault();
     const units = { Caja: "BOX", Gramo: "GRAM", Kilogramo: "KILOGRAM", Libra: "POUND", Quintal: "QUINTAL" };
     try {
-      assertUniqueCode(list.rows, idProducto, "código de producto", editingId);
-      await api(editingId ? `/productos/${editingId}` : "/productos", { method: editingId ? "PUT" : "POST", body: JSON.stringify({
-        tipoProducto: tipoInventario, codigo: idProducto, nombre, unidad: units[unidad] || unidad,
+      const saved = await api(editingId ? `/productos/${editingId}` : "/productos", { method: editingId ? "PUT" : "POST", body: JSON.stringify({
+        ...(!editingId ? { tipoProducto: tipoInventario } : {}), nombre, unidad: units[unidad] || unidad,
         estado: estado === "Activo" ? "ACTIVE" : "INACTIVE", precioVenta: precio || 0,
         existenciaInicial: existencia || 0, costoEstandar: costo || 0, presentacion,
         enfermedadObjetivo: enfermedad, dosis, tipoVacuna: tipo || null,
       }) });
-      alert("Producto guardado correctamente");
+      alert(`Producto ${saved.code} guardado correctamente`);
       setIdProducto(""); setNombre(""); setPrecio(""); setExistencia(""); setCosto("");
       setEditingId(null);
       await list.reload();
+      if (tipoInventario) {
+        const next = await api(`/productos/siguiente?tipo=${encodeURIComponent(tipoInventario)}`);
+        setIdProducto(next.code);
+      }
     } catch (error) { alert(error.message); }
   };
 
@@ -149,6 +140,7 @@ function Productos() {
         <select
           value={tipoInventario}
           onChange={handleTipo}
+          disabled={Boolean(editingId)}
           style={inputStyle}
         >
           <option value="">
@@ -176,7 +168,7 @@ function Productos() {
               <input
                 type="text"
                 value={idProducto}
-                onChange={handleIdProducto}
+                readOnly
                 placeholder={helpId}
                 style={inputStyle}
               />

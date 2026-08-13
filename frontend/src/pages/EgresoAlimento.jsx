@@ -14,7 +14,7 @@ function EgresoAlimento() {
   const [galeraSeleccionada, setGaleraSeleccionada] =
     useState("");
 
-  const galeras = opciones("galeras").map((x) => x.value);
+  const galeras = opciones("galeras");
   const alimentosOptions = productosPorTipo(["AL"]).map((x) => x.value);
   const aditivosDisponibles = productosPorTipo(["AD"]).map((x) => x.value);
   const medicamentosDisponibles = productosPorTipo(["MD"]).map((x) => x.value);
@@ -338,10 +338,10 @@ function EgresoAlimento() {
 
             {galeras.map(g => (
               <option
-                key={g}
-                value={g}
+                key={g.value}
+                value={g.value}
               >
-                {g}
+                {g.label}
               </option>
             ))}
           </select>
@@ -367,7 +367,7 @@ function EgresoAlimento() {
               marginBottom: "20px"
             }}
           >
-            <h3>{grupo.galera}</h3>
+            <h3>{galeras.find((item) => item.value === grupo.galera)?.label || grupo.galera}</h3>
 
             <div
               style={{

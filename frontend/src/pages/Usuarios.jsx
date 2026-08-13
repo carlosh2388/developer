@@ -7,11 +7,13 @@ const emptyForm = {
   password: "",
   roleCode: "OPERATOR",
   status: "ACTIVE",
+  personnelId: "",
 };
 
 export default function Usuarios() {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [personnel, setPersonnel] = useState([]);
   const [quota, setQuota] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [editing, setEditing] = useState(null);
@@ -23,14 +25,16 @@ export default function Usuarios() {
   const filteredUsers = users.filter((user) => `${user.full_name} ${user.username} ${user.role_name} ${user.status}`.toLowerCase().includes(userSearch.toLowerCase()));
   const load = useCallback(async () => {
     try {
-      const [u, r, q] = await Promise.all([
+      const [u, r, q, p] = await Promise.all([
         api("/usuarios"),
         api("/usuarios/roles"),
         api("/usuarios/quota"),
+        api("/personal"),
       ]);
       setUsers(u);
       setRoles(r);
       setQuota(q);
+      setPersonnel(p);
     } catch (e) {
       setMessage({ type: "error", text: e.message });
     } finally {
@@ -49,6 +53,7 @@ export default function Usuarios() {
       password: "",
       roleCode: user.role_code,
       status: user.status,
+      personnelId: user.personnel_id || "",
     });
   }
   function cancel() {
@@ -152,8 +157,17 @@ export default function Usuarios() {
             <input
               value={form.fullName}
               onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+              readOnly={Boolean(form.personnelId)}
               required
             />
+          </label>
+          <label>
+            Empleado asociado (opcional)
+            <select value={form.personnelId} onChange={(e) => { const personnelId = e.target.value; const employee = personnel.find((item) => item.id === personnelId); setForm({ ...form, personnelId, ...(employee ? { fullName: employee.fullName } : {}) }); }}>
+              <option value="">Sin empleado asociado</option>
+              {personnel.filter((employee) => employee.status === "ACTIVE" && (!users.some((user) => user.personnel_id === employee.id) || employee.id === form.personnelId)).map((employee) => <option key={employee.id} value={employee.id}>{employee.code} - {employee.fullName}</option>)}
+            </select>
+            <small>El puesto laboral no modifica los permisos del usuario.</small>
           </label>
           <label>
             Nombre de usuario
@@ -230,6 +244,7 @@ export default function Usuarios() {
                   <tr>
                     <th>Usuario</th>
                     <th>Rol</th>
+                    <th>Empleado</th>
                     <th>Estado</th>
                     <th>Último acceso</th>
                     <th>Acciones</th>
@@ -243,6 +258,7 @@ export default function Usuarios() {
                         <small>@{u.username}</small>
                       </td>
                       <td>{u.role_name}</td>
+                      <td>{u.personnel_name || "Sin asociación"}</td>
                       <td>
                         <span className={`badge ${u.status.toLowerCase()}`}>
                           {u.status === "ACTIVE"

@@ -256,6 +256,20 @@ async function obtenerHuevos(req, res, next) {
       WHERE l.movement_id=$1 AND l.organization_id=$2 ORDER BY l.line_number`,[req.params.id,orgId]); res.json({...header.rows[0],detalles:details.rows});
   } catch(error){next(error);} }
 
+async function siguienteEnvioHuevos(req, res, next) {
+  try {
+    const { rows } = await db.query(
+      `SELECT COALESCE(MAX(substring(shipment_number FROM 3)::integer),0) last_number
+       FROM egg_movements
+       WHERE organization_id=$1 AND movement_type='OUTPUT' AND shipment_number ~ '^EN[0-9]+$'`,
+      [organizationId(req)]
+    );
+    const nextNumber = Number(rows[0].last_number || 0) + 1;
+    if (nextNumber > 999) throw new HttpError(409, "Se alcanzó el límite de números de envío EN999.", "SHIPMENT_LIMIT_REACHED");
+    res.json({ shipmentNumber: `EN${String(nextNumber).padStart(3, "0")}` });
+  } catch (error) { next(error); }
+}
+
 async function crearMovimientoHuevos(req, res, next) {
   try {
     const orgId = organizationId(req);
@@ -275,14 +289,27 @@ async function crearMovimientoHuevos(req, res, next) {
         header=await client.query(`UPDATE egg_movements SET movement_type=$1,movement_date=$2,movement_time=$3,production_date=$4,source_warehouse_id=$5,destination_warehouse_id=$6,destination_type=$7,destination_name=$8,customer_id=$9,vehicle_id=$10,driver_id=$11,notes=$12,updated_by=$13,updated_at=NOW() WHERE id=$14 AND organization_id=$15 RETURNING *`,
           [required(body.tipoMovimiento,"tipoMovimiento"),required(body.fecha,"fecha"),body.hora||null,body.fechaProduccion||null,sourceWarehouseId,destinationWarehouseId,body.tipoDestino||null,body.nombreDestino||null,customerId,vehicleId,driverId,body.observaciones||null,req.user.id,req.params.id,orgId]);
         await client.query("DELETE FROM egg_movement_lines WHERE movement_id=$1 AND organization_id=$2",[req.params.id,orgId]);
-      } else header = await client.query(
-        `INSERT INTO egg_movements(organization_id,movement_type,movement_date,movement_time,production_date,source_warehouse_id,destination_warehouse_id,destination_type,destination_name,customer_id,vehicle_id,driver_id,notes,created_by)
-         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+      } else {
+        let shipmentNumber = null;
+        if (body.tipoMovimiento === "OUTPUT") {
+          await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:EGG-SHIPMENT`]);
+          const sequence = await client.query(
+            `SELECT COALESCE(MAX(substring(shipment_number FROM 3)::integer),0) + 1 next_number
+             FROM egg_movements WHERE organization_id=$1 AND movement_type='OUTPUT' AND shipment_number ~ '^EN[0-9]+$'`, [orgId]
+          );
+          const nextNumber = Number(sequence.rows[0].next_number);
+          if (nextNumber > 999) throw new HttpError(409, "Se alcanzó el límite de números de envío EN999.", "SHIPMENT_LIMIT_REACHED");
+          shipmentNumber = `EN${String(nextNumber).padStart(3, "0")}`;
+        }
+        header = await client.query(
+        `INSERT INTO egg_movements(organization_id,movement_type,movement_date,movement_time,production_date,source_warehouse_id,destination_warehouse_id,destination_type,destination_name,customer_id,vehicle_id,driver_id,notes,shipment_number,created_by)
+         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
         [orgId, required(body.tipoMovimiento, "tipoMovimiento"), required(body.fecha, "fecha"), body.hora || null,
           body.fechaProduccion || null, sourceWarehouseId, destinationWarehouseId, body.tipoDestino || null,
           body.nombreDestino || null, customerId, vehicleId, driverId,
-          body.observaciones || null, req.user.id]
+          body.observaciones || null, shipmentNumber, req.user.id]
       );
+      }
       const lines = [];
       for (let index = 0; index < detalles.length; index += 1) {
         const d = detalles[index];
@@ -510,7 +537,7 @@ async function crearPesoHuevos(req, res, next) {
 module.exports = {
   listarInventario, obtenerInventario, crearInventario, actualizarInventario, anularInventario,
   anularOperacion,
-  listarHuevos, obtenerHuevos, crearMovimientoHuevos, listarClasificacionesHuevos, listarExistenciasHuevos,
+  listarHuevos, obtenerHuevos, crearMovimientoHuevos, listarClasificacionesHuevos, listarExistenciasHuevos, siguienteEnvioHuevos,
   listarEgresosAves, obtenerEgresoAves, crearEgresoAves,
   listarPesoAves, obtenerPesoAves, crearPesoAves,
   listarPesoHuevos, obtenerPesoHuevos, crearPesoHuevos,

@@ -22,6 +22,10 @@
     "db:migrate:lifecycle": "node scripts/runMigration.js 005_operation_lifecycle.sql",
     "db:migrate:inventory-edit": "node scripts/runMigration.js 006_inventory_edit_audit.sql",
     "db:migrate:operation-edit": "node scripts/runMigration.js 007_operation_edit_audit.sql",
+    "db:migrate:weight-week": "node scripts/runMigration.js 008_weight_week_zero.sql",
+    "db:migrate:house-codes": "node scripts/runMigration.js 009_house_codes.sql",
+    "db:migrate:egg-shipments": "node scripts/runMigration.js 010_egg_shipment_numbers.sql",
+    "db:migrate:user-personnel": "node scripts/runMigration.js 011_user_personnel.sql",
     "test": "node --test"
   },
   "keywords": [],

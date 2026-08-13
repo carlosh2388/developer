@@ -23,7 +23,7 @@ function EgresoInsumos() {
   const medicamentos = productosPorTipo(["MD"]).map((x) => x.value);
   const aditivos = productosPorTipo(["AD"]).map((x) => x.value);
   const materiales = productosPorTipo(["ME", "IN"]).map((x) => x.value);
-  const galeras = opciones("galeras").map((x) => x.value);
+  const galeras = opciones("galeras");
 
   // =========================
   // FILAS
@@ -131,7 +131,7 @@ function EgresoInsumos() {
   const guardar = async (e) => {
     e.preventDefault();
     try { await saveInventory({ id: editingId, fecha, rows: filas, movementType: "OUTPUT", module: "SUPPLIES", allocate: true });
-      alert(editingId ? "Egreso actualizado correctamente" : "Egreso de insumos registrado correctamente"); setFilas([]); setEditingId(null);
+      alert(editingId ? "Otro egreso actualizado correctamente" : "Otro egreso registrado correctamente"); setFilas([]); setEditingId(null);
     } catch (error) { alert(error.message); }
   };
 
@@ -176,7 +176,7 @@ function EgresoInsumos() {
   // RENDER
   // =========================
 
-  return (<OperationPanel maxWidth={1000}><OperationRecordsModal title="Egresos de insumos" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={inventoryColumns} rowFilter={(row) => row.movement_type === "OUTPUT" && row.module_code === "SUPPLIES"} onEdit={cargarEdicion}/>
+  return (<OperationPanel maxWidth={1000}><OperationRecordsModal title="Otros egresos" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={inventoryColumns} rowFilter={(row) => row.movement_type === "OUTPUT" && row.module_code === "SUPPLIES"} onEdit={cargarEdicion}/>
 
     <div
       style={{
@@ -187,7 +187,7 @@ function EgresoInsumos() {
       }}
     >
 
-      <h2>Egreso de Insumos</h2>
+      <h2>Otros egresos</h2>
 
       {/* FECHA */}
       <div style={{ marginBottom: "15px" }}>
@@ -308,8 +308,8 @@ function EgresoInsumos() {
                       >
                         <option value="">Seleccione</option>
                         {galeras.map(opt => (
-                          <option key={opt} value={opt}>
-                            {opt}
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
                           </option>
                         ))}
                       </select>

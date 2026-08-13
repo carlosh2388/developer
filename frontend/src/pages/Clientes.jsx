@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import { useReferenceValues } from "../hooks/useOperationalCatalogs";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
-import { assertUniqueCode, useCatalogList } from "../hooks/useCatalogList";
+import { useCatalogList } from "../hooks/useCatalogList";
 
 function Clientes() {
   const referencias = useReferenceValues(["CUSTOMER_REGION", "CUSTOMER_CATEGORY"]);
@@ -26,6 +26,9 @@ function Clientes() {
 
   const [ubicaciones, setUbicaciones] = useState([]);
   const [editingId, setEditingId] = useState(null);
+
+  const cargarSiguienteCodigo = () => api("/clientes/siguiente").then((data) => setCodigoCliente(data.code)).catch((error) => alert(error.message));
+  useEffect(() => { cargarSiguienteCodigo(); }, []);
 
   // =========================
   // UBICACIONES
@@ -79,15 +82,15 @@ function Clientes() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      assertUniqueCode(list.rows, codigoCliente, "código de cliente", editingId);
       await api(editingId ? `/clientes/${editingId}` : "/clientes", { method: editingId ? "PUT" : "POST", body: JSON.stringify({
-        codigo: codigoCliente, telefono, correo, contacto, nombreComercial,
+        telefono, correo, contacto, nombreComercial,
         region, categoria, precioCajaSuperNick, precioCajaBrownNick, ubicaciones,
       }) });
       alert("Cliente guardado correctamente");
       setCodigoCliente(""); setNombreComercial(""); setContacto(""); setTelefono(""); setCorreo(""); setUbicaciones([]);
       setEditingId(null);
       await list.reload();
+      await cargarSiguienteCodigo();
     } catch (error) { alert(error.message); }
   };
 
@@ -176,9 +179,7 @@ function Clientes() {
           <label>Código de Cliente</label>
           <input
             value={codigoCliente}
-            onChange={(e) =>
-              setCodigoCliente(e.target.value.toUpperCase())
-            }
+            readOnly
             style={inputStyle}
           />
         </div>

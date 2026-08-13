@@ -1,0 +1,11 @@
+export function notify(message, type = "info", title) {
+  window.dispatchEvent(new CustomEvent("avinext:notify", { detail: { message: String(message || ""), type, title } }));
+}
+
+export function notificationType(message) {
+  const text = String(message || "").toLowerCase();
+  if (/guardad|registrad|actualizad|cread|completad|correctamente|éxito|exito/.test(text)) return "success";
+  if (/expir|sesión|sesion|advert|selecciona|obligatori|confirm|inactiv/.test(text)) return "warning";
+  if (/error|no fue|no se pudo|inválid|invalid|rechaz|falta|no existe|incorrect/.test(text)) return "error";
+  return "info";
+}

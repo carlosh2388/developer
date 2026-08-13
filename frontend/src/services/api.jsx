@@ -1,4 +1,5 @@
 import { API_URL } from "../config";
+import { notify } from "./notifications";
 
 export async function api(path, options = {}) {
   const token = localStorage.getItem("avinext_token");
@@ -18,6 +19,12 @@ export async function api(path, options = {}) {
     const error = new Error(data.message || "No fue posible completar la solicitud.");
     error.code = data.code;
     error.status = response.status;
+    const sessionCodes = ["TOKEN_EXPIRED", "SESSION_REVOKED", "TOKEN_INVALID", "TOKEN_REQUIRED"];
+    if (response.status === 401 && token && sessionCodes.includes(error.code)) {
+      localStorage.removeItem("avinext_token");
+      notify(error.message, "warning", "Sesión finalizada");
+      window.dispatchEvent(new CustomEvent("avinext:session-expired"));
+    }
     throw error;
   }
   if (options.method && !["GET", "HEAD"].includes(options.method.toUpperCase())) {

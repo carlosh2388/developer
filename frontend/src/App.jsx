@@ -20,8 +20,6 @@ import IngresoAlimento from "./pages/IngresoAlimento";
 import EgresoAlimento from "./pages/EgresoAlimento";
 import IngresoHuevos from "./pages/IngresoHuevos";
 import EgresoHuevos from "./pages/EgresoHuevos";
-import OtrosIngresos from "./pages/OtrosIngresos";
-import OtrosEgresos from "./pages/OtrosEgresos";
 import AjustesEntrada from "./pages/AjustesEntrada";
 import AjusteSalida from "./pages/AjusteSalida";
 import EgresoReproductores from "./pages/EgresoReproductores";
@@ -29,6 +27,8 @@ import IngresoInsumos from "./pages/IngresoInsumos";
 import EgresoInsumos from "./pages/EgresoInsumos";
 import LineasAvicolas from "./pages/LineasAvicolas";
 import Reportes from "./pages/Reportes";
+import Empleados from "./pages/Empleados";
+import { notify } from "./services/notifications";
 
 const views = {
   lotes: <Lotes />,
@@ -43,14 +43,13 @@ const views = {
   EgresoAlimento: <EgresoAlimento />,
   ingresoHuevos: <IngresoHuevos />,
   egresoHuevos: <EgresoHuevos />,
-  OtrosIngresos: <OtrosIngresos />,
-  OtrosEgresos: <OtrosEgresos />,
   AjustesEntrada: <AjustesEntrada />,
   AjusteSalida: <AjusteSalida />,
   EgresoReproductores: <EgresoReproductores />,
   IngresoInsumos: <IngresoInsumos />,
   EgresoInsumos: <EgresoInsumos />,
   lineasAvicolas: <LineasAvicolas />,
+  empleados: <Empleados />,
 };
 
 export default function App() {
@@ -86,6 +85,35 @@ export default function App() {
       })
       .finally(() => setChecking(false));
   }, [activated]);
+  useEffect(() => {
+    const sessionExpired = () => {
+      setShowChangePassword(false);
+      setUser(null);
+      setVista("inicio");
+    };
+    window.addEventListener("avinext:session-expired", sessionExpired);
+    return () => window.removeEventListener("avinext:session-expired", sessionExpired);
+  }, []);
+  useEffect(() => {
+    if (!user) return undefined;
+    const token = localStorage.getItem("avinext_token");
+    try {
+      const encodedPayload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+      const paddedPayload = encodedPayload.padEnd(Math.ceil(encodedPayload.length / 4) * 4, "=");
+      const payload = JSON.parse(atob(paddedPayload));
+      const remaining = Number(payload.exp) * 1000 - Date.now();
+      const expire = () => {
+        localStorage.removeItem("avinext_token");
+        notify("Tu sesión ha expirado por seguridad. Inicia sesión nuevamente.", "warning", "Sesión finalizada");
+        window.dispatchEvent(new CustomEvent("avinext:session-expired"));
+      };
+      if (remaining <= 0) { expire(); return undefined; }
+      const timer = window.setTimeout(expire, remaining);
+      return () => window.clearTimeout(timer);
+    } catch (_error) {
+      return undefined;
+    }
+  }, [user]);
   async function logout() {
     try {
       await api("/auth/logout", { method: "POST" });

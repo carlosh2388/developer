@@ -98,6 +98,206 @@ function validateRequired(config, values) {
   if (missing.length) throw new HttpError(400, `Faltan campos obligatorios: ${missing.join(", ")}.`, "VALIDATION_ERROR");
 }
 
+async function nextPrefixedCode(queryable, table, orgId, prefix) {
+  const { rows } = await queryable.query(
+    `SELECT COALESCE(MAX(substring(code FROM $2 || '([0-9]+)$')::integer),0) last_number
+     FROM ${table} WHERE organization_id=$1 AND upper(code) ~ ('^' || $2 || '[0-9]+$')`,
+    [orgId, prefix]
+  );
+  return `${prefix}${String(Number(rows[0].last_number || 0) + 1).padStart(2, "0")}`;
+}
+
+function siguienteCodigo(table, prefix) {
+  return async (req, res, next) => {
+    try { res.json({ code: await nextPrefixedCode(db, table, organizationId(req), prefix) }); }
+    catch (error) { next(error); }
+  };
+}
+
+async function crearProveedor(req, res, next) {
+  const client = await db.connect();
+  try {
+    const orgId = organizationId(req);
+    const values = valuesFromBody(catalogos.proveedores, req.body || {});
+    delete values.code;
+    validateRequired(catalogos.proveedores, { ...values, code: "AUTO" });
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:PR`]);
+    values.code = await nextPrefixedCode(client, "suppliers", orgId, "PR");
+    values.created_by = req.user.id;
+    const columns = ["organization_id", ...Object.keys(values)];
+    const params = [orgId, ...Object.values(values)];
+    const placeholders = params.map((_value, index) => `$${index + 1}`);
+    const { rows } = await client.query(
+      `INSERT INTO suppliers (${columns.join(",")}) VALUES (${placeholders.join(",")}) RETURNING *`, params
+    );
+    await client.query("COMMIT");
+    res.status(201).json(serialize(rows[0]));
+  } catch (error) { await client.query("ROLLBACK"); next(error); }
+  finally { client.release(); }
+}
+
+const productPrefixes = new Set(["AD", "AL", "HC", "HI", "IN", "ME", "MD", "VA"]);
+
+async function siguienteProducto(req, res, next) {
+  try {
+    const type = String(req.query.tipo || "").trim().toUpperCase();
+    if (!productPrefixes.has(type)) throw new HttpError(400, "El tipo de producto seleccionado no es válido.", "INVALID_PRODUCT_TYPE");
+    res.json({ code: await nextPrefixedCode(db, "products", organizationId(req), type) });
+  } catch (error) { next(error); }
+}
+
+async function crearProducto(req, res, next) {
+  const client = await db.connect();
+  try {
+    const orgId = organizationId(req);
+    const values = valuesFromBody(catalogos.productos, req.body || {});
+    delete values.code;
+    const type = String(values.product_type || "").trim().toUpperCase();
+    if (!productPrefixes.has(type)) throw new HttpError(400, "El tipo de producto seleccionado no es válido.", "INVALID_PRODUCT_TYPE");
+    values.product_type = type;
+    validateRequired(catalogos.productos, { ...values, code: "AUTO" });
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:PRODUCT:${type}`]);
+    values.code = await nextPrefixedCode(client, "products", orgId, type);
+    values.created_by = req.user.id;
+    const columns = ["organization_id", ...Object.keys(values)];
+    const params = [orgId, ...Object.values(values)];
+    const placeholders = params.map((_value, index) => `$${index + 1}`);
+    const { rows } = await client.query(
+      `INSERT INTO products (${columns.join(",")}) VALUES (${placeholders.join(",")}) RETURNING *`, params
+    );
+    await client.query("COMMIT");
+    res.status(201).json(serialize(rows[0]));
+  } catch (error) { await client.query("ROLLBACK"); next(error); }
+  finally { client.release(); }
+}
+
+async function crearGalera(req, res, next) {
+  const client = await db.connect();
+  try {
+    const orgId = organizationId(req);
+    const values = valuesFromBody(catalogos.galeras, req.body || {});
+    delete values.code;
+    validateRequired(catalogos.galeras, { ...values, code: "AUTO" });
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:GA`]);
+    values.code = await nextPrefixedCode(client, "houses", orgId, "GA");
+    const columns = ["organization_id", ...Object.keys(values)];
+    const params = [orgId, ...Object.values(values)];
+    const placeholders = params.map((_value, index) => `$${index + 1}`);
+    const { rows } = await client.query(
+      `INSERT INTO houses (${columns.join(",")}) VALUES (${placeholders.join(",")}) RETURNING *`, params
+    );
+    await client.query("COMMIT");
+    res.status(201).json(serialize(rows[0]));
+  } catch (error) { await client.query("ROLLBACK"); next(error); }
+  finally { client.release(); }
+}
+
+async function nextFlockCode(queryable, orgId, lineId) {
+  const lineResult = await queryable.query(
+    "SELECT id,code,name FROM poultry_lines WHERE id=$1 AND organization_id=$2 AND status='ACTIVE'",
+    [lineId, orgId]
+  );
+  const line = lineResult.rows[0];
+  if (!line) throw new HttpError(400, "La línea avícola seleccionada no existe o está inactiva.", "INVALID_POULTRY_LINE");
+  const prefix = String(line.code || "").trim().toUpperCase();
+  if (!prefix) throw new HttpError(400, "La línea avícola no tiene un identificador válido.", "INVALID_POULTRY_LINE_CODE");
+  const result = await queryable.query(
+    `SELECT COALESCE(MAX(CASE WHEN substring(code FROM length($2)+1) ~ '^[0-9]+$'
+      THEN substring(code FROM length($2)+1)::integer END),0) AS last_number
+     FROM flocks WHERE organization_id=$1 AND upper(code) LIKE $2 || '%'`,
+    [orgId, prefix]
+  );
+  const nextNumber = Number(result.rows[0].last_number || 0) + 1;
+  return { line, code: `${prefix}${String(nextNumber).padStart(2, "0")}`, nextNumber };
+}
+
+async function listarSiguientesLotes(req, res, next) {
+  try {
+    const orgId = organizationId(req);
+    const { rows: lines } = await db.query(
+      "SELECT id,code,name FROM poultry_lines WHERE organization_id=$1 AND status='ACTIVE' ORDER BY code",
+      [orgId]
+    );
+    const options = [];
+    for (const line of lines) {
+      const nextCode = await nextFlockCode(db, orgId, line.id);
+      options.push({ poultryLineId: line.id, lineCode: line.code, lineName: line.name, code: nextCode.code });
+    }
+    res.json(options);
+  } catch (error) { next(error); }
+}
+
+async function crearLote(req, res, next) {
+  const client = await db.connect();
+  try {
+    const orgId = organizationId(req);
+    const values = valuesFromBody(catalogos.lotes, req.body || {});
+    delete values.code;
+    validateRequired(catalogos.lotes, { ...values, code: "AUTO" });
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:${values.poultry_line_id}`]);
+    const generated = await nextFlockCode(client, orgId, values.poultry_line_id);
+    values.code = generated.code;
+    values.created_by = req.user.id;
+    const columns = ["organization_id", ...Object.keys(values)];
+    const params = [orgId, ...Object.values(values)];
+    const placeholders = params.map((_value, index) => `$${index + 1}`);
+    const { rows } = await client.query(
+      `INSERT INTO flocks (${columns.join(",")}) VALUES (${placeholders.join(",")}) RETURNING *`, params
+    );
+    await client.query("COMMIT");
+    res.status(201).json(serialize(rows[0]));
+  } catch (error) {
+    await client.query("ROLLBACK");
+    next(error);
+  } finally { client.release(); }
+}
+
+async function actualizarLote(req, res, next) {
+  try {
+    const orgId = organizationId(req);
+    const values = valuesFromBody(catalogos.lotes, req.body || {});
+    if (!Object.keys(values).length) throw new HttpError(400, "No se enviaron campos para actualizar.", "VALIDATION_ERROR");
+
+    const currentResult = await db.query(
+      "SELECT * FROM flocks WHERE id=$1 AND organization_id=$2",
+      [req.params.id, orgId]
+    );
+    const current = currentResult.rows[0];
+    if (!current) throw new HttpError(404, "El registro solicitado no existe.", "NOT_FOUND");
+
+    if (values.code !== undefined) {
+      const lineId = values.poultry_line_id || current.poultry_line_id;
+      const lineResult = await db.query(
+        "SELECT code FROM poultry_lines WHERE id=$1 AND organization_id=$2",
+        [lineId, orgId]
+      );
+      const line = lineResult.rows[0];
+      if (!line) throw new HttpError(400, "La línea avícola del lote no existe.", "INVALID_POULTRY_LINE");
+      const prefix = String(line.code || "").trim().toUpperCase();
+      const suppliedCode = String(values.code || "").trim().toUpperCase();
+      const suffix = suppliedCode.slice(prefix.length);
+      if (!suppliedCode.startsWith(prefix) || !/^\d+$/.test(suffix)) {
+        throw new HttpError(400, `El lote debe iniciar con ${prefix} y terminar con un correlativo numérico.`, "INVALID_FLOCK_CODE");
+      }
+      values.code = `${prefix}${suffix.padStart(2, "0")}`;
+    }
+
+    const params = Object.values(values);
+    const assignments = Object.keys(values).map((column, index) => `${column}=$${index + 1}`);
+    assignments.push("updated_at=NOW()");
+    params.push(req.params.id, orgId);
+    const { rows } = await db.query(
+      `UPDATE flocks SET ${assignments.join(",")} WHERE id=$${params.length - 1} AND organization_id=$${params.length} RETURNING *`,
+      params
+    );
+    res.json(serialize(rows[0]));
+  } catch (error) { next(error); }
+}
+
 function catalogController(name) {
   const config = catalogos[name];
   return {
@@ -129,6 +329,8 @@ function catalogController(name) {
     async actualizar(req, res, next) {
       try {
         const values = valuesFromBody(config, req.body || {});
+        if (["suppliers", "products", "houses"].includes(config.table)) delete values.code;
+        if (config.table === "products") delete values.product_type;
         if (!Object.keys(values).length) throw new HttpError(400, "No se enviaron campos para actualizar.", "VALIDATION_ERROR");
         const params = Object.values(values);
         const assignments = Object.keys(values).map((column, index) => `${column}=$${index + 1}`);
@@ -169,9 +371,11 @@ async function guardarPersonal(req, res, next) {
   const client = await db.connect();
   try {
     const orgId = organizationId(req);
-    const { codigo, nombreCompleto, estado = "ACTIVE", roles = [] } = req.body || {};
-    if (!codigo || !nombreCompleto) throw new HttpError(400, "Código y nombre son obligatorios.", "VALIDATION_ERROR");
+    const { nombreCompleto, estado = "ACTIVE", roles = [] } = req.body || {};
+    if (!nombreCompleto) throw new HttpError(400, "El nombre del empleado es obligatorio.", "VALIDATION_ERROR");
     await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:EM`]);
+    const codigo = await nextPrefixedCode(client, "personnel", orgId, "EM");
     const { rows } = await client.query(
       `INSERT INTO personnel(organization_id,code,full_name,status) VALUES($1,$2,$3,$4) RETURNING *`,
       [orgId, codigo, nombreCompleto, estado]
@@ -199,6 +403,7 @@ async function actualizarPersonal(req, res, next) {
       await client.query("DELETE FROM personnel_roles WHERE personnel_id=$1", [req.params.id]);
       for (const role of body.roles) await client.query("INSERT INTO personnel_roles(personnel_id,role_code) VALUES($1,$2)", [req.params.id, role]);
     }
+    await client.query("UPDATE users SET full_name=$1,updated_at=NOW() WHERE organization_id=$2 AND personnel_id=$3", [updated.rows[0].full_name, orgId, req.params.id]);
     await client.query("COMMIT");
     res.json({ ...serialize(updated.rows[0]), roles: body.roles });
   } catch (error) { await client.query("ROLLBACK"); next(error); }
@@ -221,12 +426,14 @@ async function guardarCliente(req, res, next) {
   try {
     const orgId = organizationId(req);
     const body = req.body || {};
-    if (!body.codigo || !body.nombreComercial) throw new HttpError(400, "Código y nombre comercial son obligatorios.", "VALIDATION_ERROR");
+    if (!body.nombreComercial) throw new HttpError(400, "El nombre comercial es obligatorio.", "VALIDATION_ERROR");
     await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:CL`]);
+    const code = await nextPrefixedCode(client, "customers", orgId, "CL");
     const { rows } = await client.query(
       `INSERT INTO customers(organization_id,code,commercial_name,contact_name,phone,email,region_code,category_code,super_nick_box_price,brown_nick_box_price,created_by)
        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-      [orgId, body.codigo, body.nombreComercial, body.contacto || null, body.telefono || null, body.correo || null,
+      [orgId, code, body.nombreComercial, body.contacto || null, body.telefono || null, body.correo || null,
         body.region || null, body.categoria || null, body.precioCajaSuperNick || 0, body.precioCajaBrownNick || 0, req.user.id]
     );
     for (const address of body.ubicaciones || []) {
@@ -254,7 +461,7 @@ async function actualizarCliente(req, res, next) {
       `UPDATE customers SET code=$1,commercial_name=$2,contact_name=$3,phone=$4,email=$5,region_code=$6,category_code=$7,
        super_nick_box_price=$8,brown_nick_box_price=$9,status=$10,updated_at=NOW()
        WHERE id=$11 AND organization_id=$12 RETURNING *`,
-      [body.codigo ?? row.code, body.nombreComercial ?? row.commercial_name, body.contacto ?? row.contact_name,
+      [row.code, body.nombreComercial ?? row.commercial_name, body.contacto ?? row.contact_name,
         body.telefono ?? row.phone, body.correo ?? row.email, body.region ?? row.region_code, body.categoria ?? row.category_code,
         body.precioCajaSuperNick ?? row.super_nick_box_price, body.precioCajaBrownNick ?? row.brown_nick_box_price,
         body.estado ?? row.status, req.params.id, orgId]
@@ -278,5 +485,9 @@ async function actualizarCliente(req, res, next) {
 module.exports = {
   catalogController, listarValores, listarPersonal, guardarPersonal, actualizarPersonal,
   listarClientes, guardarCliente, actualizarCliente,
+  siguienteCliente: siguienteCodigo("customers", "CL"), siguienteProveedor: siguienteCodigo("suppliers", "PR"), crearProveedor,
+  siguienteProducto, crearProducto,
+  crearGalera,
+  listarSiguientesLotes, crearLote, actualizarLote,
   configs: catalogos,
 };

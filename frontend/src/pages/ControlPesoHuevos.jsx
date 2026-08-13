@@ -4,9 +4,10 @@ import { api } from "../services/api";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import OperationRecordsModal from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
+import { calculateFlockWeek } from "../utils/flockWeek";
 
 function ControlPesoHuevos() {
-  const { opciones } = useOperationalCatalogs(["lotes"]);
+  const { opciones, lotes } = useOperationalCatalogs(["lotes"]);
   // =========================
   // STATES
   // =========================
@@ -32,6 +33,12 @@ function ControlPesoHuevos() {
     const hoy = new Date().toISOString().split("T")[0];
     setFecha(hoy);
   }, []);
+
+  useEffect(() => {
+    if (!lote) { setSemana(""); return; }
+    const registroLote = lotes.find((item) => item.code === lote);
+    setSemana(calculateFlockWeek(registroLote?.receivedOn));
+  }, [lote, lotes]);
 
   // =========================
   // CREAR FILAS DINÁMICAS
@@ -261,7 +268,7 @@ useEffect(() => {
           <input
             type="number"
             value={semana}
-            onChange={(e) => setSemana(e.target.value)}
+            readOnly
             style={inputStyle}
           />
         </div>

@@ -14,6 +14,10 @@ function EgresoHuevos() {
 
   const [egreso, setEgreso] = useState("");
 
+  const cargarSiguienteEnvio = () => api("/huevos/envios/siguiente")
+    .then((data) => setEgreso(data.shipmentNumber))
+    .catch((error) => alert(error.message));
+
   const [fecha, setFecha] = useState("");
 
   const [hora, setHora] = useState("");
@@ -180,7 +184,9 @@ const crearFilaComercial = () => ({
     crearLote()
   ]);
   const [editingId, setEditingId] = useState(null);
-  const cargarEdicion = async (row) => { try { const data = await api(`/huevos/movimientos/${row.id}`); const editLots = data.detalles.map((item) => { const classification = item.grade_code.startsWith("INC_") ? "Incubable" : "Comercial"; const lot = crearLote(item.flock_code); lot.clasificacion = classification; const target = classification === "Comercial" ? lot.comercial : lot.incubadora; target[eggGradeLabel(item.grade_code)] = { existencias: item.existing_units, cajaBandejas336: item.boxes_trays_336, cajaCartones360: item.boxes_cartons_360, cajaC360: item.boxes_cartons_360, bandeja84: item.trays_84, carton30: item.cartons_30, unidades: item.loose_units }; return lot; }); setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setHora(String(data.movement_time || "").slice(0, 5)); setFechaProduccion(String(data.production_date || "").slice(0, 10)); setEgreso(data.destination_type || ""); setBodegaSalida(data.source_warehouse_code || ""); setBodegaDestino(data.destination_warehouse_code || data.destination_name || ""); setPlaca(data.vehicle_plate || ""); setPiloto(data.driver_name || ""); setLotes(editLots); } catch (error) { alert(error.message); } };
+  const cargarEdicion = async (row) => { try { const data = await api(`/huevos/movimientos/${row.id}`); const editLots = data.detalles.map((item) => { const classification = item.grade_code.startsWith("INC_") ? "Incubable" : "Comercial"; const lot = crearLote(item.flock_code); lot.clasificacion = classification; const target = classification === "Comercial" ? lot.comercial : lot.incubadora; target[eggGradeLabel(item.grade_code)] = { existencias: item.existing_units, cajaBandejas336: item.boxes_trays_336, cajaCartones360: item.boxes_cartons_360, cajaC360: item.boxes_cartons_360, bandeja84: item.trays_84, carton30: item.cartons_30, unidades: item.loose_units }; return lot; }); setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setHora(String(data.movement_time || "").slice(0, 5)); setFechaProduccion(String(data.production_date || "").slice(0, 10)); setEgreso(data.shipment_number || ""); setBodegaSalida(data.source_warehouse_code || ""); setBodegaDestino(data.destination_warehouse_code || data.destination_name || ""); setPlaca(data.vehicle_plate || ""); setPiloto(data.driver_name || ""); setLotes(editLots); } catch (error) { alert(error.message); } };
+
+  useEffect(() => { cargarSiguienteEnvio(); }, []);
 
   // =====================================================
   // FECHA Y HORA ACTUAL
@@ -603,15 +609,16 @@ const calcularSubTotal = (
       const detalles = lotes.flatMap((item) => {
         const source = item.clasificacion === "Comercial" ? item.comercial : item.incubadora;
         return Object.entries(source || {}).map(([calidad, datos]) => ({
-          lote: item.lote, clasificacion: eggGradeCode(calidad, item.clasificacion), existencia: Number(datos.existencias || 0),
+          lote: item.lote, clasificacion: eggGradeCode(calidad, item.clasificacion),
           ...eggPackageDetail(datos),
         })).filter((d) => d.cajasBandejas336 + d.cajasCartones360 + d.bandejas84 + d.cartones30 + d.unidades > 0);
       });
       await saveOperation("/huevos/movimientos", { tipoMovimiento: "OUTPUT", fecha, hora, fechaProduccion,
         bodegaOrigen: bodegaSalida || undefined, bodegaDestino: bodegaDestino || undefined,
-        tipoDestino: egreso || undefined, nombreDestino: bodegaDestino || undefined, placa: placa || undefined,
+        nombreDestino: bodegaDestino || undefined, placa: placa || undefined,
         piloto: piloto || undefined, detalles }, editingId);
-      alert(editingId ? "Egreso actualizado correctamente" : "Egreso registrado correctamente"); setLotes([crearLote()]); setEditingId(null);
+      alert(editingId ? "Egreso actualizado correctamente" : `Egreso ${egreso} registrado correctamente`); setLotes([crearLote()]); setEditingId(null);
+      await cargarSiguienteEnvio();
     } catch (error) { alert(error.message); }
   };
 
@@ -746,17 +753,8 @@ const calcularSubTotal = (
                         value={
                           row.existencias
                         }
-                        onChange={(
-                          e
-                        ) =>
-                          handleIncubadora(
-                            lote.id,
-                            fila,
-                            "existencias",
-                            e.target
-                              .value
-                          )
-                        }
+                        readOnly
+                        aria-label={`Existencia disponible de ${fila}`}
                       />
 
                     </td>
@@ -1016,17 +1014,8 @@ const calcularSubTotal = (
                         value={
                           row.existencias
                         }
-                        onChange={(
-                          e
-                        ) =>
-                          handleComercial(
-                            lote.id,
-                            fila,
-                            "existencias",
-                            e.target
-                              .value
-                          )
-                        }
+                        readOnly
+                        aria-label={`Existencia disponible de ${fila}`}
                       />
 
                     </td>
@@ -1166,11 +1155,7 @@ const calcularSubTotal = (
 
           <input
             value={egreso}
-            onChange={(e) =>
-              setEgreso(
-                e.target.value
-              )
-            }
+            readOnly
           />
 
         </div>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import { useReferenceValues } from "../hooks/useOperationalCatalogs";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
-import { assertUniqueCode, useCatalogList } from "../hooks/useCatalogList";
+import { useCatalogList } from "../hooks/useCatalogList";
 
 function Lotes() {
   const referencias = useReferenceValues(["CURRENCY"]);
@@ -15,6 +15,7 @@ function Lotes() {
   const [fecha, setFecha] = useState("");
 
   const [lineas, setLineas] = useState([]);
+  const [lotesDisponibles, setLotesDisponibles] = useState([]);
 
   const [galeras, setGaleras] = useState([]);
   const [proveedores, setProveedores] = useState([]);
@@ -61,7 +62,7 @@ function Lotes() {
     if (!nuevaGalera.trim()) return;
     try {
       const nueva = await api("/galeras", { method: "POST", body: JSON.stringify({
-        codigo: `GAL-${Date.now().toString().slice(-6)}`, nombre: nuevaGalera.trim(), estado: "ACTIVE",
+        nombre: nuevaGalera.trim(), estado: "ACTIVE",
       }) });
       setGaleras([...galeras, nueva]); setGalera(nueva.id); setNuevaGalera(""); setMostrarNuevaGalera(false);
     } catch (error) { alert(error.message); }
@@ -88,12 +89,13 @@ function Lotes() {
 
   useEffect(() => {
     setFechaActual();
-    Promise.allSettled([api("/lineas-avicolas"), api("/galeras"), api("/proveedores")])
-      .then(([lines, houses, suppliers]) => {
+    Promise.allSettled([api("/lineas-avicolas"), api("/galeras"), api("/proveedores"), api("/lotes/siguientes")])
+      .then(([lines, houses, suppliers, nextFlocks]) => {
         if (lines.status === "fulfilled") setLineas(lines.value);
         if (houses.status === "fulfilled") setGaleras(houses.value);
         if (suppliers.status === "fulfilled") setProveedores(suppliers.value);
-        const failed = [lines, houses, suppliers].find((result) => result.status === "rejected");
+        if (nextFlocks.status === "fulfilled") setLotesDisponibles(nextFlocks.value);
+        const failed = [lines, houses, suppliers, nextFlocks].find((result) => result.status === "rejected");
         if (failed) alert(failed.reason.message);
       });
   }, []);
@@ -105,15 +107,24 @@ function Lotes() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      assertUniqueCode(list.rows, lote, "número de lote", editingId);
-      await api(editingId ? `/lotes/${editingId}` : "/lotes", { method: editingId ? "PUT" : "POST", body: JSON.stringify({ codigo: lote, fechaRecepcion: fecha,
+      if (!linea) throw new Error("Selecciona primero una línea avícola.");
+      if (!lote) throw new Error("No se pudo obtener el siguiente correlativo para la línea seleccionada.");
+      const saved = await api(editingId ? `/lotes/${editingId}` : "/lotes", { method: editingId ? "PUT" : "POST", body: JSON.stringify({ ...(editingId ? { codigo: lote } : {}), fechaRecepcion: fecha,
         lineaAvicolaId: linea, galeraId: galera || undefined, proveedorId: proveedor || undefined, paisOrigen: origen,
         cantidadHembras: Number(hembras), cantidadMachos: Number(machos), costoUnitario: Number(costoUnitario),
         moneda, estado: estado === "Activo" ? "ACTIVE" : "INACTIVE" }) });
-      alert("Lote guardado correctamente"); setLote(""); setHembras(0); setMachos(0); setCostoUnitario(0);
+      alert(`Lote ${saved.code} guardado correctamente`); setLote(""); setLinea(""); setHembras(0); setMachos(0); setCostoUnitario(0);
       setEditingId(null);
-      await list.reload();
+      const [, nextFlocks] = await Promise.all([list.reload(), api("/lotes/siguientes")]);
+      setLotesDisponibles(nextFlocks);
     } catch (error) { alert(error.message); }
+  };
+
+  const seleccionarLinea = (lineId) => {
+    setLinea(lineId);
+    if (editingId) return;
+    const siguiente = lotesDisponibles.find((item) => item.poultryLineId === lineId);
+    setLote(siguiente?.code || "");
   };
 
   // =========================
@@ -194,10 +205,9 @@ function Lotes() {
           <label># Lote</label>
           <input
             value={lote}
-            onChange={(e) =>
-              setLote(e.target.value.toUpperCase())
-            }
-            placeholder="SL038 o BL038 Automático"
+            readOnly={!editingId}
+            onChange={(e) => setLote(e.target.value.toUpperCase())}
+            placeholder="Seleccione primero la línea"
             style={styles.input}
           />
         </div>
@@ -231,13 +241,14 @@ function Lotes() {
           <label>Línea</label>
           <select
             value={linea}
-            onChange={(e) => setLinea(e.target.value)}
+            disabled={Boolean(editingId)}
+            onChange={(e) => seleccionarLinea(e.target.value)}
             style={styles.input}
           >
             <option value="">Seleccione</option>
-            {lineas.map((v) => (
+            {lineas.filter((v) => editingId || v.status === "ACTIVE").map((v) => (
               <option key={v.id} value={v.id}>
-                {v.name}
+                {v.code} - {v.name}
               </option>
             ))}
           </select>

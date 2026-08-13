@@ -4,9 +4,10 @@ import { api } from "../services/api";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import OperationRecordsModal from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
+import { calculateFlockWeek } from "../utils/flockWeek";
 
 function ControlPesoAves() {
-  const { opciones, errors } = useOperationalCatalogs(["lotes", "etapas"]);
+  const { opciones, errors, lotes } = useOperationalCatalogs(["lotes", "etapas"]);
   // =========================
   // STATES
   // =========================
@@ -41,7 +42,13 @@ const [hembras, setHembras] = useState({});
 const [machos, setMachos] = useState({});
 
 const [promHembras, setPromHembras] = useState(0);
-const [promMachos, setPromMachos] = useState(0);
+  const [promMachos, setPromMachos] = useState(0);
+
+  useEffect(() => {
+    if (!lote) { setSemana(""); return; }
+    const registroLote = lotes.find((item) => item.code === lote);
+    setSemana(calculateFlockWeek(registroLote?.receivedOn));
+  }, [lote, lotes]);
 
 // NUEVO
 const [uniformidadHembras, setUniformidadHembras] =

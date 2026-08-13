@@ -94,7 +94,7 @@ function IngresoInsumos() {
       if (!filas.length) throw new Error("Agrega al menos un insumo.");
       if (filas.some((fila) => !fila.item || Number(fila.cantidad) <= 0 || Number(fila.precio) < 0)) throw new Error("Completa producto, cantidad y precio en cada fila.");
       await saveInventory({ id: editingId, fecha, proveedor, rows: filas, movementType: "INPUT", module: "SUPPLIES" });
-      alert(editingId ? "Ingreso actualizado correctamente" : "Insumos registrados correctamente"); setFilas([]); setEditingId(null); setProveedor("");
+      alert(editingId ? "Otro ingreso actualizado correctamente" : "Otro ingreso registrado correctamente"); setFilas([]); setEditingId(null); setProveedor("");
     } catch (error) { alert(error.message); }
   };
 
@@ -153,7 +153,7 @@ function IngresoInsumos() {
   // RENDER
   // =========================
 
-  return (<OperationPanel maxWidth={1000}><OperationRecordsModal title="Ingresos de insumos" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={inventoryColumns} rowFilter={(row) => row.movement_type === "INPUT" && row.module_code === "SUPPLIES"} onEdit={cargarEdicion}/>
+  return (<OperationPanel maxWidth={1000}><OperationRecordsModal title="Otros ingresos" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={inventoryColumns} rowFilter={(row) => row.movement_type === "INPUT" && row.module_code === "SUPPLIES"} onEdit={cargarEdicion}/>
     <div
       style={{
         maxWidth: "1000px",
@@ -163,7 +163,7 @@ function IngresoInsumos() {
       }}
     >
 
-      <h2>Ingreso de Insumos</h2>
+      <h2>Otros ingresos</h2>
 
       {/* FECHA Y PROVEEDOR */}
       <div style={{ display: "flex", gap: 20, marginBottom: 15 }}>

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
-import { assertUniqueCode, useCatalogList } from "../hooks/useCatalogList";
+import { useCatalogList } from "../hooks/useCatalogList";
 
 function Proveedores() {
   const list = useCatalogList("/proveedores");
@@ -20,6 +20,9 @@ function Proveedores() {
   const [telefono, setTelefono] = useState("");
   const [correo, setCorreo] = useState("");
   const [editingId, setEditingId] = useState(null);
+
+  const cargarSiguienteCodigo = () => api("/proveedores/siguiente").then((data) => setCodigoProveedor(data.code)).catch((error) => alert(error.message));
+  useEffect(() => { cargarSiguienteCodigo(); }, []);
 
   // =========================
   // TELÉFONO
@@ -45,15 +48,15 @@ function Proveedores() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      assertUniqueCode(list.rows, codigoProveedor, "código de proveedor", editingId);
       await api(editingId ? `/proveedores/${editingId}` : "/proveedores", { method: editingId ? "PUT" : "POST", body: JSON.stringify({
-        codigo: codigoProveedor, nombre: nombreProveedor, nit, direccion, contacto, telefono, correo,
+        nombre: nombreProveedor, nit, direccion, contacto, telefono, correo,
       }) });
       alert("Proveedor guardado correctamente");
       setCodigoProveedor(""); setNombreProveedor(""); setNit(""); setDireccion("");
       setContacto(""); setTelefono(""); setCorreo("");
       setEditingId(null);
       await list.reload();
+      await cargarSiguienteCodigo();
     } catch (error) { alert(error.message); }
   };
 
@@ -125,11 +128,7 @@ function Proveedores() {
 
           <input
             value={codigoProveedor}
-            onChange={(e) =>
-              setCodigoProveedor(
-                e.target.value.toUpperCase()
-              )
-            }
+            readOnly
             placeholder="PR01 Automático"
             style={inputStyle}
           />

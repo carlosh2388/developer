@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { eggGradeCode, eggGradeLabel, eggPackageDetail, post, saveOperation } from "../services/operations";
+import { eggGradeCode, eggGradeLabel, eggPackageDetail, saveOperation } from "../services/operations";
 import { api } from "../services/api";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import OperationRecordsModal from "../components/OperationRecordsModal";
@@ -28,22 +28,9 @@ function IngresoHuevos() {
   // =========================
   // PERSONAS
   // =========================
-  const [personalNuevo, setPersonalNuevo] = useState([]);
-  const personalDisponible = [...personal, ...personalNuevo].filter((item) => item.status !== "INACTIVE");
-  const recolectores = personalDisponible.filter((item) => (item.roles || []).includes("COLLECTOR")).map((item) => item.fullName);
-  const clasificadores = personalDisponible.filter((item) => (item.roles || []).includes("CLASSIFIER")).map((item) => item.fullName);
-
-  const crearPersonal = async (role, grupoId) => {
-    const etiqueta = role === "COLLECTOR" ? "recolector" : "clasificador";
-    const nombre = window.prompt(`Nombre completo del ${etiqueta}:`);
-    if (!nombre?.trim()) return;
-    const prefijo = role === "COLLECTOR" ? "REC" : "CLA";
-    try {
-      const creado = await post("/personal", { codigo: `${prefijo}-${Date.now().toString().slice(-6)}`, nombreCompleto: nombre.trim(), roles: [role] });
-      setPersonalNuevo((actual) => [...actual, creado]);
-      actualizarGrupo(grupoId, role === "COLLECTOR" ? "recolector" : "clasificador", creado.fullName);
-    } catch (error) { alert(error.message); }
-  };
+  const personalDisponible = personal.filter((item) => item.status !== "INACTIVE");
+  const recolectores = personalDisponible.filter((item) => (item.roles || []).includes("COLLECTOR"));
+  const clasificadores = personalDisponible.filter((item) => (item.roles || []).includes("CLASSIFIER"));
 
   // =========================
   // CREAR FILA
@@ -73,7 +60,7 @@ function IngresoHuevos() {
   // =========================
   const [grupos, setGrupos] = useState([crearGrupo()]);
   const [editingId, setEditingId] = useState(null);
-  const cargarEdicion = async (row) => { try { const data = await api(`/huevos/movimientos/${row.id}`); setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setGrupos(data.detalles.map((item) => ({ id: crypto.randomUUID(), abierto: true, tipo: item.grade_code.startsWith("INC_") ? "Incubable" : "Comercial", lote: item.flock_code, recolector: item.collector_name || "", clasificador: item.classifier_name || "", peso: item.total_weight_grams || 0, datos: { [eggGradeLabel(item.grade_code)]: { cajaB336: item.boxes_trays_336, cajaC360: item.boxes_cartons_360, bandeja84: item.trays_84, carton30: item.cartons_30, unidades: item.loose_units } } }))); } catch (error) { alert(error.message); } };
+  const cargarEdicion = async (row) => { try { const data = await api(`/huevos/movimientos/${row.id}`); setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setGrupos(data.detalles.map((item) => ({ id: crypto.randomUUID(), abierto: true, tipo: item.grade_code.startsWith("INC_") ? "Incubable" : "Comercial", lote: item.flock_code, recolector: item.collector_id || "", clasificador: item.classifier_id || "", peso: item.total_weight_grams || 0, datos: { [eggGradeLabel(item.grade_code)]: { cajaB336: item.boxes_trays_336, cajaC360: item.boxes_cartons_360, bandeja84: item.trays_84, carton30: item.cartons_30, unidades: item.loose_units } } }))); } catch (error) { alert(error.message); } };
 
   // =========================
   // INIT FECHA
@@ -324,11 +311,10 @@ const calcularSubTotal = (grupo, filtro) => {
                 <div style={{ display: "flex", gap: 6 }}>
                   <select value={grupo.recolector} onChange={(e) => actualizarGrupo(grupo.id, "recolector", e.target.value)}>
                     <option value="">Seleccione</option>
-                    {recolectores.map((nombre) => <option key={nombre} value={nombre}>{nombre}</option>)}
+                    {recolectores.map((empleado) => <option key={empleado.id} value={empleado.id}>{empleado.fullName}</option>)}
                   </select>
-                  <button type="button" onClick={() => crearPersonal("COLLECTOR", grupo.id)} title="Agregar recolector">+</button>
                 </div>
-                {!recolectores.length && <small style={{ color: "#92400e" }}>No hay recolectores. Presiona + para registrar uno.</small>}
+                {!recolectores.length && <small style={{ color: "#92400e" }}>No hay recolectores activos. Regístralos en Configuración → Empleados.</small>}
               </div>
 
               {/* CLASIFICADOR */}
@@ -337,11 +323,10 @@ const calcularSubTotal = (grupo, filtro) => {
                 <div style={{ display: "flex", gap: 6 }}>
                   <select value={grupo.clasificador} onChange={(e) => actualizarGrupo(grupo.id, "clasificador", e.target.value)}>
                     <option value="">Seleccione</option>
-                    {clasificadores.map((nombre) => <option key={nombre} value={nombre}>{nombre}</option>)}
+                    {clasificadores.map((empleado) => <option key={empleado.id} value={empleado.id}>{empleado.fullName}</option>)}
                   </select>
-                  <button type="button" onClick={() => crearPersonal("CLASSIFIER", grupo.id)} title="Agregar clasificador">+</button>
                 </div>
-                {!clasificadores.length && <small style={{ color: "#92400e" }}>No hay clasificadores. Presiona + para registrar uno.</small>}
+                {!clasificadores.length && <small style={{ color: "#92400e" }}>No hay clasificadores activos. Regístralos en Configuración → Empleados.</small>}
               </div>
 
               {/* PESO (solo Incubable) */}
@@ -545,8 +530,8 @@ const calcularSubTotal = (grupo, filtro) => {
       if (!gruposConDatos.length) throw new Error("Ingresa al menos una cantidad de huevos.");
       if (gruposConDatos.some((grupo) => !grupo.lote)) throw new Error("Selecciona el lote en todos los grupos que contienen cantidades.");
       const detalles = grupos.flatMap((grupo) => Object.entries(grupo.datos || {}).map(([calidad, datos]) => ({
-        lote: grupo.lote, clasificacion: eggGradeCode(calidad, grupo.tipo), recolector: grupo.recolector || undefined,
-        clasificador: grupo.clasificador || undefined, pesoTotalGramos: Number(grupo.peso) || undefined,
+        lote: grupo.lote, clasificacion: eggGradeCode(calidad, grupo.tipo), recolectorId: grupo.recolector || undefined,
+        clasificadorId: grupo.clasificador || undefined, pesoTotalGramos: Number(grupo.peso) || undefined,
         ...eggPackageDetail(datos),
       })).filter((d) => d.cajasBandejas336 + d.cajasCartones360 + d.bandejas84 + d.cartones30 + d.unidades > 0));
       await saveOperation("/huevos/movimientos", { tipoMovimiento: "INPUT", fecha, detalles }, editingId);
