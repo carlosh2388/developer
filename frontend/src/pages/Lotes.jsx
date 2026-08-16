@@ -64,7 +64,10 @@ function Lotes() {
       const nueva = await api("/galeras", { method: "POST", body: JSON.stringify({
         nombre: nuevaGalera.trim(), estado: "ACTIVE",
       }) });
-      setGaleras([...galeras, nueva]); setGalera(nueva.id); setNuevaGalera(""); setMostrarNuevaGalera(false);
+      setGaleras((current) => [...current, nueva].sort((a, b) =>
+        String(a.name || a).localeCompare(String(b.name || b), "es", { numeric: true })
+      ));
+      setGalera(nueva.id); setNuevaGalera(""); setMostrarNuevaGalera(false);
     } catch (error) { alert(error.message); }
   };
 
@@ -92,7 +95,9 @@ function Lotes() {
     Promise.allSettled([api("/lineas-avicolas"), api("/galeras"), api("/proveedores"), api("/lotes/siguientes")])
       .then(([lines, houses, suppliers, nextFlocks]) => {
         if (lines.status === "fulfilled") setLineas(lines.value);
-        if (houses.status === "fulfilled") setGaleras(houses.value);
+        if (houses.status === "fulfilled") setGaleras([...houses.value].sort((a, b) =>
+          String(a.name || a).localeCompare(String(b.name || b), "es", { numeric: true })
+        ));
         if (suppliers.status === "fulfilled") setProveedores(suppliers.value);
         if (nextFlocks.status === "fulfilled") setLotesDisponibles(nextFlocks.value);
         const failed = [lines, houses, suppliers, nextFlocks].find((result) => result.status === "rejected");
@@ -113,10 +118,12 @@ function Lotes() {
         lineaAvicolaId: linea, galeraId: galera || undefined, proveedorId: proveedor || undefined, paisOrigen: origen,
         cantidadHembras: Number(hembras), cantidadMachos: Number(machos), costoUnitario: Number(costoUnitario),
         moneda, estado: estado === "Activo" ? "ACTIVE" : "INACTIVE" }) });
-      alert(`Lote ${saved.code} guardado correctamente`); setLote(""); setLinea(""); setHembras(0); setMachos(0); setCostoUnitario(0);
+      alert(`Lote ${saved.code} guardado correctamente`);
       setEditingId(null);
       const [, nextFlocks] = await Promise.all([list.reload(), api("/lotes/siguientes")]);
       setLotesDisponibles(nextFlocks);
+      const siguiente = nextFlocks.find((item) => item.poultryLineId === linea);
+      setLote(siguiente?.code || saved.code);
     } catch (error) { alert(error.message); }
   };
 

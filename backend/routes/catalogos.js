@@ -4,6 +4,8 @@ const { authenticate, requirePermission } = require("../middleware/auth");
 
 router.use(authenticate);
 router.get("/catalogos/valores", requirePermission("operations.read"), controller.listarValores);
+router.get("/catalogos/regiones/siguiente", requirePermission("operations.read"), controller.siguienteRegion);
+router.post("/catalogos/regiones", requirePermission("settings.manage"), controller.crearRegion);
 
 function crud(path, name, options = {}) {
   const handlers = controller.catalogController(name);
@@ -14,7 +16,9 @@ function crud(path, name, options = {}) {
 }
 
 crud("/localidades", "localidades");
-crud("/bodegas", "bodegas");
+router.get("/bodegas/siguiente", requirePermission("operations.read"), controller.siguienteBodega);
+router.post("/bodegas", requirePermission("settings.manage"), controller.crearBodega);
+crud("/bodegas", "bodegas", { create: false });
 router.get("/proveedores/siguiente", requirePermission("operations.read"), controller.siguienteProveedor);
 router.post("/proveedores", requirePermission("settings.manage"), controller.crearProveedor);
 crud("/proveedores", "proveedores", { create: false });

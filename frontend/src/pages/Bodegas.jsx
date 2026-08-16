@@ -25,6 +25,10 @@ function Bodegas() {
   const [nuevaLocalidad, setNuevaLocalidad] =
     useState("");
 
+  const cargarSiguienteCodigo = () => api("/bodegas/siguiente")
+    .then((data) => setIdBodega(data.code))
+    .catch((error) => alert(error.message));
+
   // =========================
   // FECHA AUTOMÁTICA
   // =========================
@@ -36,17 +40,12 @@ function Bodegas() {
 
     setFecha(hoy);
     api("/localidades").then(setLocalidades).catch((error) => alert(error.message));
+    cargarSiguienteCodigo();
   }, []);
 
   // =========================
   // NORMALIZAR ID
   // =========================
-
-  const handleIdBodega = (e) => {
-    setIdBodega(
-      e.target.value.toUpperCase()
-    );
-  };
 
   // =========================
   // AGREGAR LOCALIDAD
@@ -76,9 +75,10 @@ function Bodegas() {
         estado: estado === "Activo" ? "ACTIVE" : "INACTIVE", descripcion,
       }) });
       alert("Bodega guardada correctamente");
-      setIdBodega(""); setNombreBodega(""); setDescripcion("");
+      setNombreBodega(""); setDescripcion("");
       setEditingId(null);
       await list.reload();
+      await cargarSiguienteCodigo();
     } catch (error) { alert(error.message); }
   };
 
@@ -246,10 +246,9 @@ function Bodegas() {
           <input
             type="text"
             value={idBodega}
-            onChange={
-              handleIdBodega
-            }
             placeholder="BO01 Automático"
+            readOnly
+            aria-readonly="true"
             style={inputStyle}
           />
         </div>

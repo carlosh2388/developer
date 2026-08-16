@@ -19,6 +19,10 @@ function Clientes() {
   const [correo, setCorreo] = useState("");
 
   const [region, setRegion] = useState("");
+  const [regiones, setRegiones] = useState([]);
+  const [mostrarNuevaRegion, setMostrarNuevaRegion] = useState(false);
+  const [codigoNuevaRegion, setCodigoNuevaRegion] = useState("");
+  const [nombreNuevaRegion, setNombreNuevaRegion] = useState("");
   const [categoria, setCategoria] = useState("");
 
   const [precioCajaSuperNick, setPrecioCajaSuperNick] = useState("");
@@ -29,6 +33,29 @@ function Clientes() {
 
   const cargarSiguienteCodigo = () => api("/clientes/siguiente").then((data) => setCodigoCliente(data.code)).catch((error) => alert(error.message));
   useEffect(() => { cargarSiguienteCodigo(); }, []);
+  useEffect(() => { setRegiones(referencias.CUSTOMER_REGION || []); }, [referencias.CUSTOMER_REGION]);
+
+  const abrirNuevaRegion = async () => {
+    try {
+      const data = await api("/catalogos/regiones/siguiente");
+      setCodigoNuevaRegion(data.code);
+      setMostrarNuevaRegion(true);
+    } catch (error) { alert(error.message); }
+  };
+
+  const agregarRegion = async () => {
+    if (!nombreNuevaRegion.trim()) return;
+    try {
+      const nueva = await api("/catalogos/regiones", {
+        method: "POST", body: JSON.stringify({ nombre: nombreNuevaRegion.trim() }),
+      });
+      setRegiones((current) => [...current, nueva].sort((a, b) => a.sortOrder - b.sortOrder));
+      setRegion(nueva.valueCode);
+      setNombreNuevaRegion("");
+      setCodigoNuevaRegion("");
+      setMostrarNuevaRegion(false);
+    } catch (error) { alert(error.message); }
+  };
 
   // =========================
   // UBICACIONES
@@ -156,6 +183,12 @@ function Clientes() {
     height: "42px"
   };
 
+  const addButtonStyle = {
+    width: "42px", height: "42px", border: "none", borderRadius: "5px",
+    backgroundColor: "#1976d2", color: "#fff", cursor: "pointer",
+    fontSize: "20px", fontWeight: "bold", flexShrink: 0
+  };
+
   // =========================
   // RENDER
   // =========================
@@ -229,14 +262,22 @@ function Clientes() {
       <div style={doubleRowStyle}>
         <div>
           <label>Región</label>
-          <select
-            value={region}
-            onChange={(e) => setRegion(e.target.value)}
-            style={inputStyle}
-          >
-            <option value="">Seleccione</option>
-            {(referencias.CUSTOMER_REGION || []).map((item) => <option key={item.valueCode} value={item.valueCode}>{item.label}</option>)}
-          </select>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <select
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              style={inputStyle}
+            >
+              <option value="">Seleccione</option>
+              {regiones.map((item) => <option key={item.valueCode} value={item.valueCode}>{item.label}</option>)}
+            </select>
+            <button type="button" onClick={abrirNuevaRegion} style={addButtonStyle} title="Agregar región">+</button>
+          </div>
+          {mostrarNuevaRegion && <div style={{ display: "grid", gridTemplateColumns: "90px 1fr auto", gap: "8px", marginTop: "8px" }}>
+            <input value={codigoNuevaRegion} readOnly aria-label="Código de la nueva región" style={inputStyle} />
+            <input value={nombreNuevaRegion} onChange={(e) => setNombreNuevaRegion(e.target.value)} placeholder="Nombre de la región" style={inputStyle} />
+            <button type="button" onClick={agregarRegion} style={buttonStyle}>Agregar</button>
+          </div>}
         </div>
 
         <div>

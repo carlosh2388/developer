@@ -137,6 +137,29 @@ async function crearProveedor(req, res, next) {
   finally { client.release(); }
 }
 
+async function crearBodega(req, res, next) {
+  const client = await db.connect();
+  try {
+    const orgId = organizationId(req);
+    const values = valuesFromBody(catalogos.bodegas, req.body || {});
+    delete values.code;
+    validateRequired(catalogos.bodegas, { ...values, code: "AUTO" });
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:BO`]);
+    values.code = await nextPrefixedCode(client, "warehouses", orgId, "BO");
+    values.created_by = req.user.id;
+    const columns = ["organization_id", ...Object.keys(values)];
+    const params = [orgId, ...Object.values(values)];
+    const placeholders = params.map((_value, index) => `$${index + 1}`);
+    const { rows } = await client.query(
+      `INSERT INTO warehouses (${columns.join(",")}) VALUES (${placeholders.join(",")}) RETURNING *`, params
+    );
+    await client.query("COMMIT");
+    res.status(201).json(serialize(rows[0]));
+  } catch (error) { await client.query("ROLLBACK"); next(error); }
+  finally { client.release(); }
+}
+
 const productPrefixes = new Set(["AD", "AL", "HC", "HI", "IN", "ME", "MD", "VA"]);
 
 async function siguienteProducto(req, res, next) {
@@ -329,7 +352,7 @@ function catalogController(name) {
     async actualizar(req, res, next) {
       try {
         const values = valuesFromBody(config, req.body || {});
-        if (["suppliers", "products", "houses"].includes(config.table)) delete values.code;
+        if (["warehouses", "suppliers", "products", "houses"].includes(config.table)) delete values.code;
         if (config.table === "products") delete values.product_type;
         if (!Object.keys(values).length) throw new HttpError(400, "No se enviaron campos para actualizar.", "VALIDATION_ERROR");
         const params = Object.values(values);
@@ -354,6 +377,45 @@ async function listarValores(req, res, next) {
     const { rows } = await db.query(`SELECT catalog_code,value_code,label,sort_order,metadata FROM reference_values ${where} ORDER BY catalog_code,sort_order,label`, params);
     res.json(rows.map(serialize));
   } catch (error) { next(error); }
+}
+
+async function siguienteRegion(req, res, next) {
+  try {
+    const { rows } = await db.query(
+      `SELECT COALESCE(MAX(substring(value_code FROM '^RE([0-9]+)$')::integer), 0) AS last_number
+       FROM reference_values WHERE catalog_code='CUSTOMER_REGION' AND value_code ~ '^RE[0-9]+$'`
+    );
+    res.json({ code: `RE${String(Number(rows[0].last_number || 0) + 1).padStart(2, "0")}` });
+  } catch (error) { next(error); }
+}
+
+async function crearRegion(req, res, next) {
+  const client = await db.connect();
+  try {
+    const label = String(req.body?.nombre || "").trim();
+    if (!label) throw new HttpError(400, "El nombre de la región es obligatorio.", "VALIDATION_ERROR");
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", ["CUSTOMER_REGION:RE"]);
+    const nextResult = await client.query(
+      `SELECT COALESCE(MAX(substring(value_code FROM '^RE([0-9]+)$')::integer), 0) + 1 AS next_number
+       FROM reference_values WHERE catalog_code='CUSTOMER_REGION' AND value_code ~ '^RE[0-9]+$'`
+    );
+    const nextNumber = Number(nextResult.rows[0].next_number);
+    const code = `RE${String(nextNumber).padStart(2, "0")}`;
+    const duplicate = await client.query(
+      "SELECT 1 FROM reference_values WHERE catalog_code='CUSTOMER_REGION' AND lower(label)=lower($1)", [label]
+    );
+    if (duplicate.rows[0]) throw new HttpError(409, "Ya existe una región con ese nombre.", "DUPLICATE_REGION");
+    const { rows } = await client.query(
+      `INSERT INTO reference_values(catalog_code,value_code,label,sort_order,is_active)
+       VALUES('CUSTOMER_REGION',$1,$2,$3,TRUE)
+       RETURNING catalog_code,value_code,label,sort_order,metadata`,
+      [code, label, nextNumber]
+    );
+    await client.query("COMMIT");
+    res.status(201).json(serialize(rows[0]));
+  } catch (error) { await client.query("ROLLBACK"); next(error); }
+  finally { client.release(); }
 }
 
 async function listarPersonal(req, res, next) {
@@ -483,8 +545,9 @@ async function actualizarCliente(req, res, next) {
 }
 
 module.exports = {
-  catalogController, listarValores, listarPersonal, guardarPersonal, actualizarPersonal,
+  catalogController, listarValores, siguienteRegion, crearRegion, listarPersonal, guardarPersonal, actualizarPersonal,
   listarClientes, guardarCliente, actualizarCliente,
+  siguienteBodega: siguienteCodigo("warehouses", "BO"), crearBodega,
   siguienteCliente: siguienteCodigo("customers", "CL"), siguienteProveedor: siguienteCodigo("suppliers", "PR"), crearProveedor,
   siguienteProducto, crearProducto,
   crearGalera,
