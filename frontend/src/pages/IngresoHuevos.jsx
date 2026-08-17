@@ -535,7 +535,7 @@ const calcularSubTotal = (grupo, filtro) => {
         ...eggPackageDetail(datos),
       })).filter((d) => d.cajasBandejas336 + d.cajasCartones360 + d.bandejas84 + d.cartones30 + d.unidades > 0));
       await saveOperation("/huevos/movimientos", { tipoMovimiento: "INPUT", fecha, detalles }, editingId);
-      alert(editingId ? "Ingreso actualizado correctamente" : "Ingreso de huevos guardado correctamente"); setGrupos([crearGrupo()]); setEditingId(null);
+      alert(editingId ? "Ingreso actualizado correctamente" : "Ingreso de huevos guardado correctamente"); setGrupos([crearGrupo()]); setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
     } catch (error) { alert(error.message); }
   };
 

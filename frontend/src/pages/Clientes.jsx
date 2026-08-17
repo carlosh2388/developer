@@ -115,6 +115,8 @@ function Clientes() {
       }) });
       alert("Cliente guardado correctamente");
       setCodigoCliente(""); setNombreComercial(""); setContacto(""); setTelefono(""); setCorreo(""); setUbicaciones([]);
+      setRegion(""); setCategoria(""); setPrecioCajaSuperNick(""); setPrecioCajaBrownNick("");
+      setMostrarNuevaRegion(false); setCodigoNuevaRegion(""); setNombreNuevaRegion("");
       setEditingId(null);
       await list.reload();
       await cargarSiguienteCodigo();

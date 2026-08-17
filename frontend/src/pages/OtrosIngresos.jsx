@@ -27,7 +27,7 @@ export default function OtrosIngresos() {
     event.preventDefault(); setSaving(true);
     try {
       await saveInventory({ id: editingId, fecha, proveedor, rows: filas, movementType: "INPUT", module: "OTHER" });
-      alert(editingId ? "Ingreso actualizado correctamente" : "Ingreso guardado correctamente"); setFilas([]); setEditingId(null);
+      alert(editingId ? "Ingreso actualizado correctamente" : "Ingreso guardado correctamente"); setFilas([]); setProveedor(""); setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
     } catch (error) { alert(error.message); }
     finally { setSaving(false); }
   }

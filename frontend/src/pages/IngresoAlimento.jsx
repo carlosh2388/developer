@@ -202,7 +202,7 @@ const agregarMedicamentoFila = (
       const componentes = filas.flatMap((fila) => [...(fila.aditivos || []), ...(fila.medicamentos || [])]).filter((item) => item.producto);
       if (componentes.some((item) => Number(item.cantidad) <= 0)) throw new Error("Ingresa la cantidad de cada aditivo o medicamento seleccionado.");
       await saveInventory({ id: editingId, fecha, proveedor, rows: filas, movementType: "INPUT", module: "FOOD" });
-      alert(editingId ? "Ingreso actualizado correctamente" : "Ingreso registrado correctamente"); setFilas([]); setEditingId(null);
+      alert(editingId ? "Ingreso actualizado correctamente" : "Ingreso registrado correctamente"); setFilas([]); setProveedor(""); setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
     } catch (error) { alert(error.message); }
   };
 

@@ -75,7 +75,9 @@ function Bodegas() {
         estado: estado === "Activo" ? "ACTIVE" : "INACTIVE", descripcion,
       }) });
       alert("Bodega guardada correctamente");
-      setNombreBodega(""); setDescripcion("");
+      setNombreBodega(""); setLocalidad(""); setEstado("Activo"); setDescripcion("");
+      setNuevaLocalidad(""); setMostrarNuevaLocalidad(false);
+      setFecha(new Date().toISOString().split("T")[0]);
       setEditingId(null);
       await list.reload();
       await cargarSiguienteCodigo();

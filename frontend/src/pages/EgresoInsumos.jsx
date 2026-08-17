@@ -131,7 +131,7 @@ function EgresoInsumos() {
   const guardar = async (e) => {
     e.preventDefault();
     try { await saveInventory({ id: editingId, fecha, rows: filas, movementType: "OUTPUT", module: "SUPPLIES", allocate: true });
-      alert(editingId ? "Otro egreso actualizado correctamente" : "Otro egreso registrado correctamente"); setFilas([]); setEditingId(null);
+      alert(editingId ? "Otro egreso actualizado correctamente" : "Otro egreso registrado correctamente"); setFilas([]); setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
     } catch (error) { alert(error.message); }
   };
 

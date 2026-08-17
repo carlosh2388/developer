@@ -119,11 +119,22 @@ function Lotes() {
         cantidadHembras: Number(hembras), cantidadMachos: Number(machos), costoUnitario: Number(costoUnitario),
         moneda, estado: estado === "Activo" ? "ACTIVE" : "INACTIVE" }) });
       alert(`Lote ${saved.code} guardado correctamente`);
+      setLote("");
+      setLinea("");
+      setGalera("");
+      setProveedor("");
+      setOrigen("");
+      setHembras(0);
+      setMachos(0);
+      setCostoUnitario(0);
+      setMoneda("GTQ");
+      setEstado("Activo");
+      setNuevaGalera("");
+      setMostrarNuevaGalera(false);
+      setFechaActual();
       setEditingId(null);
       const [, nextFlocks] = await Promise.all([list.reload(), api("/lotes/siguientes")]);
       setLotesDisponibles(nextFlocks);
-      const siguiente = nextFlocks.find((item) => item.poultryLineId === linea);
-      setLote(siguiente?.code || saved.code);
     } catch (error) { alert(error.message); }
   };
 
@@ -206,8 +217,25 @@ function Lotes() {
     <form onSubmit={handleSubmit} style={styles.form}>
       <h2>Registro de Lotes</h2>
 
-      {/* LOTE - FECHA - ESTADO */}
+      {/* LÍNEA - LOTE - FECHA - ESTADO */}
       <div style={styles.row}>
+        <div style={styles.field}>
+          <label>Línea</label>
+          <select
+            value={linea}
+            disabled={Boolean(editingId)}
+            onChange={(e) => seleccionarLinea(e.target.value)}
+            style={styles.input}
+          >
+            <option value="">Seleccione</option>
+            {lineas.filter((v) => editingId || v.status === "ACTIVE").map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.code} - {v.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div style={styles.field}>
           <label># Lote</label>
           <input
@@ -242,25 +270,8 @@ function Lotes() {
         </div>
       </div>
 
-      {/* LÍNEA Y GALERA */}
+      {/* GALERA */}
       <div style={styles.row}>
-        <div style={styles.field}>
-          <label>Línea</label>
-          <select
-            value={linea}
-            disabled={Boolean(editingId)}
-            onChange={(e) => seleccionarLinea(e.target.value)}
-            style={styles.input}
-          >
-            <option value="">Seleccione</option>
-            {lineas.filter((v) => editingId || v.status === "ACTIVE").map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.code} - {v.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
         <div style={styles.field}>
           <label>Galera</label>
 

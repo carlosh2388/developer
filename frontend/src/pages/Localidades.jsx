@@ -55,6 +55,8 @@ function Localidades() {
       }) });
       alert("Localidad guardada correctamente");
       setIdLocalidad(""); setNombreLocalidad(""); setDescripcion("");
+      setEstatus("Activo");
+      setFecha(new Date().toISOString().split("T")[0]);
       setEditingId(null);
       await list.reload();
     } catch (error) { alert(error.message); }

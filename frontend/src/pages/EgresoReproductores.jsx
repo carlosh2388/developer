@@ -123,7 +123,9 @@ function EgresoReproductores() {
       await saveOperation("/reproductores/egresos", { fecha, numeroEnvio: filas.find((x) => x.envio)?.envio || undefined,
         detalles: filas.map((fila) => ({ lote: fila.lote, motivo: reasons[fila.tipo] || fila.tipo,
           hembras: Number(fila.hembras), machos: Number(fila.machos), observacion: fila.observacion })) }, editingId);
-      alert(editingId ? "Egreso actualizado correctamente" : "Egreso registrado correctamente"); setEditingId(null);
+      alert(editingId ? "Egreso actualizado correctamente" : "Egreso registrado correctamente");
+      setFilas([{ hembras: "", machos: "", subtotal: 0, lote: "", tipo: "", observacion: "", envio: "" }]);
+      setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
     } catch (error) { alert(error.message); }
   };
 

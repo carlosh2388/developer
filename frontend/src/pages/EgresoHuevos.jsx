@@ -617,7 +617,13 @@ const calcularSubTotal = (
         bodegaOrigen: bodegaSalida || undefined, bodegaDestino: bodegaDestino || undefined,
         nombreDestino: bodegaDestino || undefined, placa: placa || undefined,
         piloto: piloto || undefined, detalles }, editingId);
-      alert(editingId ? "Egreso actualizado correctamente" : `Egreso ${egreso} registrado correctamente`); setLotes([crearLote()]); setEditingId(null);
+      alert(editingId ? "Egreso actualizado correctamente" : `Egreso ${egreso} registrado correctamente`);
+      const now = new Date();
+      setFecha(now.toISOString().split("T")[0]); setHora(now.toTimeString().slice(0, 5));
+      setFechaProduccion(now.toISOString().split("T")[0]); setBodegaSalida("BA"); setBodegaDestino("");
+      setPlaca(""); setNuevaPlaca(""); setMostrarNuevaPlaca(false);
+      setPiloto(""); setNuevoPiloto(""); setMostrarNuevoPiloto(false);
+      setLotes([crearLote()]); setEditingId(null);
       await cargarSiguienteEnvio();
     } catch (error) { alert(error.message); }
   };

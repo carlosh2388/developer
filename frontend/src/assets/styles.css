@@ -1120,4 +1120,27 @@ td small {
 @media(max-width:600px){.notification-stack{top:12px;right:16px}.app-notification{grid-template-columns:36px 1fr 26px;padding:13px 11px}.notification-icon{width:34px;height:34px}}
 
 input[readonly]{background:#f3f6f4;color:#3f5147;cursor:not-allowed;border-color:#d7e0da}
+
+/* Selector de tema y modo oscuro. Sólo cambia la apariencia, no el layout. */
+.theme-toggle{position:fixed;right:20px;bottom:20px;z-index:4000;display:grid;place-items:center;width:48px!important;height:48px!important;margin:0!important;padding:0!important;border:1px solid rgba(255,255,255,.28)!important;border-radius:50%!important;background:#153d2b!important;color:#fff!important;box-shadow:0 10px 30px rgba(7,28,20,.28)!important;font-size:24px!important;line-height:1!important;transition:transform .2s ease,background .2s ease,box-shadow .2s ease!important}
+.theme-toggle:hover{background:#20583f!important;transform:translateY(-2px)!important;box-shadow:0 14px 34px rgba(7,28,20,.34)!important}
+html[data-theme="dark"]{--color-bg:#0d151b;--color-white:#172129;--color-dark:#e4ebef;--color-border:#33434d;--shadow-soft:0 2px 10px rgba(0,0,0,.3);--shadow-medium:0 5px 18px rgba(0,0,0,.4)}
+html[data-theme="dark"] body,html[data-theme="dark"] main{background:#0d151b;color:#dce5e9}
+html[data-theme="dark"] .main-content,html[data-theme="dark"] .page-shell{background:#0d151b}
+html[data-theme="dark"] h1,html[data-theme="dark"] h2,html[data-theme="dark"] h3,html[data-theme="dark"] label{color:#edf3f5}
+html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea{background:#18242c!important;color:#edf3f5!important;border-color:#3b4b55!important}
+html[data-theme="dark"] input::placeholder,html[data-theme="dark"] textarea::placeholder{color:#91a0a8}
+html[data-theme="dark"] input[readonly]{background:#111c23!important;color:#afbdc4!important}
+html[data-theme="dark"] table{background:#151f26;color:#dce5e9}
+html[data-theme="dark"] th{background:#202d35!important;color:#e7eef1!important}
+html[data-theme="dark"] td{border-color:#314049!important}
+html[data-theme="dark"] tbody tr:hover{background:#1c2931}
+html[data-theme="dark"] .operation-panel,html[data-theme="dark"] .records-dialog,html[data-theme="dark"] .report-panel,html[data-theme="dark"] .welcome-card,html[data-theme="dark"] .summary-cards article,html[data-theme="dark"] .password-modal{background:#151f26!important;border-color:#33434d!important;color:#dce5e9}
+html[data-theme="dark"] .report-table tbody tr:nth-child(even){background:#19252c}
+html[data-theme="dark"] .auth-panel,html[data-theme="dark"] .activation-page,html[data-theme="dark"] .license-blocked-page{background:#0d151b}
+html[data-theme="dark"] .login-card,html[data-theme="dark"] .activation-card,html[data-theme="dark"] .license-blocked-card{background:#151f26;color:#dce5e9;border-color:#33434d;box-shadow:0 24px 70px rgba(0,0,0,.45)}
+html[data-theme="dark"] .muted,html[data-theme="dark"] .security-note,html[data-theme="dark"] .welcome-card>p{color:#9eacb3}
+html[data-theme="dark"] .theme-toggle{background:#e9b949!important;color:#172129!important;border-color:#f6d77d!important}
+html[data-theme="dark"] .theme-toggle:hover{background:#f1c75b!important}
+@media(max-width:700px){.theme-toggle{right:14px;bottom:14px;width:44px!important;height:44px!important}}
 .employee-roles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 18px;padding:14px;border:1px solid #d7e0da;border-radius:8px}.employee-roles legend{padding:0 6px;font-weight:700}.employee-roles label{display:flex;align-items:center;gap:7px}.employee-roles input{width:auto;margin:0}

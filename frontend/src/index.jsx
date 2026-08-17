@@ -4,12 +4,14 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import NotificationCenter from './components/NotificationCenter';
+import ThemeToggle from './components/ThemeToggle';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <NotificationCenter />
     <App />
+    <ThemeToggle />
   </React.StrictMode>
 );
 

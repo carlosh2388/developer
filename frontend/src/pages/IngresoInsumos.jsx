@@ -94,7 +94,7 @@ function IngresoInsumos() {
       if (!filas.length) throw new Error("Agrega al menos un insumo.");
       if (filas.some((fila) => !fila.item || Number(fila.cantidad) <= 0 || Number(fila.precio) < 0)) throw new Error("Completa producto, cantidad y precio en cada fila.");
       await saveInventory({ id: editingId, fecha, proveedor, rows: filas, movementType: "INPUT", module: "SUPPLIES" });
-      alert(editingId ? "Otro ingreso actualizado correctamente" : "Otro ingreso registrado correctamente"); setFilas([]); setEditingId(null); setProveedor("");
+      alert(editingId ? "Otro ingreso actualizado correctamente" : "Otro ingreso registrado correctamente"); setFilas([]); setEditingId(null); setProveedor(""); setFecha(new Date().toISOString().split("T")[0]);
     } catch (error) { alert(error.message); }
   };
 

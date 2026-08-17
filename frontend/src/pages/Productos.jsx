@@ -84,13 +84,11 @@ function Productos() {
         enfermedadObjetivo: enfermedad, dosis, tipoVacuna: tipo || null,
       }) });
       alert(`Producto ${saved.code} guardado correctamente`);
-      setIdProducto(""); setNombre(""); setPrecio(""); setExistencia(""); setCosto("");
+      setTipoInventario(""); setIdProducto(""); setNombre(""); setUnidad(""); setEstado("Activo");
+      setPrecio(""); setExistencia(""); setCosto(""); setPresentacion(""); setEnfermedad(""); setDosis(""); setTipo("");
+      setMostrarGenerales(false); setMostrarInsumos(false); setHelpId(""); setMostrarGuardar(false);
       setEditingId(null);
       await list.reload();
-      if (tipoInventario) {
-        const next = await api(`/productos/siguiente?tipo=${encodeURIComponent(tipoInventario)}`);
-        setIdProducto(next.code);
-      }
     } catch (error) { alert(error.message); }
   };
 
