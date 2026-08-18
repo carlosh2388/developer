@@ -346,13 +346,14 @@ function catalogController(name) {
       try {
         const orgId = organizationId(req);
         const query = config.table === "products"
-          ? `SELECT p.*,COALESCE(p.opening_stock,0) + COALESCE(SUM(
+          ? `SELECT p.*,rv.label unit_label,COALESCE(p.opening_stock,0) + COALESCE(SUM(
                CASE WHEN d.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.quantity ELSE -l.quantity END
              ) FILTER (WHERE d.status='POSTED'),0) AS current_stock
              FROM products p
+             LEFT JOIN reference_values rv ON rv.catalog_code='UNIT' AND rv.value_code=p.unit_code
              LEFT JOIN inventory_document_lines l ON l.product_id=p.id AND l.organization_id=p.organization_id
              LEFT JOIN inventory_documents d ON d.id=l.document_id AND d.organization_id=l.organization_id
-             WHERE p.organization_id=$1 GROUP BY p.id ORDER BY p.code`
+             WHERE p.organization_id=$1 GROUP BY p.id,rv.label ORDER BY p.code`
           : `SELECT * FROM ${config.table} WHERE organization_id=$1 ORDER BY ${config.orderBy}`;
         const { rows } = await db.query(query, [orgId]);
         res.json(rows.map(serialize));

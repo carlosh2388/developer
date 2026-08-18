@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { saveInventory } from "../services/operations";
+import { quantityInput, saveInventory } from "../services/operations";
 import { api } from "../services/api";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import OperationRecordsModal, { inventoryColumns } from "../components/OperationRecordsModal";
@@ -513,8 +513,7 @@ const agregarMedicamentoFila = (
                   <td>
                     <input
                       type="number"
-                      step="1"
-                      min="1"
+                      {...quantityInput([...alimentos, ...materiales, ...aditivos, ...medicamentos].find((item) => item.value === (fila.item || fila.alimento || fila.material || fila.aditivo || fila.medicamento))?.unitCode)}
                       value={
                         fila.cantidad
                       }
@@ -610,7 +609,7 @@ const agregarMedicamentoFila = (
                                   )
                                 )}
                               </select>
-                              <input type="number" min="1" step="1" value={aditivo.cantidad} onChange={(e) => cambiarAditivo(fila.id, index, "cantidad", e.target.value)} placeholder="Cantidad" style={{ ...inputStyle, minWidth: "82px" }}/>
+                              <input type="number" {...quantityInput(aditivos.find((item) => item.value === aditivo.producto)?.unitCode)} value={aditivo.cantidad} onChange={(e) => cambiarAditivo(fila.id, index, "cantidad", e.target.value)} placeholder="Cantidad" style={{ ...inputStyle, minWidth: "82px" }}/>
 
                             </div>
 
@@ -697,7 +696,7 @@ const agregarMedicamentoFila = (
                                   )
                                 )}
                               </select>
-                              <input type="number" min="1" step="1" value={medicamento.cantidad} onChange={(e) => cambiarMedicamento(fila.id, index, "cantidad", e.target.value)} placeholder="Cantidad" style={{ ...inputStyle, minWidth: "82px" }}/>
+                              <input type="number" {...quantityInput(medicamentos.find((item) => item.value === medicamento.producto)?.unitCode)} value={medicamento.cantidad} onChange={(e) => cambiarMedicamento(fila.id, index, "cantidad", e.target.value)} placeholder="Cantidad" style={{ ...inputStyle, minWidth: "82px" }}/>
 
                             </div>
 

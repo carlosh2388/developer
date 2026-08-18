@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { loadInventoryDocument, saveInventory } from "../services/operations";
+import { loadInventoryDocument, quantityInput, saveInventory } from "../services/operations";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import OperationRecordsModal, { inventoryColumns } from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
@@ -263,8 +263,7 @@ function OtrosIngresos() {
                 <td>
                   <input
                     type="number"
-                    min="1"
-                    step="1"
+                    {...quantityInput(getOptions(fila.tipo).find((item) => item.value === fila.item)?.unitCode)}
                     value={fila.cantidad}
                     onChange={(e) =>
                       handleChange(fila.id, "cantidad", e.target.value)
