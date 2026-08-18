@@ -3,6 +3,7 @@ import { api } from "../services/api";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
 import { assertUniqueCode, useCatalogList } from "../hooks/useCatalogList";
 import CancelEditButton from "../components/CancelEditButton";
+import { confirmAction } from "../services/notifications";
 
 function Localidades() {
   const list = useCatalogList("/localidades");
@@ -211,8 +212,8 @@ function Localidades() {
         { key: "code", label: "Código" }, { key: "name", label: "Localidad" }, { key: "openedOn", label: "Apertura" },
         { key: "description", label: "Descripción" }, { key: "status", label: "Estado" },
       ]} onEdit={(row) => { setEditingId(row.id); setIdLocalidad(row.code); setNombreLocalidad(row.name); setFecha(row.openedOn?.slice(0, 10) || ""); setEstatus(row.status === "INACTIVE" ? "Inactivo" : "Activo"); setDescripcion(row.description || ""); }} onDeactivate={async (row) => {
-        if (!window.confirm(`¿Deseas dar de baja la localidad ${row.name}?`)) return;
-        try { await api(`/localidades/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); }
+        if (!(await confirmAction(`¿Deseas dar de baja la localidad ${row.name}?`, { title: "Dar de baja localidad", confirmLabel: "Sí, dar de baja" }))) return;
+        try { await api(`/localidades/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); alert("Localidad dada de baja correctamente."); }
         catch (error) { alert(error.message); }
       }}/>
     </form>

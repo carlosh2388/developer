@@ -4,6 +4,7 @@ import { useReferenceValues } from "../hooks/useOperationalCatalogs";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
 import { useCatalogList } from "../hooks/useCatalogList";
 import CancelEditButton from "../components/CancelEditButton";
+import { confirmAction } from "../services/notifications";
 
 function Clientes() {
   const referencias = useReferenceValues(["CUSTOMER_REGION", "CUSTOMER_CATEGORY"]);
@@ -398,8 +399,8 @@ function Clientes() {
         setPrecioCajaSuperNick(row.superNickBoxPrice || ""); setPrecioCajaBrownNick(row.brownNickBoxPrice || "");
         setUbicaciones((row.addresses || []).map((item) => ({ id: item.id, nit: item.tax_id || "", razonSocial: item.legal_name || "", direccionFiscal: item.fiscal_address || "", direccionEntrega: item.delivery_address || "" })));
       }} onDeactivate={async (row) => {
-        if (!window.confirm(`¿Deseas dar de baja al cliente ${row.commercialName}?`)) return;
-        try { await api(`/clientes/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); }
+        if (!(await confirmAction(`¿Deseas dar de baja al cliente ${row.commercialName}?`, { title: "Dar de baja cliente", confirmLabel: "Sí, dar de baja" }))) return;
+        try { await api(`/clientes/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); alert("Cliente dado de baja correctamente."); }
         catch (error) { alert(error.message); }
       }}/>
     </form>

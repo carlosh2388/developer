@@ -329,7 +329,7 @@ useEffect(() => {
             {opciones("lotes").map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
           {errors.lotes && <small style={{ color: "#b91c1c", display: "block" }}>No se pudieron cargar los lotes: {errors.lotes}</small>}
-          {!errors.lotes && opciones("lotes").length === 0 && <small style={{ color: "#92400e", display: "block" }}>No existen lotes activos. Registra primero un lote en Configuración → Lotes.</small>}
+          {!errors.lotes && opciones("lotes").length === 0 && <small style={{ color: "#92400e", display: "block" }}>No existen lotes activos. Registra primero un lote en Datos Maestros → Lotes.</small>}
         </div>
 
         <div style={{ flex: 1 }}>
@@ -370,15 +370,6 @@ useEffect(() => {
           />
         </div>
 
-        <div style={{ flex: 1 }}>
-          <label>Promedio General</label>
-          <input value={promedioGeneral.toFixed(2)} readOnly />
-        </div>
-
-        <div style={{ flex: 1 }}>
-          <label>% Uniformidad</label>
-          <input value={uniformidad} readOnly />
-        </div>
       </div>
 
       {/* ========================= HEMBRAS ========================= */}
@@ -450,7 +441,7 @@ useEffect(() => {
       {expandM && renderInputs(machos, handleM)}
 
       {/* ================= GUARDAR ================= */}
-      <div className="edit-actions"><button onClick={guardar} style={{ marginTop: 20 }}>{editingId ? "Guardar cambios" : "Guardar Registro"}</button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setLote(""); setEtapa(""); setTamanoMuestra(0); setHembras({}); setMachos({}); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
+      <div className="edit-actions"><button onClick={guardar}>{editingId ? "Guardar cambios" : "Guardar Registro"}</button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setLote(""); setEtapa(""); setTamanoMuestra(0); setHembras({}); setMachos({}); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
     </div>
   </OperationPanel>);
 }

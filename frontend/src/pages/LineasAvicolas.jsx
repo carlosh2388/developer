@@ -3,6 +3,7 @@ import ConfigRecordsTable from "../components/ConfigRecordsTable";
 import { assertUniqueCode, useCatalogList } from "../hooks/useCatalogList";
 import { api } from "../services/api";
 import CancelEditButton from "../components/CancelEditButton";
+import { confirmAction } from "../services/notifications";
 
 export default function LineasAvicolas() {
   const list = useCatalogList("/lineas-avicolas");
@@ -51,8 +52,8 @@ export default function LineasAvicolas() {
     <ConfigRecordsTable title="Líneas avícolas registradas" rows={list.rows} loading={list.loading} error={list.error} columns={[
       { key: "code", label: "Código" }, { key: "name", label: "Línea avícola" }, { key: "status", label: "Estado" },
     ]} onEdit={(row) => { setEditingId(row.id); setCodigo(row.code); setNombre(row.name); setEstado(row.status); }} onDeactivate={async (row) => {
-      if (!window.confirm(`¿Deseas dar de baja la línea ${row.name}?`)) return;
-      try { await api(`/lineas-avicolas/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); }
+      if (!(await confirmAction(`¿Deseas dar de baja la línea ${row.name}?`, { title: "Dar de baja línea avícola", confirmLabel: "Sí, dar de baja" }))) return;
+      try { await api(`/lineas-avicolas/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); alert("Línea avícola dada de baja correctamente."); }
       catch (error) { alert(error.message); }
     }}/>
   </form>;

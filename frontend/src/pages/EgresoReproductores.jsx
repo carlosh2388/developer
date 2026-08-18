@@ -153,7 +153,14 @@ function EgresoReproductores() {
   // =========================
 
   return (<OperationPanel><OperationRecordsModal title="Egresos de reproductores" path="/reproductores/egresos" annulPath={(row) => `/operaciones/reproductores/${row.id}/anular`} dateField="movement_date" columns={[
-    { key: "document_number", label: "Documento" }, { key: "movement_date", label: "Fecha" }, { key: "shipment_number", label: "Envío" }, { key: "status", label: "Estado" },
+    { key: "document_number", label: "Documento" },
+    { key: "movement_date", label: "Fecha", render: (value) => String(value || "").slice(0, 10) },
+    { key: "flock_codes", label: "Lotes", render: (value) => value || "Sin lote" },
+    { key: "reason_names", label: "Tipo", render: (value) => value || "Sin tipo" },
+    { key: "total_females", label: "Hembras" }, { key: "total_males", label: "Machos" }, { key: "total_birds", label: "Total" },
+    { key: "observations", label: "Observación", render: (value) => value || "Sin observación" },
+    { key: "shipment_number", label: "Envío", render: (value) => value || "No aplica" },
+    { key: "status", label: "Estado", render: (value) => ({ POSTED: "Registrado", VOID: "Anulado", DRAFT: "Borrador" }[value] || value) },
   ]} onEdit={cargarEdicion}/>
     <div
       style={{
@@ -320,7 +327,7 @@ function EgresoReproductores() {
     
     <div style={{ flex: 1.5}}>
       <label>
-        {fila.tipo === "Venta"
+        {["SALE", "Venta"].includes(fila.tipo)
           ? "# Envío"  
           : "Observación"}
       </label>
@@ -328,21 +335,21 @@ function EgresoReproductores() {
       <input
        type="text"
         value={
-          fila.tipo === "Venta"
+          ["SALE", "Venta"].includes(fila.tipo)
             ? fila.envio
             : fila.observacion
        }
         onChange={(e) =>
           actualizarFila(
             index,
-            fila.tipo === "Venta"
+            ["SALE", "Venta"].includes(fila.tipo)
               ? "envio"
               : "observacion",
             e.target.value
           )
         }
         placeholder={
-          fila.tipo === "Venta"
+          ["SALE", "Venta"].includes(fila.tipo)
             ? "Ingrese # Envío"
             : "Ingrese observación"
         }

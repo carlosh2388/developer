@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../services/api";
 import CancelEditButton from "../components/CancelEditButton";
+import { confirmAction } from "../services/notifications";
 
 const emptyForm = {
   fullName: "",
@@ -86,14 +87,13 @@ export default function Usuarios() {
   }
   async function toggle(user) {
     const status = user.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
-    if (
-      !window.confirm(
-        status === "INACTIVE"
-          ? `¿Dar de baja a ${user.full_name}? Sus sesiones se cerrarán.`
-          : `¿Reactivar el acceso de ${user.full_name}?`,
-      )
-    )
-      return;
+    if (!(await confirmAction(status === "INACTIVE"
+      ? `¿Dar de baja a ${user.full_name}? Sus sesiones se cerrarán.`
+      : `¿Reactivar el acceso de ${user.full_name}?`, {
+      title: status === "INACTIVE" ? "Dar de baja usuario" : "Reactivar usuario",
+      type: status === "INACTIVE" ? "danger" : "warning",
+      confirmLabel: status === "INACTIVE" ? "Sí, dar de baja" : "Sí, reactivar",
+    }))) return;
     try {
       const result = await api(`/usuarios/${user.id}/status`, {
         method: "PATCH",
@@ -288,8 +288,7 @@ export default function Usuarios() {
                           {u.session_active && <button type="button" className="btn-secondary" onClick={() => closeSession(u)}>Cerrar sesión</button>}
                           <button
                             type="button"
-                            className="btn-link danger"
-                            style={u.status === "ACTIVE" ? { background: "#c62828", color: "#fff", border: 0, borderRadius: 5, padding: "6px 10px", fontWeight: 700 } : undefined}
+                            className={`user-status-action ${u.status === "ACTIVE" ? "deactivate" : "activate"}`}
                             onClick={() => toggle(u)}
                           >
                             {u.status === "ACTIVE" ? "Dar de baja" : "Activar"}

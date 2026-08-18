@@ -1,6 +1,7 @@
 import ConfigRecordsTable from "./ConfigRecordsTable";
 import { useCatalogList } from "../hooks/useCatalogList";
 import { api } from "../services/api";
+import { confirmAction } from "../services/notifications";
 
 const productNames = (value) => String(value || "").split(", ")
   .map((item) => item.replace(/^[A-Z]{2}\d+\s*-\s*/i, ""))
@@ -11,9 +12,9 @@ export default function OperationRecordsModal({ title, path, annulPath, columns,
   const list = useCatalogList(path);
   const rows = rowFilter ? list.rows.filter(rowFilter) : list.rows;
   return <ConfigRecordsTable title={title} rows={rows} loading={list.loading} error={list.error} columns={columns} dateField={dateField} onEdit={onEdit}
-    deactivateLabel="Anular" inactiveStatuses={["VOID"]} onDeactivate={annulPath ? async (row) => {
-      if (!window.confirm("¿Deseas anular este registro? Esta acción conservará el documento para auditoría.")) return;
-      try { await api(annulPath(row), { method: "PATCH" }); await list.reload(); }
+    deactivateLabel="Anular" inactiveStatuses={["VOID"]} nonEditableStatuses={["VOID"]} onDeactivate={annulPath ? async (row) => {
+      if (!(await confirmAction("¿Deseas anular este registro? Permanecerá visible para auditoría, pero ya no podrá editarse.", { title: "Anular registro", confirmLabel: "Sí, anular" }))) return;
+      try { await api(annulPath(row), { method: "PATCH" }); await list.reload(); alert("Registro anulado correctamente."); }
       catch (error) { alert(error.message); }
     } : undefined}/>
 }

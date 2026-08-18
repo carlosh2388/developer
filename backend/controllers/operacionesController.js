@@ -441,7 +441,22 @@ async function listarExistenciasHuevos(req, res, next) {
   } catch (error) { next(error); }
 }
 
-async function listarEgresosAves(req, res, next) { return listDocuments(req, res, next, "bird_exit_documents", "movement_date"); }
+async function listarEgresosAves(req, res, next) {
+  try {
+    const { rows } = await db.query(`SELECT d.*,
+      COALESCE(STRING_AGG(DISTINCT f.code, ', '),'') flock_codes,
+      COALESCE(STRING_AGG(DISTINCT CASE l.reason_code WHEN 'SEXING_ERROR' THEN 'Error de sexado' WHEN 'MORTALITY' THEN 'Mortandad'
+        WHEN 'SELECTION' THEN 'Selección' WHEN 'SALE' THEN 'Venta' ELSE l.reason_code END, ', '),'') reason_names,
+      COALESCE(SUM(l.female_count),0)::integer total_females,COALESCE(SUM(l.male_count),0)::integer total_males,
+      COALESCE(SUM(l.female_count+l.male_count),0)::integer total_birds,
+      COALESCE(STRING_AGG(DISTINCT l.observation, ' · ') FILTER (WHERE NULLIF(TRIM(l.observation),'') IS NOT NULL),'') observations,
+      COUNT(l.id)::integer line_count
+      FROM bird_exit_documents d LEFT JOIN bird_exit_lines l ON l.document_id=d.id AND l.organization_id=d.organization_id
+      LEFT JOIN flocks f ON f.id=l.flock_id AND f.organization_id=l.organization_id
+      WHERE d.organization_id=$1 GROUP BY d.id ORDER BY d.movement_date DESC,d.created_at DESC`, [organizationId(req)]);
+    res.json(rows);
+  } catch (error) { next(error); }
+}
 
 async function obtenerEgresoAves(req,res,next){try{const orgId=organizationId(req);const h=await db.query("SELECT * FROM bird_exit_documents WHERE id=$1 AND organization_id=$2",[req.params.id,orgId]);if(!h.rows[0])throw new HttpError(404,"El egreso no existe.","NOT_FOUND");const d=await db.query("SELECT l.*,f.code flock_code FROM bird_exit_lines l JOIN flocks f ON f.id=l.flock_id WHERE l.document_id=$1 AND l.organization_id=$2 ORDER BY l.line_number",[req.params.id,orgId]);res.json({...h.rows[0],detalles:d.rows});}catch(e){next(e);}}
 

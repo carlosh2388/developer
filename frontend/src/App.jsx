@@ -29,6 +29,7 @@ import LineasAvicolas from "./pages/LineasAvicolas";
 import Reportes from "./pages/Reportes";
 import Empleados from "./pages/Empleados";
 import { notify } from "./services/notifications";
+import InventoryAlertBell from "./components/InventoryAlertBell";
 
 const views = {
   lotes: <Lotes />,
@@ -217,6 +218,7 @@ export default function App() {
         onChangePassword={() => setShowChangePassword(true)}
       />
       <main className="main-content">{content}</main>
+      <InventoryAlertBell />
       {showChangePassword && (
         <ChangePasswordModal
           onClose={() => setShowChangePassword(false)}

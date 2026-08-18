@@ -315,7 +315,7 @@ const calcularSubTotal = (grupo, filtro) => {
                     {recolectores.map((empleado) => <option key={empleado.id} value={empleado.id}>{empleado.fullName}</option>)}
                   </select>
                 </div>
-                {!recolectores.length && <small style={{ color: "#92400e" }}>No hay recolectores activos. Regístralos en Configuración → Empleados.</small>}
+                {!recolectores.length && <small style={{ color: "#92400e" }}>No hay recolectores activos. Regístralos en Datos Maestros → Empleados.</small>}
               </div>
 
               {/* CLASIFICADOR */}
@@ -327,7 +327,7 @@ const calcularSubTotal = (grupo, filtro) => {
                     {clasificadores.map((empleado) => <option key={empleado.id} value={empleado.id}>{empleado.fullName}</option>)}
                   </select>
                 </div>
-                {!clasificadores.length && <small style={{ color: "#92400e" }}>No hay clasificadores activos. Regístralos en Configuración → Empleados.</small>}
+                {!clasificadores.length && <small style={{ color: "#92400e" }}>No hay clasificadores activos. Regístralos en Datos Maestros → Empleados.</small>}
               </div>
 
               {/* PESO (solo Incubable) */}

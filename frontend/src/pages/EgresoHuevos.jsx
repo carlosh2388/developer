@@ -1788,12 +1788,7 @@ const calcularSubTotal = (
 
       </div>
 
-      <div className="edit-actions"><button
-        onClick={guardar}
-        style={{
-          marginTop: "20px"
-        }}
-      >
+      <div className="edit-actions"><button onClick={guardar}>
         {editingId ? "Guardar cambios" : "Registrar Egreso"}
       </button><CancelEditButton editing={editingId} onCancel={() => { const now = new Date(); setEditingId(null); setFecha(now.toISOString().split("T")[0]); setHora(now.toTimeString().slice(0, 5)); setFechaProduccion(now.toISOString().split("T")[0]); setBodegaSalida("BA"); setBodegaDestino(""); setPlaca(""); setPiloto(""); setLotes([crearLote()]); cargarSiguienteEnvio(); }}/></div>
 

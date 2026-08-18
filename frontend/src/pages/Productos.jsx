@@ -3,6 +3,7 @@ import { api } from "../services/api";
 import { useReferenceValues } from "../hooks/useOperationalCatalogs";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
 import CancelEditButton from "../components/CancelEditButton";
+import { confirmAction } from "../services/notifications";
 import { useCatalogList } from "../hooks/useCatalogList";
 
 function Productos() {
@@ -461,8 +462,8 @@ function Productos() {
         setEnfermedad(row.targetDisease || ""); setDosis(row.dosage || ""); setTipo(row.vaccineKind || "");
         setMostrarGenerales(true); setMostrarGuardar(true); setMostrarInsumos(["MD", "VA"].includes(row.productType));
       }} onDeactivate={async (row) => {
-        if (!window.confirm(`¿Deseas dar de baja el producto ${row.name}?`)) return;
-        try { await api(`/productos/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); }
+        if (!(await confirmAction(`¿Deseas dar de baja el producto ${row.name}?`, { title: "Dar de baja producto", confirmLabel: "Sí, dar de baja" }))) return;
+        try { await api(`/productos/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); alert("Producto dado de baja correctamente."); }
         catch (error) { alert(error.message); }
       }}/>
     </form>

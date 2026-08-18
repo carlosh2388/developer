@@ -8,6 +8,8 @@ const roleByType = {
 
 const integerText = (value) => String(Math.round(Number(value || 0)));
 const priceText = (value) => Number(value || 0).toFixed(2);
+const clientId = () => globalThis.crypto?.randomUUID?.()
+  || `row-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 
 export function inventoryDetails(rows, { allocate = false } = {}) {
   const details = [];
@@ -81,13 +83,13 @@ export async function loadInventoryDocument(id) {
   const document = await api(`/inventario/documentos/${id}`);
   const roots = document.detalles.filter((line) => !line.parent_line_id);
   const rows = roots.map((line) => ({
-    id: crypto.randomUUID(), tipo: typeByRole[line.line_role] || "Insumos",
+    id: clientId(), tipo: typeByRole[line.line_role] || "Insumos",
     item: line.product_code, alimento: line.product_code, cantidad: integerText(line.quantity),
     precio: priceText(line.unit_cost), modoPrecio: "UNITARIO",
     justificacion: line.justification || "",
     galeras: (line.allocations || []).map((allocation) => ({ galera: allocation.house_code || allocation.house_id, cantidad: integerText(allocation.quantity) })),
-    aditivos: document.detalles.filter((child) => child.parent_line_id === line.id && child.line_role === "ADDITIVE").map((child) => ({ id: crypto.randomUUID(), producto: child.product_code, cantidad: integerText(child.quantity) })),
-    medicamentos: document.detalles.filter((child) => child.parent_line_id === line.id && child.line_role === "MEDICINE").map((child) => ({ id: crypto.randomUUID(), producto: child.product_code, cantidad: integerText(child.quantity) })),
+    aditivos: document.detalles.filter((child) => child.parent_line_id === line.id && child.line_role === "ADDITIVE").map((child) => ({ id: clientId(), producto: child.product_code, cantidad: integerText(child.quantity) })),
+    medicamentos: document.detalles.filter((child) => child.parent_line_id === line.id && child.line_role === "MEDICINE").map((child) => ({ id: clientId(), producto: child.product_code, cantidad: integerText(child.quantity) })),
   }));
   return { document, rows };
 }

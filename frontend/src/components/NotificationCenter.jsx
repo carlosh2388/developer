@@ -84,6 +84,7 @@ function validateBeforeSave(container) {
 
 export default function NotificationCenter() {
   const [items, setItems] = useState([]);
+  const [confirmation, setConfirmation] = useState(null);
   const recent = useRef(new Map());
 
   useEffect(() => {
@@ -121,6 +122,17 @@ export default function NotificationCenter() {
   }, []);
 
   useEffect(() => {
+    const listener = (event) => setConfirmation(event.detail);
+    window.addEventListener("avinext:confirm", listener);
+    return () => window.removeEventListener("avinext:confirm", listener);
+  }, []);
+
+  const answerConfirmation = (answer) => {
+    confirmation?.resolve?.(answer);
+    setConfirmation(null);
+  };
+
+  useEffect(() => {
     const validateSubmit = (event) => {
       if (!validateBeforeSave(event.target)) { event.preventDefault(); event.stopImmediatePropagation(); }
     };
@@ -135,12 +147,17 @@ export default function NotificationCenter() {
     return () => { document.removeEventListener("submit", validateSubmit, true); document.removeEventListener("click", validateClick, true); };
   }, []);
 
-  return <div className="notification-stack" role="region" aria-live="polite">
+  return <>{confirmation && <div className="confirm-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) answerConfirmation(false); }}>
+    <section className={`confirm-dialog confirm-${confirmation.type}`} role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+      <div className="confirm-icon" aria-hidden="true">!</div><div className="confirm-copy"><span>ACCIÓN REQUERIDA</span><h3 id="confirm-title">{confirmation.title}</h3><p id="confirm-message">{confirmation.message}</p></div>
+      <div className="confirm-actions"><button type="button" className="confirm-cancel" onClick={() => answerConfirmation(false)}>{confirmation.cancelLabel}</button><button type="button" className="confirm-accept" autoFocus onClick={() => answerConfirmation(true)}>{confirmation.confirmLabel}</button></div>
+    </section>
+  </div>}<div className="notification-stack" role="region" aria-live="polite">
     {items.map((item) => <div key={item.id} className={`app-notification notification-${item.type}`}>
       <span className="notification-icon" aria-hidden="true">{icons[item.type]}</span>
       <div className="notification-copy"><strong>{item.title}</strong><p>{item.message}</p></div>
       <button type="button" className="notification-close" aria-label="Cerrar" onClick={() => setItems((current) => current.filter((entry) => entry.id !== item.id))}>×</button>
       <span className="notification-progress" />
     </div>)}
-  </div>;
+  </div></>;
 }

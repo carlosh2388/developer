@@ -3,6 +3,7 @@ import { api } from "../services/api";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
 import { useCatalogList } from "../hooks/useCatalogList";
 import CancelEditButton from "../components/CancelEditButton";
+import { confirmAction } from "../services/notifications";
 
 function Proveedores() {
   const list = useCatalogList("/proveedores");
@@ -252,8 +253,8 @@ function Proveedores() {
         { key: "code", label: "Código" }, { key: "name", label: "Proveedor" }, { key: "taxId", label: "NIT" },
         { key: "contactName", label: "Contacto" }, { key: "phone", label: "Teléfono" }, { key: "email", label: "Correo" }, { key: "status", label: "Estado" },
       ]} onEdit={(row) => { setEditingId(row.id); setCodigoProveedor(row.code); setNombreProveedor(row.name); setNit(row.taxId || ""); setDireccion(row.address || ""); setContacto(row.contactName || ""); setTelefono(row.phone || ""); setCorreo(row.email || ""); }} onDeactivate={async (row) => {
-        if (!window.confirm(`¿Deseas dar de baja al proveedor ${row.name}?`)) return;
-        try { await api(`/proveedores/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); }
+        if (!(await confirmAction(`¿Deseas dar de baja al proveedor ${row.name}?`, { title: "Dar de baja proveedor", confirmLabel: "Sí, dar de baja" }))) return;
+        try { await api(`/proveedores/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); alert("Proveedor dado de baja correctamente."); }
         catch (error) { alert(error.message); }
       }}/>
     </form>

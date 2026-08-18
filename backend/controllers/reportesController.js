@@ -1,6 +1,88 @@
 const db = require("../config/database");
 const HttpError = require("../utils/httpError");
 
+async function inventoryAlerts(req, res, next) {
+  try {
+    if (!req.user.organizationId) throw new HttpError(403, "Esta operación requiere un usuario de cliente.", "CLIENT_ORGANIZATION_REQUIRED");
+    const { rows } = await db.query(`WITH stock AS (
+      SELECT p.id,p.code,p.name,p.unit_code,p.opening_stock,
+        p.opening_stock + COALESCE(SUM(CASE WHEN d.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.quantity ELSE -l.quantity END)
+          FILTER (WHERE d.status='POSTED'),0) current_stock
+      FROM products p LEFT JOIN inventory_document_lines l ON l.product_id=p.id AND l.organization_id=p.organization_id
+      LEFT JOIN inventory_documents d ON d.id=l.document_id AND d.organization_id=l.organization_id
+      WHERE p.organization_id=$1 AND p.status='ACTIVE' AND p.opening_stock>0 GROUP BY p.id
+    ) SELECT id,code,name,unit_code,current_stock,opening_stock,
+      ROUND(GREATEST(0,current_stock)/opening_stock*100,2) stock_percentage,
+      CASE WHEN current_stock/opening_stock*100<=35 THEN 'CRITICAL' ELSE 'WARNING' END severity
+      FROM stock WHERE current_stock/opening_stock*100<=50
+      ORDER BY stock_percentage ASC,name ASC`, [req.user.organizationId]);
+    res.json({ alerts: rows, critical: rows.filter((row) => row.severity === "CRITICAL").length, warning: rows.filter((row) => row.severity === "WARNING").length });
+  } catch (error) { next(error); }
+}
+
+async function dashboard(req, res, next) {
+  try {
+    if (!req.user.organizationId) throw new HttpError(403, "Esta operación requiere un usuario de cliente.", "CLIENT_ORGANIZATION_REQUIRED");
+    const orgId = req.user.organizationId;
+    const range = ["24h", "7d", "15d", "30d"].includes(req.query.range) ? req.query.range : "7d";
+    const dayCount = { "7d": 7, "15d": 15, "30d": 30 }[range];
+    const trendQuery = range === "24h"
+      ? `WITH periods AS (SELECT generate_series(date_trunc('hour',CURRENT_TIMESTAMP)-interval '23 hours',date_trunc('hour',CURRENT_TIMESTAMP),interval '1 hour') period), movements AS (
+          SELECT date_trunc('hour',d.created_at) period,CASE WHEN d.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN 'INPUT' ELSE 'OUTPUT' END direction,
+            p.code,p.name,SUM(l.quantity) quantity
+          FROM inventory_documents d JOIN inventory_document_lines l ON l.document_id=d.id AND l.organization_id=d.organization_id
+          JOIN products p ON p.id=l.product_id AND p.organization_id=l.organization_id
+          WHERE d.organization_id=$1 AND d.status='POSTED' AND d.created_at>=CURRENT_TIMESTAMP-interval '24 hours'
+          GROUP BY date_trunc('hour',d.created_at),direction,p.code,p.name)
+          SELECT periods.period,COALESCE(SUM(m.quantity) FILTER (WHERE m.direction='INPUT'),0) inputs,COALESCE(SUM(m.quantity) FILTER (WHERE m.direction='OUTPUT'),0) outputs,
+            COALESCE(jsonb_agg(jsonb_build_object('code',m.code,'name',m.name,'quantity',m.quantity) ORDER BY m.name) FILTER (WHERE m.direction='INPUT'),'[]') input_products,
+            COALESCE(jsonb_agg(jsonb_build_object('code',m.code,'name',m.name,'quantity',m.quantity) ORDER BY m.name) FILTER (WHERE m.direction='OUTPUT'),'[]') output_products
+          FROM periods LEFT JOIN movements m ON m.period=periods.period GROUP BY periods.period ORDER BY periods.period`
+      : `WITH periods AS (SELECT generate_series(CURRENT_DATE-${dayCount - 1},CURRENT_DATE,'1 day')::date period), movements AS (
+          SELECT d.movement_date period,CASE WHEN d.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN 'INPUT' ELSE 'OUTPUT' END direction,
+            p.code,p.name,SUM(l.quantity) quantity
+          FROM inventory_documents d JOIN inventory_document_lines l ON l.document_id=d.id AND l.organization_id=d.organization_id
+          JOIN products p ON p.id=l.product_id AND p.organization_id=l.organization_id
+          WHERE d.organization_id=$1 AND d.status='POSTED' AND d.movement_date>=CURRENT_DATE-${dayCount - 1}
+          GROUP BY d.movement_date,direction,p.code,p.name)
+          SELECT periods.period,COALESCE(SUM(m.quantity) FILTER (WHERE m.direction='INPUT'),0) inputs,COALESCE(SUM(m.quantity) FILTER (WHERE m.direction='OUTPUT'),0) outputs,
+            COALESCE(jsonb_agg(jsonb_build_object('code',m.code,'name',m.name,'quantity',m.quantity) ORDER BY m.name) FILTER (WHERE m.direction='INPUT'),'[]') input_products,
+            COALESCE(jsonb_agg(jsonb_build_object('code',m.code,'name',m.name,'quantity',m.quantity) ORDER BY m.name) FILTER (WHERE m.direction='OUTPUT'),'[]') output_products
+          FROM periods LEFT JOIN movements m ON m.period=periods.period GROUP BY periods.period ORDER BY periods.period`;
+    const [summary, byType, trend, lowStock, recent] = await Promise.all([
+      db.query(`WITH stock AS (
+        SELECT p.id,p.opening_stock + COALESCE(SUM(CASE WHEN d.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.quantity ELSE -l.quantity END) FILTER (WHERE d.status='POSTED'),0) quantity
+        FROM products p LEFT JOIN inventory_document_lines l ON l.product_id=p.id AND l.organization_id=p.organization_id
+        LEFT JOIN inventory_documents d ON d.id=l.document_id AND d.organization_id=l.organization_id
+        WHERE p.organization_id=$1 AND p.status='ACTIVE' GROUP BY p.id
+      ), month_movements AS (
+        SELECT COALESCE(SUM(l.quantity) FILTER (WHERE d.movement_type IN ('INPUT','ADJUSTMENT_IN')),0) inputs,
+          COALESCE(SUM(l.quantity) FILTER (WHERE d.movement_type IN ('OUTPUT','ADJUSTMENT_OUT')),0) outputs
+        FROM inventory_documents d JOIN inventory_document_lines l ON l.document_id=d.id AND l.organization_id=d.organization_id
+        WHERE d.organization_id=$1 AND d.status='POSTED' AND d.movement_date>=date_trunc('month',CURRENT_DATE)
+      ) SELECT COALESCE((SELECT SUM(quantity) FROM stock),0) current_stock,COALESCE((SELECT inputs FROM month_movements),0) month_inputs,
+        COALESCE((SELECT outputs FROM month_movements),0) month_outputs,(SELECT COUNT(*) FROM stock)::integer active_products`, [orgId]),
+      db.query(`SELECT p.product_type,CASE p.product_type WHEN 'AD' THEN 'Aditivos' WHEN 'AL' THEN 'Alimentos' WHEN 'HC' THEN 'Huevos comerciales'
+          WHEN 'HI' THEN 'Huevos incubables' WHEN 'IN' THEN 'Insumos' WHEN 'ME' THEN 'Material de empaque' WHEN 'MD' THEN 'Medicamentos' WHEN 'VA' THEN 'Vacunas' ELSE p.product_type END label,
+        COALESCE(SUM(p.opening_stock + COALESCE(m.quantity,0)),0) quantity FROM products p
+        LEFT JOIN (SELECT l.product_id,SUM(CASE WHEN d.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.quantity ELSE -l.quantity END) quantity
+          FROM inventory_document_lines l JOIN inventory_documents d ON d.id=l.document_id AND d.organization_id=l.organization_id
+          WHERE d.organization_id=$1 AND d.status='POSTED' GROUP BY l.product_id) m ON m.product_id=p.id
+        WHERE p.organization_id=$1 AND p.status='ACTIVE' GROUP BY p.product_type ORDER BY label`, [orgId]),
+      db.query(trendQuery, [orgId]),
+      db.query(`SELECT p.code,p.name,p.unit_code unit,p.opening_stock + COALESCE(SUM(CASE WHEN d.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.quantity ELSE -l.quantity END) FILTER (WHERE d.status='POSTED'),0) quantity
+        FROM products p LEFT JOIN inventory_document_lines l ON l.product_id=p.id AND l.organization_id=p.organization_id
+        LEFT JOIN inventory_documents d ON d.id=l.document_id AND d.organization_id=l.organization_id
+        WHERE p.organization_id=$1 AND p.status='ACTIVE' GROUP BY p.id ORDER BY quantity ASC,p.name ASC LIMIT 5`, [orgId]),
+      db.query(`SELECT d.id,d.movement_date,d.movement_type,d.module_code,COALESCE(SUM(l.quantity),0) quantity,
+        COALESCE(STRING_AGG(DISTINCT p.name, ', '),'Sin productos') products FROM inventory_documents d
+        LEFT JOIN inventory_document_lines l ON l.document_id=d.id AND l.organization_id=d.organization_id LEFT JOIN products p ON p.id=l.product_id
+        WHERE d.organization_id=$1 AND d.status='POSTED' GROUP BY d.id ORDER BY d.movement_date DESC,d.created_at DESC LIMIT 6`, [orgId]),
+    ]);
+    res.json({ summary: summary.rows[0], byType: byType.rows, trend: trend.rows, trendRange: range, lowStock: lowStock.rows, recent: recent.rows });
+  } catch (error) { next(error); }
+}
+
 function filtros(req) {
   const fechaInicio = String(req.query.fechaInicio || "");
   const fechaFin = String(req.query.fechaFin || "");
@@ -84,4 +166,4 @@ async function produccion(req, res, next) {
   } catch (error) { next(error); }
 }
 
-module.exports = { produccion };
+module.exports = { produccion, dashboard, inventoryAlerts };

@@ -4,6 +4,7 @@ import { useReferenceValues } from "../hooks/useOperationalCatalogs";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
 import { useCatalogList } from "../hooks/useCatalogList";
 import CancelEditButton from "../components/CancelEditButton";
+import { confirmAction } from "../services/notifications";
 
 function Lotes() {
   const referencias = useReferenceValues(["CURRENCY"]);
@@ -452,8 +453,8 @@ function Lotes() {
         setHembras(row.femaleCount || 0); setMachos(row.maleCount || 0); setCostoUnitario(row.unitCost || 0);
         setMoneda(row.currencyCode || "GTQ"); setEstado(row.status === "INACTIVE" ? "Inactivo" : "Activo");
       }} onDeactivate={async (row) => {
-        if (!window.confirm(`¿Deseas dar de baja el lote ${row.code}?`)) return;
-        try { await api(`/lotes/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); }
+        if (!(await confirmAction(`¿Deseas dar de baja el lote ${row.code}?`, { title: "Dar de baja lote", confirmLabel: "Sí, dar de baja" }))) return;
+        try { await api(`/lotes/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); alert("Lote dado de baja correctamente."); }
         catch (error) { alert(error.message); }
       }}/>
     </form>
