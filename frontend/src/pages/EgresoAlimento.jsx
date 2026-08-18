@@ -56,7 +56,7 @@ function EgresoAlimento() {
 
   const [grupos, setGrupos] = useState([]);
   const [editingId, setEditingId] = useState(null);
-  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); const grouped = new Map(); data.rows.forEach((item) => { const galera = item.galeras[0]?.galera || ""; if (!grouped.has(galera)) grouped.set(galera, { id: crypto.randomUUID(), galera, filas: [] }); grouped.get(galera).filas.push({ id: crypto.randomUUID(), tipo: item.tipo === "Vacunas" ? "Vacuna" : "Alimento", alimento: item.tipo === "Vacunas" ? "" : item.item, vacuna: item.tipo === "Vacunas" ? item.item : "", cantidad: item.cantidad, aditivos: item.aditivos.map((x) => ({ producto: x.producto, cantidad: x.cantidad })), medicamentos: item.medicamentos.map((x) => ({ producto: x.producto, cantidad: x.cantidad })) }); }); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setGrupos([...grouped.values()]); } catch (error) { alert(error.message); } };
+  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id, { decimalQuantities: true }); const grouped = new Map(); data.rows.forEach((item) => { const galera = item.galeras[0]?.galera || ""; if (!grouped.has(galera)) grouped.set(galera, { id: crypto.randomUUID(), galera, filas: [] }); grouped.get(galera).filas.push({ id: crypto.randomUUID(), tipo: item.tipo === "Vacunas" ? "Vacuna" : "Alimento", alimento: item.tipo === "Vacunas" ? "" : item.item, vacuna: item.tipo === "Vacunas" ? item.item : "", cantidad: item.cantidad, aditivos: item.aditivos.map((x) => ({ producto: x.producto, cantidad: x.cantidad })), medicamentos: item.medicamentos.map((x) => ({ producto: x.producto, cantidad: x.cantidad })) }); }); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setGrupos([...grouped.values()]); } catch (error) { alert(error.message); } };
 
   const agregarGrupoGalera = () => {
 
@@ -268,6 +268,8 @@ function EgresoAlimento() {
     e.preventDefault();
     try {
       const rows = grupos.flatMap((grupo) => grupo.filas.filter((fila) => fila.alimento || fila.vacuna).map((fila) => ({ ...fila, item: fila.alimento || fila.vacuna, galeras: [{ galera: grupo.galera, cantidad: fila.cantidad }] })));
+      const quantities = rows.flatMap((fila) => [fila.cantidad, ...(fila.aditivos || []).filter((item) => item.producto).map((item) => item.cantidad), ...(fila.medicamentos || []).filter((item) => item.producto).map((item) => item.cantidad)]);
+      if (quantities.some((value) => !/^\d+(?:\.\d{1,2})?$/.test(String(value)) || Number(value) <= 0)) throw new Error("Las cantidades deben ser mayores que cero y tener como máximo dos decimales.");
       await saveInventory({ id: editingId, fecha, rows, movementType: "OUTPUT", module: "FOOD", allocate: true });
       alert(editingId ? "Registro actualizado correctamente" : "Registro guardado correctamente"); setGrupos([]); setGaleraSeleccionada(""); setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
     } catch (error) { alert(error.message); }
@@ -525,8 +527,8 @@ function EgresoAlimento() {
                     <td>
                       <input
                         type="number"
-                        min="1"
-                        step="1"
+                        min="0.01"
+                        step="0.01"
                         value={
                           fila.cantidad
                         }
@@ -595,8 +597,8 @@ function EgresoAlimento() {
                                 </select>
                                 <input
                                   type="number"
-                                  min="1"
-                                  step="1"
+                                  min="0.01"
+                                  step="0.01"
                                   value={aditivo.cantidad}
                                   onChange={(e) => cambiarAditivo(grupo.id, fila.id, index, "cantidad", e.target.value)}
                                   placeholder="Cantidad"
@@ -673,8 +675,8 @@ function EgresoAlimento() {
                                 </select>
                                 <input
                                   type="number"
-                                  min="1"
-                                  step="1"
+                                  min="0.01"
+                                  step="0.01"
                                   value={med.cantidad}
                                   onChange={(e) => cambiarMedicamento(grupo.id, fila.id, index, "cantidad", e.target.value)}
                                   placeholder="Cantidad"

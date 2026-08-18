@@ -60,6 +60,15 @@ function positiveInteger(value, name) {
   return number;
 }
 
+function positiveQuantity(value, name, allowTwoDecimals = false) {
+  if (!allowTwoDecimals) return positiveInteger(value, name);
+  const number = positive(value, name);
+  if (Math.abs(number * 100 - Math.round(number * 100)) > 0.000001) {
+    throw new HttpError(400, `${name} debe tener como máximo dos decimales.`, "VALIDATION_ERROR");
+  }
+  return number;
+}
+
 function money(value, name) {
   const number = Number(value || 0);
   if (!Number.isFinite(number) || number < 0 || Math.abs(number * 100 - Math.round(number * 100)) > 0.000001) {
@@ -70,12 +79,12 @@ function money(value, name) {
 
 const incomingInventoryTypes = new Set(["INPUT", "ADJUSTMENT_IN"]);
 
-async function prepareInventoryDetails(client, orgId, details) {
+async function prepareInventoryDetails(client, orgId, details, allowTwoDecimals = false) {
   const prepared = [];
   for (const detail of details) {
     const productId = await resolveTenantId(client, "products", orgId,
       detail.productoId || detail.producto || detail.item || detail.alimento || detail.material || detail.vacuna, "producto");
-    prepared.push({ ...detail, _productId: productId, _quantity: positiveInteger(detail.cantidad, "cantidad"), _unitCost: money(detail.costoUnitario, "precio") });
+    prepared.push({ ...detail, _productId: productId, _quantity: positiveQuantity(detail.cantidad, "cantidad", allowTwoDecimals), _unitCost: money(detail.costoUnitario, "precio") });
   }
   return prepared;
 }
@@ -167,15 +176,17 @@ async function actualizarInventario(req, res, next) {
       const current = await client.query("SELECT * FROM inventory_documents WHERE id=$1 AND organization_id=$2 FOR UPDATE", [req.params.id, orgId]);
       if (!current.rows[0]) throw new HttpError(404, "El documento no existe.", "NOT_FOUND");
       if (current.rows[0].status === "VOID") throw new HttpError(409, "Un documento anulado no puede editarse.", "VOID_DOCUMENT");
-      const preparedDetails = await prepareInventoryDetails(client, orgId, detalles);
-      await validateProjectedInventory(client, orgId, preparedDetails, required(body.tipoMovimiento,"tipoMovimiento"), req.params.id);
+      const movementType = required(body.tipoMovimiento,"tipoMovimiento");
+      const allowTwoDecimals = movementType === "OUTPUT" && body.modulo === "FOOD";
+      const preparedDetails = await prepareInventoryDetails(client, orgId, detalles, allowTwoDecimals);
+      await validateProjectedInventory(client, orgId, preparedDetails, movementType, req.params.id);
       const supplierId = await resolveTenantId(client, "suppliers", orgId, body.proveedorId || body.proveedor, "proveedor", true);
       const sourceWarehouseId = await resolveTenantId(client, "warehouses", orgId, body.bodegaOrigenId || body.bodegaOrigen, "bodega de origen", true);
       const destinationWarehouseId = await resolveTenantId(client, "warehouses", orgId, body.bodegaDestinoId || body.bodegaDestino, "bodega de destino", true);
       const header = await client.query(
         `UPDATE inventory_documents SET movement_type=$1,module_code=$2,movement_date=$3,supplier_id=$4,source_warehouse_id=$5,
          destination_warehouse_id=$6,notes=$7,updated_by=$8,updated_at=NOW() WHERE id=$9 AND organization_id=$10 RETURNING *`,
-        [required(body.tipoMovimiento,"tipoMovimiento"),required(body.modulo,"modulo"),required(body.fecha,"fecha"),supplierId,
+        [movementType,required(body.modulo,"modulo"),required(body.fecha,"fecha"),supplierId,
           sourceWarehouseId,destinationWarehouseId,body.observaciones || null,req.user.id,req.params.id,orgId]
       );
       await client.query("DELETE FROM inventory_document_lines WHERE document_id=$1 AND organization_id=$2", [req.params.id, orgId]);
@@ -188,7 +199,7 @@ async function actualizarInventario(req, res, next) {
           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,[orgId,req.params.id,parent,productId,detail.rol || "PRIMARY",detail._quantity,detail._unitCost,detail.justificacion || null,index+1]);
         inserted.push(line.rows[0]);
         let distributed=0;
-        for (const allocation of detail.distribuciones || []) { const quantity=positiveInteger(allocation.cantidad,"cantidad distribuida"); const houseId=await resolveTenantId(client,"houses",orgId,allocation.galeraId || allocation.galera,"galera"); distributed+=quantity; await client.query("INSERT INTO inventory_line_allocations(organization_id,line_id,house_id,quantity) VALUES($1,$2,$3,$4)",[orgId,line.rows[0].id,houseId,quantity]); }
+        for (const allocation of detail.distribuciones || []) { const quantity=positiveQuantity(allocation.cantidad,"cantidad distribuida",allowTwoDecimals); const houseId=await resolveTenantId(client,"houses",orgId,allocation.galeraId || allocation.galera,"galera"); distributed+=quantity; await client.query("INSERT INTO inventory_line_allocations(organization_id,line_id,house_id,quantity) VALUES($1,$2,$3,$4)",[orgId,line.rows[0].id,houseId,quantity]); }
         if ((detail.distribuciones || []).length && Math.abs(distributed-Number(detail.cantidad))>0.0001) throw new HttpError(400,`La distribución de la línea ${index+1} no coincide con su cantidad.`,"ALLOCATION_MISMATCH");
       }
       return { ...header.rows[0], detalles: inserted };
@@ -208,7 +219,8 @@ async function crearInventario(req, res, next) {
     }
     const result = await transaction(async (client) => {
       const movementType = required(body.tipoMovimiento, "tipoMovimiento");
-      const preparedDetails = await prepareInventoryDetails(client, orgId, detalles);
+      const allowTwoDecimals = movementType === "OUTPUT" && body.modulo === "FOOD";
+      const preparedDetails = await prepareInventoryDetails(client, orgId, detalles, allowTwoDecimals);
       await validateProjectedInventory(client, orgId, preparedDetails, movementType);
       const supplierId = await resolveTenantId(client, "suppliers", orgId, body.proveedorId || body.proveedor, "proveedor", true);
       const sourceWarehouseId = await resolveTenantId(client, "warehouses", orgId, body.bodegaOrigenId || body.bodegaOrigen, "bodega de origen", true);
@@ -233,7 +245,7 @@ async function crearInventario(req, res, next) {
         inserted.push(line.rows[0]);
         let distributed = 0;
         for (const allocation of detail.distribuciones || []) {
-          const quantity = positiveInteger(allocation.cantidad, "cantidad distribuida");
+          const quantity = positiveQuantity(allocation.cantidad, "cantidad distribuida", allowTwoDecimals);
           const houseId = await resolveTenantId(client, "houses", orgId, allocation.galeraId || allocation.galera, "galera");
           distributed += quantity;
           await client.query(

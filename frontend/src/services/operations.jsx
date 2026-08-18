@@ -7,6 +7,7 @@ const roleByType = {
 };
 
 const integerText = (value) => String(Math.round(Number(value || 0)));
+const quantityText = (value) => String(Number(value || 0));
 const priceText = (value) => Number(value || 0).toFixed(2);
 const clientId = () => globalThis.crypto?.randomUUID?.()
   || `row-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
@@ -79,17 +80,18 @@ export async function saveOperation(path, body, id) {
 
 const typeByRole = { BASE_FOOD: "Alimento", MATERIAL: "Materiales", ADDITIVE: "Aditivos", MEDICINE: "Medicamentos", VACCINE: "Vacunas", PRIMARY: "Insumos" };
 
-export async function loadInventoryDocument(id) {
+export async function loadInventoryDocument(id, { decimalQuantities = false } = {}) {
   const document = await api(`/inventario/documentos/${id}`);
   const roots = document.detalles.filter((line) => !line.parent_line_id);
+  const formatQuantity = decimalQuantities ? quantityText : integerText;
   const rows = roots.map((line) => ({
     id: clientId(), tipo: typeByRole[line.line_role] || "Insumos",
-    item: line.product_code, alimento: line.product_code, cantidad: integerText(line.quantity),
+    item: line.product_code, alimento: line.product_code, cantidad: formatQuantity(line.quantity),
     precio: priceText(line.unit_cost), modoPrecio: "UNITARIO",
     justificacion: line.justification || "",
-    galeras: (line.allocations || []).map((allocation) => ({ galera: allocation.house_code || allocation.house_id, cantidad: integerText(allocation.quantity) })),
-    aditivos: document.detalles.filter((child) => child.parent_line_id === line.id && child.line_role === "ADDITIVE").map((child) => ({ id: clientId(), producto: child.product_code, cantidad: integerText(child.quantity) })),
-    medicamentos: document.detalles.filter((child) => child.parent_line_id === line.id && child.line_role === "MEDICINE").map((child) => ({ id: clientId(), producto: child.product_code, cantidad: integerText(child.quantity) })),
+    galeras: (line.allocations || []).map((allocation) => ({ galera: allocation.house_code || allocation.house_id, cantidad: formatQuantity(allocation.quantity) })),
+    aditivos: document.detalles.filter((child) => child.parent_line_id === line.id && child.line_role === "ADDITIVE").map((child) => ({ id: clientId(), producto: child.product_code, cantidad: formatQuantity(child.quantity) })),
+    medicamentos: document.detalles.filter((child) => child.parent_line_id === line.id && child.line_role === "MEDICINE").map((child) => ({ id: clientId(), producto: child.product_code, cantidad: formatQuantity(child.quantity) })),
   }));
   return { document, rows };
 }
