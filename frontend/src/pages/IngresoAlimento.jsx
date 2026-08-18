@@ -382,9 +382,9 @@ const agregarMedicamentoFila = (
                 Cantidad
               </th>
 
-              <th>Precio (Q)</th>
+              <th>Precio Unitario (Q)</th>
               <th>Modo</th>
-              <th>Costo unitario</th>
+              <th>Total (Q)</th>
 
               <th>
                 Aditivo
