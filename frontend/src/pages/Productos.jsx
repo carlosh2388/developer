@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import { useReferenceValues } from "../hooks/useOperationalCatalogs";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
+import CancelEditButton from "../components/CancelEditButton";
 import { useCatalogList } from "../hooks/useCatalogList";
 
 function Productos() {
@@ -15,6 +16,11 @@ function Productos() {
   const [idProducto, setIdProducto] = useState("");
   const [nombre, setNombre] = useState("");
   const [unidad, setUnidad] = useState("");
+  const [unidades, setUnidades] = useState([]);
+  const [mostrarNuevaUnidad, setMostrarNuevaUnidad] = useState(false);
+  const [codigoNuevaUnidad, setCodigoNuevaUnidad] = useState("");
+  const [nombreNuevaUnidad, setNombreNuevaUnidad] = useState("");
+  const [abreviaturaNuevaUnidad, setAbreviaturaNuevaUnidad] = useState("");
   const [estado, setEstado] = useState("Activo");
   const [precio, setPrecio] = useState("");
   const [existencia, setExistencia] = useState("");
@@ -31,6 +37,28 @@ function Productos() {
   const [helpId, setHelpId] = useState("");
   const [mostrarGuardar, setMostrarGuardar] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const cancelarEdicion = () => { setEditingId(null); setTipoInventario(""); setIdProducto(""); setNombre(""); setUnidad(""); setEstado("Activo"); setPrecio(""); setExistencia(""); setCosto(""); setPresentacion(""); setEnfermedad(""); setDosis(""); setTipo(""); setMostrarGenerales(false); setMostrarInsumos(false); setHelpId(""); setMostrarGuardar(false); setMostrarNuevaUnidad(false); setCodigoNuevaUnidad(""); setNombreNuevaUnidad(""); setAbreviaturaNuevaUnidad(""); };
+
+  useEffect(() => { setUnidades(referencias.UNIT || []); }, [referencias.UNIT]);
+
+  const abrirNuevaUnidad = async () => {
+    try {
+      const data = await api("/catalogos/unidades/siguiente");
+      setCodigoNuevaUnidad(data.code); setMostrarNuevaUnidad(true);
+    } catch (error) { alert(error.message); }
+  };
+
+  const agregarUnidad = async () => {
+    if (!nombreNuevaUnidad.trim() || !abreviaturaNuevaUnidad.trim()) return;
+    try {
+      const nueva = await api("/catalogos/unidades", { method: "POST", body: JSON.stringify({
+        nombre: nombreNuevaUnidad.trim(), abreviatura: abreviaturaNuevaUnidad.trim(),
+      }) });
+      setUnidades((current) => [...current, nueva].sort((a, b) => a.label.localeCompare(b.label, "es", { numeric: true })));
+      setUnidad(nueva.valueCode); setMostrarNuevaUnidad(false); setCodigoNuevaUnidad("");
+      setNombreNuevaUnidad(""); setAbreviaturaNuevaUnidad("");
+    } catch (error) { alert(error.message); }
+  };
 
   // =========================
   // CAMBIO DE TIPO INVENTARIO
@@ -87,6 +115,7 @@ function Productos() {
       setTipoInventario(""); setIdProducto(""); setNombre(""); setUnidad(""); setEstado("Activo");
       setPrecio(""); setExistencia(""); setCosto(""); setPresentacion(""); setEnfermedad(""); setDosis(""); setTipo("");
       setMostrarGenerales(false); setMostrarInsumos(false); setHelpId(""); setMostrarGuardar(false);
+      setMostrarNuevaUnidad(false); setCodigoNuevaUnidad(""); setNombreNuevaUnidad(""); setAbreviaturaNuevaUnidad("");
       setEditingId(null);
       await list.reload();
     } catch (error) { alert(error.message); }
@@ -113,6 +142,11 @@ function Productos() {
   // =========================
   // RENDER
   // =========================
+
+  const productosConExistencia = list.rows.map((row) => ({
+    ...row,
+    currentStock: Number(row.currentStock ?? row.openingStock ?? 0),
+  }));
 
   return (
     <form
@@ -179,21 +213,15 @@ function Productos() {
                 Unidad de Medida
               </label>
 
-              <select
-                value={unidad}
-                onChange={(e) =>
-                  setUnidad(
-                    e.target.value
-                  )
-                }
-                style={inputStyle}
-              >
-                <option value="">
-                  Seleccione
-                </option>
-
-                {(referencias.UNIT || []).map((item) => <option key={item.valueCode} value={item.valueCode}>{item.label}</option>)}
-              </select>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <select value={unidad} onChange={(e) => setUnidad(e.target.value)} style={inputStyle}>
+                  <option value="">Seleccione</option>
+                  {[...unidades].sort((a, b) => a.label.localeCompare(b.label, "es", { numeric: true }))
+                    .map((item) => <option key={item.valueCode} value={item.valueCode}>{item.label}</option>)}
+                </select>
+                <button type="button" onClick={abrirNuevaUnidad} title="Agregar unidad de medida"
+                  style={{ width: 42, height: 42, padding: 0, flexShrink: 0, fontSize: 20 }}>+</button>
+              </div>
             </div>
 
             {/* ESTADO */}
@@ -221,6 +249,25 @@ function Productos() {
               </select>
             </div>
           </div>
+
+          {mostrarNuevaUnidad && <div style={{
+            display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end",
+            marginBottom: 15, padding: 14, border: "1px solid #d7e0da", borderRadius: 8
+          }}>
+            <div style={{ flex: "0 0 110px" }}>
+              <label>Código</label>
+              <input value={codigoNuevaUnidad} readOnly aria-label="Código de unidad" style={inputStyle} />
+            </div>
+            <div style={{ flex: "2 1 260px" }}>
+              <label>Nombre de la unidad</label>
+              <input value={nombreNuevaUnidad} onChange={(e) => setNombreNuevaUnidad(e.target.value)} placeholder="Ejemplo: Metro" style={inputStyle} />
+            </div>
+            <div style={{ flex: "1 1 150px" }}>
+              <label>Abreviatura</label>
+              <input value={abreviaturaNuevaUnidad} onChange={(e) => setAbreviaturaNuevaUnidad(e.target.value)} placeholder="Ejemplo: m" style={inputStyle} />
+            </div>
+            <button type="button" onClick={agregarUnidad} style={{ height: 38, padding: "8px 18px" }}>Agregar unidad</button>
+          </div>}
 
           {/* FILA 2 */}
           <div style={rowStyle}>
@@ -272,13 +319,11 @@ function Productos() {
               <input
                 type="number"
                 value={existencia}
-                onChange={(e) =>
-                  setExistencia(
-                    e.target.value
-                  )
-                }
                 placeholder="0"
-                style={inputStyle}
+                readOnly
+                disabled
+                aria-readonly="true"
+                style={{ ...inputStyle, cursor: "not-allowed", opacity: 0.75 }}
               />
             </div>
           </div>
@@ -389,7 +434,7 @@ function Productos() {
 
       {/* BOTÓN */}
       {mostrarGuardar && (
-        <button
+        <div className="edit-actions"><button
           type="submit"
           style={{
             padding: "10px 20px",
@@ -401,16 +446,18 @@ function Productos() {
           }}
         >
           {editingId ? "Guardar cambios" : "Guardar"}
-        </button>
+        </button><CancelEditButton editing={editingId} onCancel={cancelarEdicion}/></div>
       )}
-      <ConfigRecordsTable title="Productos registrados" rows={list.rows} loading={list.loading} error={list.error} columns={[
-        { key: "code", label: "Código" }, { key: "productType", label: "Tipo" }, { key: "name", label: "Producto" },
-        { key: "unitCode", label: "Unidad" }, { key: "openingStock", label: "Existencia inicial" },
+      <ConfigRecordsTable title="Productos registrados" rows={productosConExistencia} loading={list.loading} error={list.error} columns={[
+        { key: "code", label: "Código" }, { key: "productType", label: "Tipo", render: (value) =>
+          (referencias.PRODUCT_TYPE || []).find((item) => item.valueCode === value)?.label || ({ AD: "Aditivo", AL: "Alimento", HC: "Huevo comercial", HI: "Huevo incubable", IN: "Insumo", ME: "Material de Empaque", MD: "Medicamento", VA: "Vacuna" }[value] || value)
+        }, { key: "name", label: "Producto" },
+        { key: "unitCode", label: "Unidad" }, { key: "currentStock", label: "Existencia actual", render: (value) => Number(value || 0).toLocaleString("es-GT", { maximumFractionDigits: 0 }) },
         { key: "standardCost", label: "Costo" }, { key: "salePrice", label: "Precio" }, { key: "status", label: "Estado" },
       ]} onEdit={(row) => {
         setEditingId(row.id); setTipoInventario(row.productType); setIdProducto(row.code); setNombre(row.name);
         setUnidad(row.unitCode); setEstado(row.status === "INACTIVE" ? "Inactivo" : "Activo"); setPrecio(row.salePrice || "");
-        setExistencia(row.openingStock || ""); setCosto(row.standardCost || ""); setPresentacion(row.presentation || "");
+        setExistencia(row.currentStock ?? row.openingStock ?? ""); setCosto(row.standardCost || ""); setPresentacion(row.presentation || "");
         setEnfermedad(row.targetDisease || ""); setDosis(row.dosage || ""); setTipo(row.vaccineKind || "");
         setMostrarGenerales(true); setMostrarGuardar(true); setMostrarInsumos(["MD", "VA"].includes(row.productType));
       }} onDeactivate={async (row) => {

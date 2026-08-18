@@ -2,6 +2,7 @@ import { useState } from "react";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
 import { assertUniqueCode, useCatalogList } from "../hooks/useCatalogList";
 import { api } from "../services/api";
+import CancelEditButton from "../components/CancelEditButton";
 
 export default function LineasAvicolas() {
   const list = useCatalogList("/lineas-avicolas");
@@ -10,6 +11,7 @@ export default function LineasAvicolas() {
   const [estado, setEstado] = useState("ACTIVE");
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const cancelarEdicion = () => { setCodigo(""); setNombre(""); setEstado("ACTIVE"); setEditingId(null); };
 
   async function guardar(event) {
     event.preventDefault();
@@ -43,9 +45,9 @@ export default function LineasAvicolas() {
         </select>
       </label>
     </div>
-    <button disabled={saving} style={{ width: "100%", padding: 10, border: 0, borderRadius: 5, background: "#1976d2", color: "#fff", cursor: "pointer", fontWeight: 600 }}>
+    <div className="edit-actions"><button disabled={saving} style={{ width: "100%", padding: 10, border: 0, borderRadius: 5, background: "#1976d2", color: "#fff", cursor: "pointer", fontWeight: 600 }}>
       {saving ? "Guardando…" : editingId ? "Guardar cambios" : "Guardar"}
-    </button>
+    </button><CancelEditButton editing={editingId} onCancel={cancelarEdicion}/></div>
     <ConfigRecordsTable title="Líneas avícolas registradas" rows={list.rows} loading={list.loading} error={list.error} columns={[
       { key: "code", label: "Código" }, { key: "name", label: "Línea avícola" }, { key: "status", label: "Estado" },
     ]} onEdit={(row) => { setEditingId(row.id); setCodigo(row.code); setNombre(row.name); setEstado(row.status); }} onDeactivate={async (row) => {

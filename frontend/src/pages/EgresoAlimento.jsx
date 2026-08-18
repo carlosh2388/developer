@@ -3,6 +3,12 @@ import { loadInventoryDocument, saveInventory } from "../services/operations";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import OperationRecordsModal, { inventoryColumns } from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
+import CancelEditButton from "../components/CancelEditButton";
+
+const catalogName = (item) => {
+  const prefix = `${item.value} - `;
+  return item.label?.startsWith(prefix) ? item.label.slice(prefix.length) : item.label;
+};
 
 function EgresoAlimento() {
   const { productosPorTipo, opciones } = useOperationalCatalogs(["productos", "galeras"]);
@@ -15,10 +21,10 @@ function EgresoAlimento() {
     useState("");
 
   const galeras = opciones("galeras");
-  const alimentosOptions = productosPorTipo(["AL"]).map((x) => x.value);
-  const aditivosDisponibles = productosPorTipo(["AD"]).map((x) => x.value);
-  const medicamentosDisponibles = productosPorTipo(["MD"]).map((x) => x.value);
-  const vacunasDisponibles = productosPorTipo(["VA"]).map((x) => x.value);
+  const alimentosOptions = productosPorTipo(["AL"]);
+  const aditivosDisponibles = productosPorTipo(["AD"]);
+  const medicamentosDisponibles = productosPorTipo(["MD"]);
+  const vacunasDisponibles = productosPorTipo(["VA"]);
 
   const crearFila = (
     tipo = "Alimento"
@@ -33,12 +39,12 @@ function EgresoAlimento() {
 
     aditivos:
       tipo === "Alimento"
-        ? [""]
+        ? [{ producto: "", cantidad: "" }]
         : [],
 
     medicamentos:
       tipo === "Alimento"
-        ? [""]
+        ? [{ producto: "", cantidad: "" }]
         : []
   });
 
@@ -50,7 +56,7 @@ function EgresoAlimento() {
 
   const [grupos, setGrupos] = useState([]);
   const [editingId, setEditingId] = useState(null);
-  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); const grouped = new Map(); data.rows.forEach((item) => { const galera = item.galeras[0]?.galera || ""; if (!grouped.has(galera)) grouped.set(galera, { id: crypto.randomUUID(), galera, filas: [] }); grouped.get(galera).filas.push({ id: crypto.randomUUID(), tipo: item.tipo === "Vacunas" ? "Vacuna" : "Alimento", alimento: item.tipo === "Vacunas" ? "" : item.item, vacuna: item.tipo === "Vacunas" ? item.item : "", cantidad: item.cantidad, aditivos: item.aditivos.map((x) => x.producto), medicamentos: item.medicamentos.map((x) => x.producto) }); }); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setGrupos([...grouped.values()]); } catch (error) { alert(error.message); } };
+  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); const grouped = new Map(); data.rows.forEach((item) => { const galera = item.galeras[0]?.galera || ""; if (!grouped.has(galera)) grouped.set(galera, { id: crypto.randomUUID(), galera, filas: [] }); grouped.get(galera).filas.push({ id: crypto.randomUUID(), tipo: item.tipo === "Vacunas" ? "Vacuna" : "Alimento", alimento: item.tipo === "Vacunas" ? "" : item.item, vacuna: item.tipo === "Vacunas" ? item.item : "", cantidad: item.cantidad, aditivos: item.aditivos.map((x) => ({ producto: x.producto, cantidad: x.cantidad })), medicamentos: item.medicamentos.map((x) => ({ producto: x.producto, cantidad: x.cantidad })) }); }); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setGrupos([...grouped.values()]); } catch (error) { alert(error.message); } };
 
   const agregarGrupoGalera = () => {
 
@@ -148,7 +154,7 @@ function EgresoAlimento() {
                   ...f,
                   aditivos: [
                     ...(f.aditivos || []),
-                    ""
+                    { producto: "", cantidad: "" }
                   ]
                 }
               : f
@@ -176,7 +182,7 @@ function EgresoAlimento() {
                   ...f,
                   medicamentos: [
                     ...(f.medicamentos || []),
-                    ""
+                    { producto: "", cantidad: "" }
                   ]
                 }
               : f
@@ -190,6 +196,7 @@ function EgresoAlimento() {
     grupoId,
     filaId,
     index,
+    campo,
     valor
   ) => {
 
@@ -209,7 +216,7 @@ function EgresoAlimento() {
               ...f.aditivos
             ];
 
-            copia[index] = valor;
+            copia[index] = { ...copia[index], [campo]: valor };
 
             return {
               ...f,
@@ -225,6 +232,7 @@ function EgresoAlimento() {
     grupoId,
     filaId,
     index,
+    campo,
     valor
   ) => {
 
@@ -244,7 +252,7 @@ function EgresoAlimento() {
               ...f.medicamentos
             ];
 
-            copia[index] = valor;
+            copia[index] = { ...copia[index], [campo]: valor };
 
             return {
               ...f,
@@ -290,10 +298,11 @@ function EgresoAlimento() {
     cursor: "pointer"
   };
 
-  return (<OperationPanel><OperationRecordsModal title="Egresos de alimento" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={inventoryColumns} rowFilter={(row) => row.movement_type === "OUTPUT" && row.module_code === "FOOD"} onEdit={cargarEdicion}/>
+  return (<OperationPanel maxWidth={1600}><OperationRecordsModal title="Egresos de alimento" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={inventoryColumns} rowFilter={(row) => row.movement_type === "OUTPUT" && row.module_code === "FOOD"} onEdit={cargarEdicion}/>
     <div
       style={{
-        maxWidth: "1200px",
+        width: "100%",
+        maxWidth: "1560px",
         margin: "0 auto",
         padding: "20px",
         fontFamily: "Arial"
@@ -309,7 +318,7 @@ function EgresoAlimento() {
           marginBottom: "20px"
         }}
       >
-        <div>
+        <div style={{ minWidth: "280px" }}>
           <label>Fecha</label>
           <input
             type="date"
@@ -341,19 +350,19 @@ function EgresoAlimento() {
                 key={g.value}
                 value={g.value}
               >
-                {g.label}
+                {catalogName(g)}
               </option>
             ))}
           </select>
         </div>
 
-        <button
+        <div><button
           type="button"
           onClick={agregarGrupoGalera}
           style={btnAdd}
         >
           +
-        </button>
+        </button></div>
       </div>
 
       <form onSubmit={guardar}>
@@ -367,7 +376,7 @@ function EgresoAlimento() {
               marginBottom: "20px"
             }}
           >
-            <h3>{galeras.find((item) => item.value === grupo.galera)?.label || grupo.galera}</h3>
+            <h3>{catalogName(galeras.find((item) => item.value === grupo.galera) || { value: grupo.galera, label: grupo.galera })}</h3>
 
             <div
               style={{
@@ -407,10 +416,12 @@ function EgresoAlimento() {
             <table
               style={{
                 width: "100%",
+                minWidth: "1180px",
                 borderCollapse:
                   "collapse"
               }}
             >
+              <colgroup><col style={{ width: "26%" }}/><col style={{ width: "15%" }}/><col style={{ width: "25%" }}/><col style={{ width: "25%" }}/><col style={{ width: "9%" }}/></colgroup>
               <thead>
                 <tr
                   style={{
@@ -461,7 +472,7 @@ function EgresoAlimento() {
                               e.target.value
                             )
                           }
-                          style={inputStyle}
+                          style={{ ...inputStyle, minWidth: "220px" }}
                         >
                           <option value="">
                             Seleccione
@@ -469,10 +480,10 @@ function EgresoAlimento() {
 
                           {vacunasDisponibles.map(v => (
                             <option
-                              key={v}
-                              value={v}
+                              key={v.value}
+                              value={v.value}
                             >
-                              {v}
+                              {catalogName(v)}
                             </option>
                           ))}
                         </select>
@@ -491,7 +502,7 @@ function EgresoAlimento() {
                               e.target.value
                             )
                           }
-                          style={inputStyle}
+                          style={{ ...inputStyle, minWidth: "220px" }}
                         >
                           <option value="">
                             Seleccione
@@ -499,10 +510,10 @@ function EgresoAlimento() {
 
                           {alimentosOptions.map(a => (
                             <option
-                              key={a}
-                              value={a}
+                              key={a.value}
+                              value={a.value}
                             >
-                              {a}
+                              {catalogName(a)}
                             </option>
                           ))}
                         </select>
@@ -514,6 +525,8 @@ function EgresoAlimento() {
                     <td>
                       <input
                         type="number"
+                        min="1"
+                        step="1"
                         value={
                           fila.cantidad
                         }
@@ -525,7 +538,7 @@ function EgresoAlimento() {
                             e.target.value
                           )
                         }
-                        style={inputStyle}
+                        style={{ ...inputStyle, minWidth: "150px" }}
                       />
                     </td>
 
@@ -543,26 +556,27 @@ function EgresoAlimento() {
                               <div
                                 key={index}
                                 style={{
+                                  display: "flex",
+                                  gap: "6px",
                                   marginBottom:
                                     "5px"
                                 }}
                               >
                                 <select
                                   value={
-                                    aditivo
+                                    aditivo.producto
                                   }
                                   onChange={(e) =>
                                     cambiarAditivo(
                                       grupo.id,
                                       fila.id,
                                       index,
+                                      "producto",
                                       e.target
                                         .value
                                     )
                                   }
-                                  style={
-                                    inputStyle
-                                  }
+                                  style={{ ...inputStyle, minWidth: "210px" }}
                                 >
                                   <option value="">
                                     Seleccione
@@ -571,14 +585,23 @@ function EgresoAlimento() {
                                   {aditivosDisponibles.map(
                                     a => (
                                       <option
-                                        key={a}
-                                        value={a}
+                                        key={a.value}
+                                        value={a.value}
                                       >
-                                        {a}
+                                        {catalogName(a)}
                                       </option>
                                     )
                                   )}
                                 </select>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  step="1"
+                                  value={aditivo.cantidad}
+                                  onChange={(e) => cambiarAditivo(grupo.id, fila.id, index, "cantidad", e.target.value)}
+                                  placeholder="Cantidad"
+                                  style={{ ...inputStyle, minWidth: "105px" }}
+                                />
                               </div>
                             )
                           )}
@@ -613,24 +636,25 @@ function EgresoAlimento() {
                               <div
                                 key={index}
                                 style={{
+                                  display: "flex",
+                                  gap: "6px",
                                   marginBottom:
                                     "5px"
                                 }}
                               >
                                 <select
-                                  value={med}
+                                value={med.producto}
                                   onChange={(e) =>
                                     cambiarMedicamento(
                                       grupo.id,
-                                      fila.id,
-                                      index,
-                                      e.target
-                                        .value
+                                    fila.id,
+                                    index,
+                                    "producto",
+                                    e.target
+                                      .value
                                     )
                                   }
-                                  style={
-                                    inputStyle
-                                  }
+                                  style={{ ...inputStyle, minWidth: "210px" }}
                                 >
                                   <option value="">
                                     Seleccione
@@ -639,14 +663,23 @@ function EgresoAlimento() {
                                   {medicamentosDisponibles.map(
                                     m => (
                                       <option
-                                        key={m}
-                                        value={m}
+                                        key={m.value}
+                                        value={m.value}
                                       >
-                                        {m}
+                                        {catalogName(m)}
                                       </option>
                                     )
                                   )}
                                 </select>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  step="1"
+                                  value={med.cantidad}
+                                  onChange={(e) => cambiarMedicamento(grupo.id, fila.id, index, "cantidad", e.target.value)}
+                                  placeholder="Cantidad"
+                                  style={{ ...inputStyle, minWidth: "105px" }}
+                                />
                               </div>
                             )
                           )}
@@ -690,12 +723,12 @@ function EgresoAlimento() {
           </div>
         ))}
 
-        <button
+        <div className="edit-actions"><button
           type="submit"
           style={btnAdd}
         >
-          Guardar
-        </button>
+          {editingId ? "Guardar cambios" : "Guardar"}
+        </button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setGrupos([]); setGaleraSeleccionada(""); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
       </form>
     </div>
   </OperationPanel>);

@@ -23,7 +23,7 @@ import EgresoHuevos from "./pages/EgresoHuevos";
 import AjustesEntrada from "./pages/AjustesEntrada";
 import AjusteSalida from "./pages/AjusteSalida";
 import EgresoReproductores from "./pages/EgresoReproductores";
-import IngresoInsumos from "./pages/IngresoInsumos";
+import OtrosIngresos from "./pages/OtrosIngresos";
 import EgresoInsumos from "./pages/EgresoInsumos";
 import LineasAvicolas from "./pages/LineasAvicolas";
 import Reportes from "./pages/Reportes";
@@ -46,7 +46,7 @@ const views = {
   AjustesEntrada: <AjustesEntrada />,
   AjusteSalida: <AjusteSalida />,
   EgresoReproductores: <EgresoReproductores />,
-  IngresoInsumos: <IngresoInsumos />,
+  OtrosIngresos: <OtrosIngresos />,
   EgresoInsumos: <EgresoInsumos />,
   lineasAvicolas: <LineasAvicolas />,
   empleados: <Empleados />,

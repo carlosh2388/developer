@@ -5,6 +5,7 @@ import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import OperationRecordsModal from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
 import { calculateFlockWeek } from "../utils/flockWeek";
+import CancelEditButton from "../components/CancelEditButton";
 
 function ControlPesoHuevos() {
   const { opciones, lotes } = useOperationalCatalogs(["lotes"]);
@@ -376,7 +377,7 @@ useEffect(() => {
           GUARDAR
       ========================= */}
 
-      <button
+      <div className="edit-actions"><button
         onClick={guardar}
         style={{
           padding: "10px 20px",
@@ -388,8 +389,8 @@ useEffect(() => {
           marginTop: 15
         }}
       >
-        Guardar Registro
-      </button>
+        {editingId ? "Guardar cambios" : "Guardar Registro"}
+      </button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setLote(""); setSemana(""); setNumMuestras(0); setFilas([]); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
     </div>
   </OperationPanel>);
 }

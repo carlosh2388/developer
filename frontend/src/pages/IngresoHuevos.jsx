@@ -4,6 +4,7 @@ import { api } from "../services/api";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import OperationRecordsModal from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
+import CancelEditButton from "../components/CancelEditButton";
 
 function IngresoHuevos() {
   const { opciones, personal = [] } = useOperationalCatalogs(["lotes", "personal"]);
@@ -563,7 +564,7 @@ const calcularSubTotal = (grupo, filtro) => {
 
       {grupos.map(renderGrupo)}
 
-      <button onClick={guardar}>Guardar</button>
+      <div className="edit-actions"><button onClick={guardar}>{editingId ? "Guardar cambios" : "Guardar"}</button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setGrupos([crearGrupo()]); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
     </div>
   </OperationPanel>);
 }

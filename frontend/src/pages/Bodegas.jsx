@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
 import { assertUniqueCode, useCatalogList } from "../hooks/useCatalogList";
+import CancelEditButton from "../components/CancelEditButton";
 
 function Bodegas() {
   const list = useCatalogList("/bodegas");
@@ -28,6 +29,7 @@ function Bodegas() {
   const cargarSiguienteCodigo = () => api("/bodegas/siguiente")
     .then((data) => setIdBodega(data.code))
     .catch((error) => alert(error.message));
+  const cancelarEdicion = async () => { setEditingId(null); setNombreBodega(""); setLocalidad(""); setEstado("Activo"); setDescripcion(""); setNuevaLocalidad(""); setMostrarNuevaLocalidad(false); setFecha(new Date().toISOString().split("T")[0]); await cargarSiguienteCodigo(); };
 
   // =========================
   // FECHA AUTOMÁTICA
@@ -39,7 +41,7 @@ function Bodegas() {
       .split("T")[0];
 
     setFecha(hoy);
-    api("/localidades").then(setLocalidades).catch((error) => alert(error.message));
+    api("/localidades").then((rows) => setLocalidades([...rows].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "es", { sensitivity: "base", numeric: true })))).catch((error) => alert(error.message));
     cargarSiguienteCodigo();
   }, []);
 
@@ -57,7 +59,7 @@ function Bodegas() {
       const nueva = await api("/localidades", { method: "POST", body: JSON.stringify({
         codigo: `LOC-${Date.now().toString().slice(-6)}`, nombre: nuevaLocalidad.trim(), fechaApertura: fecha,
       }) });
-      setLocalidades((current) => [...current, nueva]); setLocalidad(nueva.id);
+      setLocalidades((current) => [...current, nueva].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "es", { sensitivity: "base", numeric: true }))); setLocalidad(nueva.id);
       setNuevaLocalidad(""); setMostrarNuevaLocalidad(false);
     } catch (error) { alert(error.message); }
   };
@@ -295,7 +297,7 @@ function Bodegas() {
       </div>
 
       {/* BOTÓN */}
-      <button
+      <div className="edit-actions"><button
         type="submit"
         style={{
           padding: "10px 20px",
@@ -308,7 +310,7 @@ function Bodegas() {
         }}
       >
         {editingId ? "Guardar cambios" : "Guardar"}
-      </button>
+      </button><CancelEditButton editing={editingId} onCancel={cancelarEdicion}/></div>
       <ConfigRecordsTable title="Bodegas registradas" rows={list.rows} loading={list.loading} error={list.error} dateField="openedOn" columns={[
         { key: "code", label: "Código" }, { key: "name", label: "Bodega" }, { key: "openedOn", label: "Apertura" },
         { key: "description", label: "Descripción" }, { key: "status", label: "Estado" },

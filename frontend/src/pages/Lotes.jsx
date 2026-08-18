@@ -3,6 +3,7 @@ import { api } from "../services/api";
 import { useReferenceValues } from "../hooks/useOperationalCatalogs";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
 import { useCatalogList } from "../hooks/useCatalogList";
+import CancelEditButton from "../components/CancelEditButton";
 
 function Lotes() {
   const referencias = useReferenceValues(["CURRENCY"]);
@@ -41,6 +42,7 @@ function Lotes() {
 
   const [estado, setEstado] = useState("Activo");
   const [editingId, setEditingId] = useState(null);
+  const cancelarEdicion = () => { setEditingId(null); setLote(""); setLinea(""); setGalera(""); setProveedor(""); setOrigen(""); setHembras(0); setMachos(0); setCostoUnitario(0); setMoneda("GTQ"); setEstado("Activo"); setNuevaGalera(""); setMostrarNuevaGalera(false); setFechaActual(); };
 
   // =========================
   // FECHA ACTUAL
@@ -94,11 +96,11 @@ function Lotes() {
     setFechaActual();
     Promise.allSettled([api("/lineas-avicolas"), api("/galeras"), api("/proveedores"), api("/lotes/siguientes")])
       .then(([lines, houses, suppliers, nextFlocks]) => {
-        if (lines.status === "fulfilled") setLineas(lines.value);
+        if (lines.status === "fulfilled") setLineas([...lines.value].sort((a, b) => String(a.name || a.code || "").localeCompare(String(b.name || b.code || ""), "es", { sensitivity: "base", numeric: true })));
         if (houses.status === "fulfilled") setGaleras([...houses.value].sort((a, b) =>
           String(a.name || a).localeCompare(String(b.name || b), "es", { numeric: true })
         ));
-        if (suppliers.status === "fulfilled") setProveedores(suppliers.value);
+        if (suppliers.status === "fulfilled") setProveedores([...suppliers.value].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "es", { sensitivity: "base", numeric: true })));
         if (nextFlocks.status === "fulfilled") setLotesDisponibles(nextFlocks.value);
         const failed = [lines, houses, suppliers, nextFlocks].find((result) => result.status === "rejected");
         if (failed) alert(failed.reason.message);
@@ -399,7 +401,7 @@ function Lotes() {
 
           <input
             type="number"
-            step="0.0001"
+            step="0.01"
             value={costoUnitario}
             onChange={(e) =>
               setCostoUnitario(e.target.value)
@@ -434,12 +436,12 @@ function Lotes() {
         </div>
       </div>
 
-      <button
+      <div className="edit-actions"><button
         type="submit"
         style={styles.button}
       >
         {editingId ? "Guardar cambios" : "Guardar"}
-      </button>
+      </button><CancelEditButton editing={editingId} onCancel={cancelarEdicion}/></div>
       <ConfigRecordsTable title="Lotes registrados" rows={list.rows} loading={list.loading} error={list.error} dateField="receivedOn" columns={[
         { key: "code", label: "Lote" }, { key: "receivedOn", label: "Recepción" }, { key: "originCountry", label: "Origen" },
         { key: "femaleCount", label: "Hembras" }, { key: "maleCount", label: "Machos" }, { key: "unitCost", label: "Costo unitario" },

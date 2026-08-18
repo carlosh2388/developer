@@ -6,6 +6,8 @@ router.use(authenticate);
 router.get("/catalogos/valores", requirePermission("operations.read"), controller.listarValores);
 router.get("/catalogos/regiones/siguiente", requirePermission("operations.read"), controller.siguienteRegion);
 router.post("/catalogos/regiones", requirePermission("settings.manage"), controller.crearRegion);
+router.get("/catalogos/unidades/siguiente", requirePermission("operations.read"), controller.siguienteUnidad);
+router.post("/catalogos/unidades", requirePermission("settings.manage"), controller.crearUnidad);
 
 function crud(path, name, options = {}) {
   const handlers = controller.catalogController(name);

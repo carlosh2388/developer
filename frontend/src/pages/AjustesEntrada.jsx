@@ -3,6 +3,7 @@ import { loadInventoryDocument, saveInventory } from "../services/operations";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import OperationRecordsModal, { inventoryColumns } from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
+import CancelEditButton from "../components/CancelEditButton";
 
 function AjustesEntrada() {
   const { productosPorTipo } = useOperationalCatalogs(["productos"]);
@@ -19,12 +20,12 @@ function AjustesEntrada() {
   // LISTAS
   // =========================
 
-  const vacunas = productosPorTipo(["VA"]).map((x) => x.value);
-  const medicamentos = productosPorTipo(["MD"]).map((x) => x.value);
-  const aditivos = productosPorTipo(["AD"]).map((x) => x.value);
-  const insumos = productosPorTipo(["IN"]).map((x) => x.value);
-  const materiales = productosPorTipo(["ME"]).map((x) => x.value);
-  const alimentos = productosPorTipo(["AL"]).map((x) => x.value);
+  const vacunas = productosPorTipo(["VA"]);
+  const medicamentos = productosPorTipo(["MD"]);
+  const aditivos = productosPorTipo(["AD"]);
+  const insumos = productosPorTipo(["IN"]);
+  const materiales = productosPorTipo(["ME"]);
+  const alimentos = productosPorTipo(["AL"]);
 
   // =========================
   // FILAS DINÁMICAS
@@ -295,10 +296,10 @@ function AjustesEntrada() {
 
                     {getOptions(fila.tipo).map(op => (
                       <option
-                        key={op}
-                        value={op}
+                        key={op.value}
+                        value={op.value}
                       >
-                        {op}
+                        {op.label}
                       </option>
                     ))}
                   </select>
@@ -308,6 +309,8 @@ function AjustesEntrada() {
                 <td>
                   <input
                     type="number"
+                    min="1"
+                    step="1"
                     value={fila.cantidad}
                     onChange={(e) =>
                       handleChange(
@@ -367,7 +370,7 @@ function AjustesEntrada() {
 
         {/* GUARDAR */}
         <div style={{ marginTop: "20px" }}>
-          <button
+          <div className="edit-actions"><button
             type="submit"
             style={{
               padding: "10px 20px",
@@ -379,7 +382,7 @@ function AjustesEntrada() {
             }}
           >
             Guardar
-          </button>
+          </button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setFilas([]); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
         </div>
 
       </form>

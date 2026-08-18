@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
 import { assertUniqueCode, useCatalogList } from "../hooks/useCatalogList";
+import CancelEditButton from "../components/CancelEditButton";
 
 function Localidades() {
   const list = useCatalogList("/localidades");
@@ -15,6 +16,7 @@ function Localidades() {
   const [estatus, setEstatus] = useState("Activo");
   const [descripcion, setDescripcion] = useState("");
   const [editingId, setEditingId] = useState(null);
+  const cancelarEdicion = () => { setEditingId(null); setIdLocalidad(""); setNombreLocalidad(""); setDescripcion(""); setEstatus("Activo"); setFecha(new Date().toISOString().split("T")[0]); };
 
   const [placeholder] =
     useState("LOC-XXX");
@@ -192,7 +194,7 @@ function Localidades() {
       <br />
 
       {/* BOTÓN */}
-      <button
+      <div className="edit-actions"><button
         type="submit"
         style={{
           padding: "10px 20px",
@@ -204,7 +206,7 @@ function Localidades() {
         }}
       >
         {editingId ? "Guardar cambios" : "Guardar"}
-      </button>
+      </button><CancelEditButton editing={editingId} onCancel={cancelarEdicion}/></div>
       <ConfigRecordsTable title="Localidades registradas" rows={list.rows} loading={list.loading} error={list.error} dateField="openedOn" columns={[
         { key: "code", label: "Código" }, { key: "name", label: "Localidad" }, { key: "openedOn", label: "Apertura" },
         { key: "description", label: "Descripción" }, { key: "status", label: "Estado" },

@@ -4,6 +4,7 @@ import { api } from "../services/api";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import OperationRecordsModal from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
+import CancelEditButton from "../components/CancelEditButton";
 
 function EgresoHuevos() {
   const { opciones } = useOperationalCatalogs(["lotes", "personal", "vehiculos", "bodegas"]);
@@ -1787,14 +1788,14 @@ const calcularSubTotal = (
 
       </div>
 
-      <button
+      <div className="edit-actions"><button
         onClick={guardar}
         style={{
           marginTop: "20px"
         }}
       >
-        Registrar Egreso
-      </button>
+        {editingId ? "Guardar cambios" : "Registrar Egreso"}
+      </button><CancelEditButton editing={editingId} onCancel={() => { const now = new Date(); setEditingId(null); setFecha(now.toISOString().split("T")[0]); setHora(now.toTimeString().slice(0, 5)); setFechaProduccion(now.toISOString().split("T")[0]); setBodegaSalida("BA"); setBodegaDestino(""); setPlaca(""); setPiloto(""); setLotes([crearLote()]); cargarSiguienteEnvio(); }}/></div>
 
     </div>
 

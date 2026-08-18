@@ -6,6 +6,9 @@ const roleByType = {
   Vacuna: "VACCINE", Vacunas: "VACCINE", Insumo: "PRIMARY", Insumos: "PRIMARY",
 };
 
+const integerText = (value) => String(Math.round(Number(value || 0)));
+const priceText = (value) => Number(value || 0).toFixed(2);
+
 export function inventoryDetails(rows, { allocate = false } = {}) {
   const details = [];
   rows.forEach((row) => {
@@ -14,8 +17,9 @@ export function inventoryDetails(rows, { allocate = false } = {}) {
     const parentIndex = details.length;
     details.push({
       producto: product, rol: roleByType[row.tipo] || "PRIMARY", cantidad: Number(row.cantidad),
-      costoUnitario: row.precio === undefined || row.precio === "" ? 0 :
-        (row.modoPrecio === "TOTAL" ? Number(row.precio) / Number(row.cantidad) : Number(row.precio)),
+      costoUnitario: row.precio === undefined || row.precio === "" ? 0 : Number(
+        (row.modoPrecio === "TOTAL" ? Number(row.precio) / Number(row.cantidad) : Number(row.precio)).toFixed(2)
+      ),
       justificacion: row.justificacion || undefined,
       distribuciones: allocate ? (row.galeras || []).filter((x) => x.galera && Number(x.cantidad) > 0).map((x) => ({ galera: x.galera, cantidad: Number(x.cantidad) })) : undefined,
     });
@@ -78,12 +82,12 @@ export async function loadInventoryDocument(id) {
   const roots = document.detalles.filter((line) => !line.parent_line_id);
   const rows = roots.map((line) => ({
     id: crypto.randomUUID(), tipo: typeByRole[line.line_role] || "Insumos",
-    item: line.product_code, alimento: line.product_code, cantidad: String(line.quantity),
-    precio: String(line.unit_cost || 0), modoPrecio: "UNITARIO",
+    item: line.product_code, alimento: line.product_code, cantidad: integerText(line.quantity),
+    precio: priceText(line.unit_cost), modoPrecio: "UNITARIO",
     justificacion: line.justification || "",
-    galeras: (line.allocations || []).map((allocation) => ({ galera: allocation.house_code || allocation.house_id, cantidad: String(allocation.quantity) })),
-    aditivos: document.detalles.filter((child) => child.parent_line_id === line.id && child.line_role === "ADDITIVE").map((child) => ({ id: crypto.randomUUID(), producto: child.product_code, cantidad: String(child.quantity) })),
-    medicamentos: document.detalles.filter((child) => child.parent_line_id === line.id && child.line_role === "MEDICINE").map((child) => ({ id: crypto.randomUUID(), producto: child.product_code, cantidad: String(child.quantity) })),
+    galeras: (line.allocations || []).map((allocation) => ({ galera: allocation.house_code || allocation.house_id, cantidad: integerText(allocation.quantity) })),
+    aditivos: document.detalles.filter((child) => child.parent_line_id === line.id && child.line_role === "ADDITIVE").map((child) => ({ id: crypto.randomUUID(), producto: child.product_code, cantidad: integerText(child.quantity) })),
+    medicamentos: document.detalles.filter((child) => child.parent_line_id === line.id && child.line_role === "MEDICINE").map((child) => ({ id: crypto.randomUUID(), producto: child.product_code, cantidad: integerText(child.quantity) })),
   }));
   return { document, rows };
 }

@@ -1,57 +1,331 @@
 import { useState } from "react";
-import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import { loadInventoryDocument, saveInventory } from "../services/operations";
+import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import OperationRecordsModal, { inventoryColumns } from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
+import CancelEditButton from "../components/CancelEditButton";
 
-const types = [
-  ["Vacunas", "VA"], ["Medicamentos", "MD"], ["Aditivos", "AD"],
-  ["Insumos", "IN"], ["Materiales", "ME"], ["Alimentos", "AL"],
-];
-
-export default function OtrosIngresos() {
+function OtrosIngresos() {
   const { productosPorTipo, opciones } = useOperationalCatalogs(["productos", "proveedores"]);
-  const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
+
+  // =========================
+  // FECHA
+  // =========================
+
+  const [fecha, setFecha] = useState(
+    new Date().toISOString().split("T")[0]
+  );
   const [proveedor, setProveedor] = useState("");
+
+  // =========================
+  // LISTAS
+  // =========================
+
+  const vacunas = productosPorTipo(["VA"]);
+  const medicamentos = productosPorTipo(["MD"]);
+  const aditivos = productosPorTipo(["AD"]);
+  const insumos = productosPorTipo(["IN"]);
+  const materiales = productosPorTipo(["ME"]);
+  const alimentos = productosPorTipo(["AL"]);
+  const proveedores = opciones("proveedores");
+
+  // =========================
+  // FILAS DINÁMICAS
+  // =========================
+
   const [filas, setFilas] = useState([]);
-  const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const edit = async (row) => { try { const data = await loadInventoryDocument(row.id); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setProveedor(data.document.supplier_code || ""); setFilas(data.rows.map((item) => ({ ...item, tipo: item.tipo === "Alimento" ? "Alimentos" : item.tipo }))); } catch (error) { alert(error.message); } };
+  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setProveedor(data.document.supplier_code || ""); setFilas(data.rows.map((item) => ({ ...item, tipo: item.tipo === "Materiales" ? "Material de Empaque" : item.tipo }))); } catch (error) { alert(error.message); } };
 
-  const add = (tipo) => setFilas((current) => [...current, { id: crypto.randomUUID(), tipo, item: "", cantidad: "" }]);
-  const change = (id, field, value) => setFilas((current) => current.map((row) => row.id === id ? { ...row, [field]: value } : row));
-  const remove = (id) => setFilas((current) => current.filter((row) => row.id !== id));
-  const optionsFor = (tipo) => productosPorTipo([types.find(([label]) => label === tipo)?.[1]]);
+  // =========================
+  // CREAR FILA
+  // =========================
 
-  async function save(event) {
-    event.preventDefault(); setSaving(true);
+  const crearFila = (tipo) => ({
+    id: Date.now() + Math.random(),
+    tipo,
+    item: "",
+    cantidad: "",
+    precio: ""
+  });
+
+  // =========================
+  // AGREGAR FILA
+  // =========================
+
+  const agregarFila = (tipo) => {
+    setFilas(prev => [
+      ...prev,
+      crearFila(tipo)
+    ]);
+  };
+
+  // =========================
+  // ELIMINAR FILA
+  // =========================
+
+  const eliminarFila = (id) => {
+    setFilas(prev =>
+      prev.filter(f => f.id !== id)
+    );
+  };
+
+  // =========================
+  // CAMBIOS
+  // =========================
+
+  const handleChange = (id, campo, value) => {
+    setFilas(prev =>
+      prev.map(f =>
+        f.id === id
+          ? { ...f, [campo]: value }
+          : f
+      )
+    );
+  };
+
+  // =========================
+  // GUARDAR
+  // =========================
+
+  const guardar = async (e) => {
+    e.preventDefault();
     try {
-      await saveInventory({ id: editingId, fecha, proveedor, rows: filas, movementType: "INPUT", module: "OTHER" });
-      alert(editingId ? "Ingreso actualizado correctamente" : "Ingreso guardado correctamente"); setFilas([]); setProveedor(""); setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
+      if (!proveedor) throw new Error("Selecciona el proveedor.");
+      if (!filas.length) throw new Error("Agrega al menos un insumo.");
+      if (filas.some((fila) => !fila.item || Number(fila.cantidad) <= 0 || Number(fila.precio) < 0)) throw new Error("Completa producto, cantidad y precio en cada fila.");
+      await saveInventory({ id: editingId, fecha, proveedor, rows: filas, movementType: "INPUT", module: "SUPPLIES" });
+      alert(editingId ? "Otro ingreso actualizado correctamente" : "Otro ingreso registrado correctamente"); setFilas([]); setEditingId(null); setProveedor(""); setFecha(new Date().toISOString().split("T")[0]);
     } catch (error) { alert(error.message); }
-    finally { setSaving(false); }
-  }
+  };
 
-  const input = { padding: 8, border: "1px solid #ccc", borderRadius: 5, width: "100%", boxSizing: "border-box" };
-  return <OperationPanel maxWidth={1000}><OperationRecordsModal title="Otros ingresos" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={inventoryColumns} rowFilter={(row) => row.movement_type === "INPUT" && row.module_code === "OTHER"} onEdit={edit}/><form onSubmit={save} style={{ maxWidth: 1000, margin: "0 auto", padding: 20, fontFamily: "Arial" }}>
-    <h2>Otros ingresos</h2>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 15 }}>
-      <label>Fecha<input required type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} style={input}/></label>
-      <label>Proveedor<select value={proveedor} onChange={(e) => setProveedor(e.target.value)} style={input}>
-        <option value="">Seleccione</option>{opciones("proveedores").map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-      </select></label>
+  // =========================
+  // ESTILO
+  // =========================
+
+  const btn = {
+    padding: "10px",
+    flex: 1,
+    cursor: "pointer",
+    border: "none",
+    borderRadius: "5px",
+    background: "#1976d2",
+    color: "#fff"
+  };
+
+  const inputStyle = {
+    width: "100%",
+    padding: "6px",
+    border: "1px solid #ccc",
+    borderRadius: "4px"
+  };
+
+  // =========================
+  // OPTIONS POR TIPO
+  // =========================
+
+  const getOptions = (tipo) => {
+    switch (tipo) {
+
+      case "Vacunas":
+        return vacunas;
+
+      case "Medicamentos":
+        return medicamentos;
+
+      case "Aditivos":
+        return aditivos;
+
+      case "Insumos":
+        return insumos;
+
+      case "Material de Empaque":
+        return materiales;
+
+      case "Alimento":
+        return alimentos;
+
+      default:
+        return [];
+    }
+  };
+
+  // =========================
+  // RENDER
+  // =========================
+
+  return (<OperationPanel maxWidth={1000}><OperationRecordsModal title="Otros ingresos" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={inventoryColumns} rowFilter={(row) => row.movement_type === "INPUT" && row.module_code === "SUPPLIES"} onEdit={cargarEdicion}/>
+    <div
+      style={{
+        maxWidth: "1000px",
+        margin: "0 auto",
+        padding: "20px",
+        fontFamily: "Arial"
+      }}
+    >
+
+      <h2>Otros ingresos</h2>
+
+      {/* FECHA Y PROVEEDOR */}
+      <div style={{ display: "flex", gap: 20, marginBottom: 15 }}>
+        <label style={{ flex: 1 }}>Fecha<input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} style={inputStyle}/></label>
+        <label style={{ flex: 1 }}>Proveedor<select required value={proveedor} onChange={(e) => setProveedor(e.target.value)} style={inputStyle}>
+          <option value="">Seleccione</option>
+          {proveedores.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+        </select></label>
+      </div>
+
+      {/* BOTONES (ORDENADOS + NUEVO ALIMENTO) */}
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          marginBottom: "20px",
+          flexWrap: "wrap"
+        }}
+      >
+
+        <button type="button" style={btn} onClick={() => agregarFila("Aditivos")}>
+          Aditivos
+        </button>
+
+        <button type="button" style={btn} onClick={() => agregarFila("Alimento")}>
+          Alimento
+        </button>
+
+        <button type="button" style={btn} onClick={() => agregarFila("Insumos")}>
+          Insumos
+        </button>
+
+        <button type="button" style={btn} onClick={() => agregarFila("Material de Empaque")}>
+          Material de Empaque
+        </button>
+
+        <button type="button" style={btn} onClick={() => agregarFila("Medicamentos")}>
+          Medicamentos
+        </button>
+
+        <button type="button" style={btn} onClick={() => agregarFila("Vacunas")}>
+          Vacunas
+        </button>
+
+      </div>
+
+      {/* TABLA */}
+      <form onSubmit={guardar}>
+
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse"
+          }}
+        >
+
+          <thead>
+            <tr style={{ background: "#f5f5f5" }}>
+              <th>Tipo</th>
+              <th>Nombre</th>
+              <th>Cantidad</th>
+              <th>Precio unitario (Q)</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            {filas.map(fila => (
+
+              <tr key={fila.id}>
+
+                {/* TIPO */}
+                <td>{fila.tipo}</td>
+
+                {/* NOMBRE */}
+                <td>
+                  <select
+                    value={fila.item}
+                    onChange={(e) =>
+                      handleChange(fila.id, "item", e.target.value)
+                    }
+                    style={inputStyle}
+                  >
+                    <option value="">Seleccione</option>
+
+                    {getOptions(fila.tipo).map(op => (
+                      <option key={op.value} value={op.value}>
+                        {op.label}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+
+                {/* CANTIDAD */}
+                <td>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={fila.cantidad}
+                    onChange={(e) =>
+                      handleChange(fila.id, "cantidad", e.target.value)
+                    }
+                    style={inputStyle}
+                  />
+                </td>
+
+                {/* PRECIO UNITARIO */}
+                <td>
+                  <input type="number" min="0" step="0.01" value={fila.precio} onChange={(e) => handleChange(fila.id, "precio", e.target.value)} placeholder="0.00" style={inputStyle}/>
+                </td>
+
+                {/* ACCIÓN */}
+                <td>
+                  <button
+                    type="button"
+                    onClick={() => eliminarFila(fila.id)}
+                    style={{
+                      padding: "5px 10px",
+                      background: "#d9534f",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    X
+                  </button>
+                </td>
+
+              </tr>
+
+            ))}
+
+          </tbody>
+
+        </table>
+
+        {/* GUARDAR */}
+        <div className={`edit-actions${editingId ? " edit-actions-active" : ""}`}>
+          <button
+            type="submit"
+            style={{
+              padding: "10px 20px",
+              background: "#1976d2",
+              color: "#fff",
+              border: "none",
+              borderRadius: "5px",
+              cursor: "pointer"
+            }}
+          >
+            {editingId ? "Guardar cambios" : "Guardar"}
+          </button>
+          <CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setFilas([]); setProveedor(""); setFecha(new Date().toISOString().split("T")[0]); }}/>
+        </div>
+
+      </form>
+
     </div>
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "18px 0" }}>
-      {types.map(([label]) => <button key={label} type="button" onClick={() => add(label)}>+ {label}</button>)}
-    </div>
-    {filas.map((row) => <div key={row.id} style={{ display: "grid", gridTemplateColumns: "180px 1fr 160px 44px", gap: 10, marginBottom: 10 }}>
-      <input value={row.tipo} readOnly style={input}/>
-      <select required value={row.item} onChange={(e) => change(row.id, "item", e.target.value)} style={input}>
-        <option value="">Seleccione</option>{optionsFor(row.tipo).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-      </select>
-      <input required min="0.0001" step="0.0001" type="number" value={row.cantidad} onChange={(e) => change(row.id, "cantidad", e.target.value)} placeholder="Cantidad" style={input}/>
-      <button type="button" onClick={() => remove(row.id)}>×</button>
-    </div>)}
-    <button disabled={saving || !filas.length}>{saving ? "Guardando…" : "Guardar"}</button>
-  </form></OperationPanel>;
+  </OperationPanel>);
 }
+
+export default OtrosIngresos;

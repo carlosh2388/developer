@@ -5,6 +5,7 @@ import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import OperationRecordsModal from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
 import { calculateFlockWeek } from "../utils/flockWeek";
+import CancelEditButton from "../components/CancelEditButton";
 
 function ControlPesoAves() {
   const { opciones, errors, lotes } = useOperationalCatalogs(["lotes", "etapas"]);
@@ -21,7 +22,18 @@ function ControlPesoAves() {
 
   const [semana, setSemana] = useState(1);
   const [editingId, setEditingId] = useState(null);
-  const cargarEdicion = async (row) => { try { const data = await api(`/controles/peso-aves/${row.id}`); setEditingId(row.id); setFecha(String(data.control_date).slice(0, 10)); setLote(data.flock_code); setEtapa(data.stage_code || ""); setSemana(data.week_number); setTamanoMuestra(data.sample_size); const female = {}, male = {}; data.muestras.forEach((item) => (item.sex === "F" ? female : male)[item.sample_number] = String(item.weight_grams)); setHembras(female); setMachos(male); } catch (error) { alert(error.message); } };
+  const cargarEdicion = async (row) => { try {
+    const data = await api(`/controles/peso-aves/${row.id}`);
+    setEditingId(row.id); setFecha(String(data.control_date).slice(0, 10)); setLote(data.flock_code);
+    setEtapa(data.stage_code || ""); setSemana(data.week_number); setTamanoMuestra(data.sample_size);
+    const female = {}, male = {};
+    let femaleIndex = 0, maleIndex = 0;
+    data.muestras.forEach((item) => {
+      if (item.sex === "F") female[`m${++femaleIndex}`] = String(item.weight_grams);
+      else male[`m${++maleIndex}`] = String(item.weight_grams);
+    });
+    setHembras(female); setMachos(male);
+  } catch (error) { alert(error.message); } };
 
   const [tamanoMuestra, setTamanoMuestra] = useState(0);
 
@@ -92,11 +104,11 @@ const [uniformidadMachos, setUniformidadMachos] =
 
   const buildSamples = (total, setFn) => {
     const half = Math.floor(total / 2);
-
-    const obj = {};
-
-    for (let i = 1; i <= half; i++) obj[`m${i}`] = "";
-    setFn(obj);
+    setFn((current) => {
+      const obj = {};
+      for (let i = 1; i <= half; i++) obj[`m${i}`] = current[`m${i}`] ?? "";
+      return obj;
+    });
   };
 
   useEffect(() => {
@@ -297,6 +309,7 @@ useEffect(() => {
   return (<OperationPanel maxWidth={1000}><OperationRecordsModal title="Controles de peso de aves" path="/controles/peso-aves" annulPath={(row) => `/operaciones/peso-aves/${row.id}/anular`} dateField="control_date" columns={[
     { key: "control_date", label: "Fecha", render: (value) => String(value || "").slice(0, 10) },
     { key: "flock_code", label: "Lote", render: (value, row) => value || row.flockCode || "Sin lote" },
+    { key: "stage_name", label: "Etapa", render: (value) => value || "Sin etapa" },
     { key: "week_number", label: "Semana" }, { key: "sample_size", label: "Muestras" }, { key: "overall_average_grams", label: "Promedio" }, { key: "overall_uniformity", label: "Uniformidad" }, { key: "status", label: "Estado" },
   ]} onEdit={cargarEdicion}/>
     <div style={{ maxWidth: 950, margin: "auto", fontFamily: "Arial" }}>
@@ -349,7 +362,7 @@ useEffect(() => {
         </div>
 
         <div style={{ flex: 1 }}>
-          <label>Tamaño de la Muestra</label>
+          <label>Tamaño de la Muestra (# Par)</label>
           <input
             type="number"
             value={tamanoMuestra}
@@ -437,9 +450,7 @@ useEffect(() => {
       {expandM && renderInputs(machos, handleM)}
 
       {/* ================= GUARDAR ================= */}
-      <button onClick={guardar} style={{ marginTop: 20 }}>
-        Guardar Registro
-      </button>
+      <div className="edit-actions"><button onClick={guardar} style={{ marginTop: 20 }}>{editingId ? "Guardar cambios" : "Guardar Registro"}</button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setLote(""); setEtapa(""); setTamanoMuestra(0); setHembras({}); setMachos({}); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
     </div>
   </OperationPanel>);
 }

@@ -3,6 +3,7 @@ import { loadInventoryDocument, saveInventory } from "../services/operations";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import OperationRecordsModal, { inventoryColumns } from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
+import CancelEditButton from "../components/CancelEditButton";
 
 function OtrosEgresos() {
   const { productosPorTipo, opciones } = useOperationalCatalogs(["productos", "galeras"]);
@@ -19,20 +20,21 @@ function OtrosEgresos() {
   // OPCIONES
   // =========================
 
-  const vacunas = productosPorTipo(["VA"]).map((x) => x.value);
-  const medicamentos = productosPorTipo(["MD"]).map((x) => x.value);
-  const aditivos = productosPorTipo(["AD"]).map((x) => x.value);
-  const insumos = productosPorTipo(["IN"]).map((x) => x.value);
-  const materiales = productosPorTipo(["ME"]).map((x) => x.value);
-  const galeras = opciones("galeras").map((x) => x.value);
+  const vacunas = productosPorTipo(["VA"]);
+  const medicamentos = productosPorTipo(["MD"]);
+  const aditivos = productosPorTipo(["AD"]);
+  const insumos = productosPorTipo(["IN"]);
+  const materiales = productosPorTipo(["ME"]);
+  const galeras = opciones("galeras");
 
   // =========================
   // FILAS
   // =========================
 
   const [filas, setFilas] = useState([]);
+  const [filasSinGalera, setFilasSinGalera] = useState([]);
   const [editingId, setEditingId] = useState(null);
-  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setFilas(data.rows.map((item) => ({ ...item, tipo: item.tipo === "Materiales" ? "Material de Empaque" : item.tipo === "Vacunas" ? "Vacuna" : item.tipo }))); } catch (error) { alert(error.message); } };
+  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); setFilasSinGalera([]); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setFilas(data.rows.map((item) => ({ ...item, tipo: item.tipo === "Materiales" ? "Material de Empaque" : item.tipo === "Vacunas" ? "Vacuna" : item.tipo }))); } catch (error) { alert(error.message); } };
 
   const crearFila = (tipo) => ({
     id: Date.now() + Math.random(),
@@ -48,6 +50,7 @@ function OtrosEgresos() {
 
   const eliminarFila = (id) => {
     setFilas(prev => prev.filter(f => f.id !== id));
+    setFilasSinGalera((current) => current.filter((filaId) => filaId !== id));
   };
 
   // =========================
@@ -93,6 +96,7 @@ function OtrosEgresos() {
     campo,
     value
   ) => {
+    setFilasSinGalera((current) => current.filter((id) => id !== filaId));
     setFilas(prev =>
       prev.map(f => {
         if (f.id !== filaId) return f;
@@ -145,8 +149,18 @@ function OtrosEgresos() {
 
   const guardar = async (e) => {
     e.preventDefault();
+    const invalidas = filas.filter((fila) => !fila.galeras.length
+      || fila.galeras.some((item) => !item.galera || !Number.isInteger(Number(item.cantidad)) || Number(item.cantidad) <= 0)
+      || fila.galeras.reduce((total, item) => total + Number(item.cantidad || 0), 0) !== Number(fila.cantidad));
+    if (invalidas.length) {
+      setFilasSinGalera(invalidas.map((fila) => fila.id));
+      const numeros = invalidas.map((fila) => filas.indexOf(fila) + 1).join(", ");
+      alert(`Selecciona una galera y distribuye la cantidad completa en las filas: ${numeros}.`);
+      return;
+    }
+    setFilasSinGalera([]);
     try { await saveInventory({ id: editingId, fecha, rows: filas, movementType: "OUTPUT", module: "OTHER", allocate: true });
-      alert(editingId ? "Egreso actualizado correctamente" : "Egreso de insumos registrado correctamente"); setFilas([]); setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
+      alert(editingId ? "Egreso actualizado correctamente" : "Egreso de insumos registrado correctamente"); setFilas([]); setFilasSinGalera([]); setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
     } catch (error) { alert(error.message); }
   };
 
@@ -191,10 +205,12 @@ function OtrosEgresos() {
   // RENDER
   // =========================
 
-  return (<OperationPanel maxWidth={1000}><OperationRecordsModal title="Otros egresos" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={inventoryColumns} rowFilter={(row) => row.movement_type === "OUTPUT" && row.module_code === "OTHER"} onEdit={cargarEdicion}/>
+  return (<OperationPanel maxWidth={1500}><OperationRecordsModal title="Otros egresos" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={inventoryColumns} rowFilter={(row) => row.movement_type === "OUTPUT" && row.module_code === "OTHER"} onEdit={cargarEdicion}/>
     <div
       style={{
-        maxWidth: "1200px",
+        width: "100%",
+        maxWidth: "1460px",
+        boxSizing: "border-box",
         margin: "0 auto",
         padding: "20px",
         fontFamily: "Arial"
@@ -282,14 +298,16 @@ function OtrosEgresos() {
 
       {/* TABLA */}
 
-      <form onSubmit={guardar}>
+      <form onSubmit={guardar} style={{ overflowX: "auto" }}>
 
         <table
           style={{
             width: "100%",
+            minWidth: "1180px",
             borderCollapse: "collapse"
           }}
         >
+          <colgroup><col style={{ width: "14%" }}/><col style={{ width: "30%" }}/><col style={{ width: "15%" }}/><col style={{ width: "32%" }}/><col style={{ width: "9%" }}/></colgroup>
 
           <thead>
             <tr style={{ background: "#f5f5f5" }}>
@@ -327,10 +345,10 @@ function OtrosEgresos() {
 
                     {getOptions(fila.tipo).map(op => (
                       <option
-                        key={op}
-                        value={op}
+                        key={op.value}
+                        value={op.value}
                       >
-                        {op}
+                        {op.label}
                       </option>
                     ))}
                   </select>
@@ -339,6 +357,8 @@ function OtrosEgresos() {
                 <td>
                   <input
                     type="number"
+                    min="1"
+                    step="1"
                     value={fila.cantidad}
                     onChange={(e) =>
                       handleChange(
@@ -353,7 +373,7 @@ function OtrosEgresos() {
 
                 {/* GALERAS */}
 
-                <td>
+                <td className={filasSinGalera.includes(fila.id) ? "allocation-validation-error" : ""}>
 
                   <button
                     type="button"
@@ -390,16 +410,18 @@ function OtrosEgresos() {
 
                           {galeras.map(opt => (
                             <option
-                              key={opt}
-                              value={opt}
+                              key={opt.value}
+                              value={opt.value}
                             >
-                              {opt}
+                              {opt.label}
                             </option>
                           ))}
                         </select>
 
                         <input
                           type="number"
+                          min="1"
+                          step="1"
                           value={g.cantidad}
                           onChange={(e) =>
                             handleGaleraChange(
@@ -415,6 +437,8 @@ function OtrosEgresos() {
                       </div>
                     )
                   )}
+
+                  {filasSinGalera.includes(fila.id) && <small className="field-error-message">Selecciona una galera y distribuye la cantidad completa de esta fila.</small>}
 
                 </td>
 
@@ -446,7 +470,7 @@ function OtrosEgresos() {
         </table>
 
         <div style={{ marginTop: "20px" }}>
-          <button
+          <div className="edit-actions"><button
             type="submit"
             style={{
               padding: "10px 20px",
@@ -458,7 +482,7 @@ function OtrosEgresos() {
             }}
           >
             Guardar
-          </button>
+          </button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setFilas([]); setFilasSinGalera([]); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
         </div>
 
       </form>

@@ -4,6 +4,7 @@ import { api } from "../services/api";
 import { useOperationalCatalogs, useReferenceValues } from "../hooks/useOperationalCatalogs";
 import OperationRecordsModal from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
+import CancelEditButton from "../components/CancelEditButton";
 
 function EgresoReproductores() {
   const { opciones } = useOperationalCatalogs(["lotes"]);
@@ -373,7 +374,7 @@ function EgresoReproductores() {
 
       {/* GUARDAR */}
 
-      <button
+      <div className="edit-actions"><button
         onClick={guardar}
         style={{
           padding: "10px 20px",
@@ -384,8 +385,8 @@ function EgresoReproductores() {
           cursor: "pointer"
         }}
       >
-        Guardar Egreso
-      </button>
+        {editingId ? "Guardar cambios" : "Guardar Egreso"}
+      </button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setFilas([{ hembras: "", machos: "", subtotal: 0, lote: "", tipo: "", observacion: "", envio: "" }]); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
     </div>
   </OperationPanel>);
 }

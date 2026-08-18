@@ -54,6 +54,61 @@ async function resolveGradeId(client, value) {
   return rows[0].id;
 }
 
+function positiveInteger(value, name) {
+  const number = positive(value, name);
+  if (!Number.isInteger(number)) throw new HttpError(400, `${name} debe ser un número entero.`, "VALIDATION_ERROR");
+  return number;
+}
+
+function money(value, name) {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number) || number < 0 || Math.abs(number * 100 - Math.round(number * 100)) > 0.000001) {
+    throw new HttpError(400, `${name} debe tener como máximo dos decimales.`, "VALIDATION_ERROR");
+  }
+  return number;
+}
+
+const incomingInventoryTypes = new Set(["INPUT", "ADJUSTMENT_IN"]);
+
+async function prepareInventoryDetails(client, orgId, details) {
+  const prepared = [];
+  for (const detail of details) {
+    const productId = await resolveTenantId(client, "products", orgId,
+      detail.productoId || detail.producto || detail.item || detail.alimento || detail.material || detail.vacuna, "producto");
+    prepared.push({ ...detail, _productId: productId, _quantity: positiveInteger(detail.cantidad, "cantidad"), _unitCost: money(detail.costoUnitario, "precio") });
+  }
+  return prepared;
+}
+
+async function validateProjectedInventory(client, orgId, details, movementType, excludedDocumentId = null) {
+  const currentProducts = excludedDocumentId ? await client.query(
+    "SELECT DISTINCT product_id FROM inventory_document_lines WHERE document_id=$1 AND organization_id=$2",
+    [excludedDocumentId, orgId]
+  ) : { rows: [] };
+  const productIds = [...new Set([...details.map((detail) => detail._productId), ...currentProducts.rows.map((row) => row.product_id)])].sort();
+  if (!productIds.length) return;
+  for (const productId of productIds) await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:INVENTORY:${productId}`]);
+
+  const { rows } = await client.query(
+    `SELECT p.id,p.code,p.name,p.opening_stock + COALESCE(SUM(
+       CASE WHEN d.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.quantity ELSE -l.quantity END
+     ) FILTER (WHERE d.status='POSTED' AND ($3::uuid IS NULL OR d.id<>$3::uuid)),0) available
+     FROM products p
+     LEFT JOIN inventory_document_lines l ON l.product_id=p.id AND l.organization_id=p.organization_id
+     LEFT JOIN inventory_documents d ON d.id=l.document_id AND d.organization_id=l.organization_id
+     WHERE p.organization_id=$1 AND p.id=ANY($2::uuid[])
+     GROUP BY p.id ORDER BY p.code`, [orgId, productIds, excludedDocumentId]
+  );
+  const requested = new Map();
+  const sign = incomingInventoryTypes.has(movementType) ? 1 : -1;
+  details.forEach((detail) => requested.set(detail._productId, (requested.get(detail._productId) || 0) + sign * detail._quantity));
+  for (const product of rows) {
+    const projected = Number(product.available || 0) + (requested.get(product.id) || 0);
+    if (projected < -0.0001) throw new HttpError(409,
+      `Existencia insuficiente para ${product.name}. Disponible: ${Number(product.available || 0).toFixed(4)}.`, "INSUFFICIENT_STOCK");
+  }
+}
+
 async function listDocuments(req, res, next, table, dateColumn) {
   try {
     const { rows } = await db.query(`SELECT * FROM ${table} WHERE organization_id=$1 ORDER BY ${dateColumn} DESC, created_at DESC`, [organizationId(req)]);
@@ -66,6 +121,7 @@ async function listarInventario(req, res, next) {
     const { rows } = await db.query(
       `SELECT d.*,s.code supplier_code,s.name supplier_name,
               COUNT(l.id)::INTEGER line_count,COALESCE(SUM(l.quantity),0) total_quantity,
+              COALESCE(SUM(l.quantity * l.unit_cost),0) total_amount,
               COALESCE(STRING_AGG(p.code || ' - ' || p.name, ', ' ORDER BY l.line_number),'') products
        FROM inventory_documents d
        LEFT JOIN suppliers s ON s.id=d.supplier_id AND s.organization_id=d.organization_id
@@ -111,6 +167,8 @@ async function actualizarInventario(req, res, next) {
       const current = await client.query("SELECT * FROM inventory_documents WHERE id=$1 AND organization_id=$2 FOR UPDATE", [req.params.id, orgId]);
       if (!current.rows[0]) throw new HttpError(404, "El documento no existe.", "NOT_FOUND");
       if (current.rows[0].status === "VOID") throw new HttpError(409, "Un documento anulado no puede editarse.", "VOID_DOCUMENT");
+      const preparedDetails = await prepareInventoryDetails(client, orgId, detalles);
+      await validateProjectedInventory(client, orgId, preparedDetails, required(body.tipoMovimiento,"tipoMovimiento"), req.params.id);
       const supplierId = await resolveTenantId(client, "suppliers", orgId, body.proveedorId || body.proveedor, "proveedor", true);
       const sourceWarehouseId = await resolveTenantId(client, "warehouses", orgId, body.bodegaOrigenId || body.bodegaOrigen, "bodega de origen", true);
       const destinationWarehouseId = await resolveTenantId(client, "warehouses", orgId, body.bodegaDestinoId || body.bodegaDestino, "bodega de destino", true);
@@ -122,15 +180,15 @@ async function actualizarInventario(req, res, next) {
       );
       await client.query("DELETE FROM inventory_document_lines WHERE document_id=$1 AND organization_id=$2", [req.params.id, orgId]);
       const inserted = [];
-      for (let index=0; index<detalles.length; index+=1) {
-        const detail=detalles[index];
-        const productId=await resolveTenantId(client,"products",orgId,detail.productoId || detail.producto || detail.item || detail.alimento || detail.material || detail.vacuna,"producto");
+      for (let index=0; index<preparedDetails.length; index+=1) {
+        const detail=preparedDetails[index];
+        const productId=detail._productId;
         const parent=Number.isInteger(detail.detallePadreIndice) ? inserted[detail.detallePadreIndice]?.id : null;
         const line=await client.query(`INSERT INTO inventory_document_lines(organization_id,document_id,parent_line_id,product_id,line_role,quantity,unit_cost,justification,line_number)
-          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,[orgId,req.params.id,parent,productId,detail.rol || "PRIMARY",positive(detail.cantidad,"cantidad"),Number(detail.costoUnitario || 0),detail.justificacion || null,index+1]);
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,[orgId,req.params.id,parent,productId,detail.rol || "PRIMARY",detail._quantity,detail._unitCost,detail.justificacion || null,index+1]);
         inserted.push(line.rows[0]);
         let distributed=0;
-        for (const allocation of detail.distribuciones || []) { const quantity=positive(allocation.cantidad,"cantidad distribuida"); const houseId=await resolveTenantId(client,"houses",orgId,allocation.galeraId || allocation.galera,"galera"); distributed+=quantity; await client.query("INSERT INTO inventory_line_allocations(organization_id,line_id,house_id,quantity) VALUES($1,$2,$3,$4)",[orgId,line.rows[0].id,houseId,quantity]); }
+        for (const allocation of detail.distribuciones || []) { const quantity=positiveInteger(allocation.cantidad,"cantidad distribuida"); const houseId=await resolveTenantId(client,"houses",orgId,allocation.galeraId || allocation.galera,"galera"); distributed+=quantity; await client.query("INSERT INTO inventory_line_allocations(organization_id,line_id,house_id,quantity) VALUES($1,$2,$3,$4)",[orgId,line.rows[0].id,houseId,quantity]); }
         if ((detail.distribuciones || []).length && Math.abs(distributed-Number(detail.cantidad))>0.0001) throw new HttpError(400,`La distribución de la línea ${index+1} no coincide con su cantidad.`,"ALLOCATION_MISMATCH");
       }
       return { ...header.rows[0], detalles: inserted };
@@ -149,30 +207,33 @@ async function crearInventario(req, res, next) {
       throw new HttpError(400, "Selecciona el proveedor del ingreso de alimento.", "VALIDATION_ERROR");
     }
     const result = await transaction(async (client) => {
+      const movementType = required(body.tipoMovimiento, "tipoMovimiento");
+      const preparedDetails = await prepareInventoryDetails(client, orgId, detalles);
+      await validateProjectedInventory(client, orgId, preparedDetails, movementType);
       const supplierId = await resolveTenantId(client, "suppliers", orgId, body.proveedorId || body.proveedor, "proveedor", true);
       const sourceWarehouseId = await resolveTenantId(client, "warehouses", orgId, body.bodegaOrigenId || body.bodegaOrigen, "bodega de origen", true);
       const destinationWarehouseId = await resolveTenantId(client, "warehouses", orgId, body.bodegaDestinoId || body.bodegaDestino, "bodega de destino", true);
       const header = await client.query(
         `INSERT INTO inventory_documents(organization_id,movement_type,module_code,movement_date,supplier_id,source_warehouse_id,destination_warehouse_id,notes,created_by)
          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
-        [orgId, required(body.tipoMovimiento, "tipoMovimiento"), required(body.modulo, "modulo"), required(body.fecha, "fecha"),
+        [orgId, movementType, required(body.modulo, "modulo"), required(body.fecha, "fecha"),
           supplierId, sourceWarehouseId, destinationWarehouseId, body.observaciones || null, req.user.id]
       );
       const inserted = [];
-      for (let index = 0; index < detalles.length; index += 1) {
-        const detail = detalles[index];
-        const productId = await resolveTenantId(client, "products", orgId, detail.productoId || detail.producto || detail.item || detail.alimento || detail.material || detail.vacuna, "producto");
+      for (let index = 0; index < preparedDetails.length; index += 1) {
+        const detail = preparedDetails[index];
+        const productId = detail._productId;
         const parent = Number.isInteger(detail.detallePadreIndice) ? inserted[detail.detallePadreIndice]?.id : null;
         const line = await client.query(
           `INSERT INTO inventory_document_lines(organization_id,document_id,parent_line_id,product_id,line_role,quantity,unit_cost,justification,line_number)
            VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
           [orgId, header.rows[0].id, parent, productId, detail.rol || "PRIMARY",
-            positive(detail.cantidad, "cantidad"), Number(detail.costoUnitario || 0), detail.justificacion || null, index + 1]
+            detail._quantity, detail._unitCost, detail.justificacion || null, index + 1]
         );
         inserted.push(line.rows[0]);
         let distributed = 0;
         for (const allocation of detail.distribuciones || []) {
-          const quantity = positive(allocation.cantidad, "cantidad distribuida");
+          const quantity = positiveInteger(allocation.cantidad, "cantidad distribuida");
           const houseId = await resolveTenantId(client, "houses", orgId, allocation.galeraId || allocation.galera, "galera");
           distributed += quantity;
           await client.query(
@@ -192,12 +253,18 @@ async function crearInventario(req, res, next) {
 
 async function anularInventario(req, res, next) {
   try {
-    const { rows } = await db.query(
-      `UPDATE inventory_documents SET status='VOID',voided_by=$1,voided_at=NOW()
-       WHERE id=$2 AND organization_id=$3 AND status<>'VOID' RETURNING *`, [req.user.id, req.params.id, organizationId(req)]
-    );
-    if (!rows[0]) throw new HttpError(404, "El documento no existe o ya fue anulado.", "NOT_FOUND");
-    res.json(rows[0]);
+    const orgId = organizationId(req);
+    const result = await transaction(async (client) => {
+      const current = await client.query("SELECT * FROM inventory_documents WHERE id=$1 AND organization_id=$2 FOR UPDATE", [req.params.id, orgId]);
+      if (!current.rows[0] || current.rows[0].status === "VOID") throw new HttpError(404, "El documento no existe o ya fue anulado.", "NOT_FOUND");
+      await validateProjectedInventory(client, orgId, [], current.rows[0].movement_type, req.params.id);
+      const { rows } = await client.query(
+        `UPDATE inventory_documents SET status='VOID',voided_by=$1,voided_at=NOW()
+         WHERE id=$2 AND organization_id=$3 RETURNING *`, [req.user.id, req.params.id, orgId]
+      );
+      return rows[0];
+    });
+    res.json(result);
   } catch (error) { next(error); }
 }
 

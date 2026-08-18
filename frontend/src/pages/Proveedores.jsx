@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
 import { useCatalogList } from "../hooks/useCatalogList";
+import CancelEditButton from "../components/CancelEditButton";
 
 function Proveedores() {
   const list = useCatalogList("/proveedores");
@@ -22,6 +23,7 @@ function Proveedores() {
   const [editingId, setEditingId] = useState(null);
 
   const cargarSiguienteCodigo = () => api("/proveedores/siguiente").then((data) => setCodigoProveedor(data.code)).catch((error) => alert(error.message));
+  const cancelarEdicion = async () => { setEditingId(null); setNombreProveedor(""); setNit(""); setDireccion(""); setContacto(""); setTelefono(""); setCorreo(""); await cargarSiguienteCodigo(); };
   useEffect(() => { cargarSiguienteCodigo(); }, []);
 
   // =========================
@@ -240,12 +242,12 @@ function Proveedores() {
           GUARDAR
       ========================= */}
 
-      <button
+      <div className="edit-actions"><button
         type="submit"
         style={buttonStyle}
       >
         {editingId ? "Guardar cambios" : "Guardar"}
-      </button>
+      </button><CancelEditButton editing={editingId} onCancel={cancelarEdicion}/></div>
       <ConfigRecordsTable title="Proveedores registrados" rows={list.rows} loading={list.loading} error={list.error} columns={[
         { key: "code", label: "Código" }, { key: "name", label: "Proveedor" }, { key: "taxId", label: "NIT" },
         { key: "contactName", label: "Contacto" }, { key: "phone", label: "Teléfono" }, { key: "email", label: "Correo" }, { key: "status", label: "Estado" },

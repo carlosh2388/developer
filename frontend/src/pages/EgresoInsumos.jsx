@@ -3,6 +3,7 @@ import { loadInventoryDocument, saveInventory } from "../services/operations";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import OperationRecordsModal, { inventoryColumns } from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
+import CancelEditButton from "../components/CancelEditButton";
 
 function EgresoInsumos() {
   const { productosPorTipo, opciones } = useOperationalCatalogs(["productos", "galeras"]);
@@ -19,10 +20,10 @@ function EgresoInsumos() {
   // OPCIONES
   // =========================
 
-  const vacunas = productosPorTipo(["VA"]).map((x) => x.value);
-  const medicamentos = productosPorTipo(["MD"]).map((x) => x.value);
-  const aditivos = productosPorTipo(["AD"]).map((x) => x.value);
-  const materiales = productosPorTipo(["ME", "IN"]).map((x) => x.value);
+  const vacunas = productosPorTipo(["VA"]);
+  const medicamentos = productosPorTipo(["MD"]);
+  const aditivos = productosPorTipo(["AD"]);
+  const materiales = productosPorTipo(["ME", "IN"]);
   const galeras = opciones("galeras");
 
   // =========================
@@ -261,8 +262,8 @@ function EgresoInsumos() {
                   >
                     <option value="">Seleccione</option>
                     {getOptions(fila.tipo).map(op => (
-                      <option key={op} value={op}>
-                        {op}
+                      <option key={op.value} value={op.value}>
+                        {op.label}
                       </option>
                     ))}
                   </select>
@@ -272,6 +273,8 @@ function EgresoInsumos() {
                 <td>
                   <input
                     type="number"
+                    min="1"
+                    step="1"
                     value={fila.cantidad}
                     onChange={(e) =>
                       handleChange(fila.id, "cantidad", e.target.value)
@@ -316,6 +319,8 @@ function EgresoInsumos() {
 
                       <input
                         type="number"
+                        min="1"
+                        step="1"
                         value={g.cantidad}
                         onChange={(e) =>
                           handleGaleraChange(
@@ -361,7 +366,7 @@ function EgresoInsumos() {
 
         {/* GUARDAR */}
         <div style={{ marginTop: "20px" }}>
-          <button
+          <div className="edit-actions"><button
             type="submit"
             style={{
               padding: "10px 20px",
@@ -373,7 +378,7 @@ function EgresoInsumos() {
             }}
           >
             Guardar
-          </button>
+          </button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setFilas([]); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
         </div>
 
       </form>

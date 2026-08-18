@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../services/api";
+import CancelEditButton from "../components/CancelEditButton";
 
 const emptyForm = {
   fullName: "",
@@ -220,13 +221,9 @@ export default function Usuarios() {
               </select>
             </label>
           )}
-          <div className="form-actions">
+          <div className="edit-actions">
             <button>{editing ? "Guardar cambios" : "Crear usuario"}</button>
-            {editing && (
-              <button type="button" className="btn-secondary" onClick={cancel}>
-                Cancelar
-              </button>
-            )}
+            <CancelEditButton editing={editing} onCancel={cancel}/>
           </div>
         </form>
         <section className="panel table-panel">

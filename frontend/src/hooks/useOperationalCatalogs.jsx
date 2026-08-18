@@ -7,6 +7,10 @@ const endpoints = {
   lineas: "/lineas-avicolas", localidades: "/localidades", clientes: "/clientes",
 };
 
+const byVisibleName = (left, right) => String(left.label || "").localeCompare(String(right.label || ""), "es", {
+  sensitivity: "base", numeric: true,
+});
+
 export function useOperationalCatalogs(names = Object.keys(endpoints)) {
   const [data, setData] = useState({});
   const [errors, setErrors] = useState({});
@@ -25,13 +29,14 @@ export function useOperationalCatalogs(names = Object.keys(endpoints)) {
     ...Object.fromEntries(names.map((name) => [name, data[name] || []])), errors,
     productosPorTipo: (types) => (data.productos || [])
       .filter((item) => item.status !== "INACTIVE" && types.includes(item.productType))
-      .map((item) => ({ value: item.code, label: `${item.code} - ${item.name}` })),
+      .map((item) => ({ value: item.code, label: item.name || item.code }))
+      .sort(byVisibleName),
     opciones: (name, value = "code", label = "name") => (data[name] || [])
       .filter((item) => item.status !== "INACTIVE")
       .map((item) => ({
         value: item[value] ?? item.id,
         label: item[label] ?? item.name ?? item.nombre ?? item.code ?? item.codigo ?? item.id,
-      })),
+      })).sort(byVisibleName),
   }), [data, errors, names.join("|")]);
 }
 
@@ -40,7 +45,7 @@ export function useReferenceValues(catalogs) {
   useEffect(() => {
     let active = true;
     catalogs.forEach((catalog) => api(`/catalogos/valores?catalogo=${encodeURIComponent(catalog)}`)
-      .then((rows) => { if (active) setValues((current) => ({ ...current, [catalog]: rows })); })
+      .then((rows) => { if (active) setValues((current) => ({ ...current, [catalog]: [...rows].sort((left, right) => String(left.label || "").localeCompare(String(right.label || ""), "es", { sensitivity: "base", numeric: true })) })); })
       .catch(() => { if (active) setValues((current) => ({ ...current, [catalog]: [] })); }));
     return () => { active = false; };
   }, [catalogs.join("|")]);

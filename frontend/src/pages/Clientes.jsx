@@ -3,6 +3,7 @@ import { api } from "../services/api";
 import { useReferenceValues } from "../hooks/useOperationalCatalogs";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
 import { useCatalogList } from "../hooks/useCatalogList";
+import CancelEditButton from "../components/CancelEditButton";
 
 function Clientes() {
   const referencias = useReferenceValues(["CUSTOMER_REGION", "CUSTOMER_CATEGORY"]);
@@ -32,6 +33,7 @@ function Clientes() {
   const [editingId, setEditingId] = useState(null);
 
   const cargarSiguienteCodigo = () => api("/clientes/siguiente").then((data) => setCodigoCliente(data.code)).catch((error) => alert(error.message));
+  const cancelarEdicion = async () => { setEditingId(null); setNombreComercial(""); setContacto(""); setTelefono(""); setCorreo(""); setUbicaciones([]); setRegion(""); setCategoria(""); setPrecioCajaSuperNick(""); setPrecioCajaBrownNick(""); setMostrarNuevaRegion(false); setCodigoNuevaRegion(""); setNombreNuevaRegion(""); await cargarSiguienteCodigo(); };
   useEffect(() => { cargarSiguienteCodigo(); }, []);
   useEffect(() => { setRegiones(referencias.CUSTOMER_REGION || []); }, [referencias.CUSTOMER_REGION]);
 
@@ -301,6 +303,8 @@ function Clientes() {
           <label>Precio Caja Super Nick</label>
           <input
             type="number"
+            min="0"
+            step="0.01"
             value={precioCajaSuperNick}
             onChange={(e) => setPrecioCajaSuperNick(e.target.value)}
             style={inputStyle}
@@ -311,6 +315,8 @@ function Clientes() {
           <label>Precio Caja Brown Nick</label>
           <input
             type="number"
+            min="0"
+            step="0.01"
             value={precioCajaBrownNick}
             onChange={(e) => setPrecioCajaBrownNick(e.target.value)}
             style={inputStyle}
@@ -379,9 +385,9 @@ function Clientes() {
       ))}
 
       {/* GUARDAR */}
-      <button type="submit" style={buttonStyle}>
+      <div className="edit-actions"><button type="submit" style={buttonStyle}>
         {editingId ? "Guardar cambios" : "Guardar"}
-      </button>
+      </button><CancelEditButton editing={editingId} onCancel={cancelarEdicion}/></div>
       <ConfigRecordsTable title="Clientes registrados" rows={list.rows} loading={list.loading} error={list.error} columns={[
         { key: "code", label: "Código" }, { key: "commercialName", label: "Cliente" }, { key: "contactName", label: "Contacto" },
         { key: "phone", label: "Teléfono" }, { key: "email", label: "Correo" }, { key: "regionCode", label: "Región" },
