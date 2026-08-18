@@ -6,6 +6,14 @@ const HttpError = require("../utils/httpError");
 const { validateCertificate } = require("../services/licenseService");
 const { USER_SCOPES, normalizeScope } = require("../services/userAccessService");
 
+function issueSessionToken(userId, tokenVersion, sessionId) {
+  return jwt.sign(
+    { sub: userId, ver: tokenVersion, sid: sessionId || null },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || "15m" },
+  );
+}
+
 async function login(req, res, next) {
   const client = await db.connect();
   try {
@@ -52,7 +60,7 @@ async function login(req, res, next) {
       if (active.rows[0]) throw new HttpError(409, "Su sesión ya se encuentra abierta. Cierre la sesión anterior o solicite al administrador que la libere.", "SESSION_ALREADY_ACTIVE");
     }
 
-    const token = jwt.sign({ sub: user.id, ver: user.token_version, sid: sessionId }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || "15m" });
+    const token = issueSessionToken(user.id, user.token_version, sessionId);
     if (sessionId) {
       const decoded = jwt.decode(token);
       await client.query(
@@ -83,6 +91,25 @@ async function me(req, res, next) {
   } catch (error) { next(error); }
 }
 
+async function refresh(req, res, next) {
+  try {
+    const sessionId = req.tokenPayload.sid;
+    const token = issueSessionToken(req.user.id, req.user.tokenVersion, sessionId);
+    if (sessionId) {
+      const decoded = jwt.decode(token);
+      const updated = await db.query(
+        `UPDATE active_user_sessions
+         SET expires_at=to_timestamp($1),ip_address=$2,user_agent=$3
+         WHERE user_id=$4 AND token_id=$5
+         RETURNING id`,
+        [decoded.exp, req.ip || null, String(req.headers["user-agent"] || "").slice(0, 500) || null, req.user.id, sessionId],
+      );
+      if (!updated.rows[0]) throw new HttpError(401, "Tu sesión ya no es válida. Inicia sesión nuevamente.", "SESSION_REVOKED");
+    }
+    res.json({ token });
+  } catch (error) { next(error); }
+}
+
 async function logout(req, res, next) {
   try {
     if (req.tokenPayload.sid) await db.query("DELETE FROM active_user_sessions WHERE user_id=$1 AND token_id=$2", [req.user.id, req.tokenPayload.sid]);
@@ -106,4 +133,4 @@ async function changePassword(req, res, next) {
   } catch (error) { next(error); }
 }
 
-module.exports = { login, me, logout, changePassword };
+module.exports = { login, me, refresh, logout, changePassword };

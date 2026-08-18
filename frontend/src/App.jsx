@@ -96,20 +96,59 @@ export default function App() {
   }, []);
   useEffect(() => {
     if (!user) return undefined;
-    const token = localStorage.getItem("avinext_token");
+    let token = localStorage.getItem("avinext_token");
+    let idleTimer;
+    let lastHandledActivity = 0;
+    let lastRefresh = 0;
+    let refreshing = false;
     try {
-      const encodedPayload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-      const paddedPayload = encodedPayload.padEnd(Math.ceil(encodedPayload.length / 4) * 4, "=");
-      const payload = JSON.parse(atob(paddedPayload));
-      const remaining = Number(payload.exp) * 1000 - Date.now();
+      const readPayload = (value) => {
+        const encodedPayload = value.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+        const paddedPayload = encodedPayload.padEnd(Math.ceil(encodedPayload.length / 4) * 4, "=");
+        return JSON.parse(atob(paddedPayload));
+      };
+      const payload = readPayload(token);
+      const sessionDuration = Math.max(60_000, (Number(payload.exp) - Number(payload.iat)) * 1000);
+      lastRefresh = Number(payload.iat) * 1000;
       const expire = () => {
         localStorage.removeItem("avinext_token");
         notify("Tu sesión ha expirado por seguridad. Inicia sesión nuevamente.", "warning", "Sesión finalizada");
         window.dispatchEvent(new CustomEvent("avinext:session-expired"));
       };
+      const resetIdleTimer = () => {
+        window.clearTimeout(idleTimer);
+        idleTimer = window.setTimeout(expire, sessionDuration);
+      };
+      const renewSession = async () => {
+        if (refreshing || Date.now() - lastRefresh < sessionDuration / 2) return;
+        refreshing = true;
+        try {
+          const data = await api("/auth/refresh", { method: "POST" });
+          token = data.token;
+          localStorage.setItem("avinext_token", token);
+          lastRefresh = Date.now();
+        } catch (_error) {
+          // La capa de API gestiona y notifica una sesión que ya no sea válida.
+        } finally {
+          refreshing = false;
+        }
+      };
+      const handleActivity = () => {
+        const now = Date.now();
+        if (now - lastHandledActivity < 1000) return;
+        lastHandledActivity = now;
+        resetIdleTimer();
+        renewSession();
+      };
+      const events = ["mousedown", "mousemove", "keydown", "scroll", "touchstart"];
+      const remaining = Number(payload.exp) * 1000 - Date.now();
       if (remaining <= 0) { expire(); return undefined; }
-      const timer = window.setTimeout(expire, remaining);
-      return () => window.clearTimeout(timer);
+      idleTimer = window.setTimeout(expire, remaining);
+      events.forEach((eventName) => window.addEventListener(eventName, handleActivity, { passive: true }));
+      return () => {
+        window.clearTimeout(idleTimer);
+        events.forEach((eventName) => window.removeEventListener(eventName, handleActivity));
+      };
     } catch (_error) {
       return undefined;
     }

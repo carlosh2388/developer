@@ -25,7 +25,7 @@ async function authenticate(req, _res, next) {
       await db.query("UPDATE active_user_sessions SET last_seen_at=NOW() WHERE user_id=$1 AND token_id=$2", [user.id, payload.sid]);
     }
     req.tokenPayload = payload;
-    req.user = { id:user.id,organizationId:user.organization_id,name:user.full_name,username:user.username,role:user.role,
+    req.user = { id:user.id,organizationId:user.organization_id,name:user.full_name,username:user.username,tokenVersion:user.token_version,role:user.role,
       permissions:user.permissions,isPlatformAdmin:user.is_platform_admin,userScope:user.user_scope };
     next();
   } catch (error) {
