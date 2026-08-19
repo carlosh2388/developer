@@ -10,6 +10,8 @@ const catalogName = (item) => {
   return item.label?.startsWith(prefix) ? item.label.slice(prefix.length) : item.label;
 };
 
+const foodOutputColumns = inventoryColumns.filter((column) => column.key !== "supplier_name");
+
 function EgresoAlimento() {
   const { productosPorTipo, opciones } = useOperationalCatalogs(["productos", "galeras"]);
 
@@ -300,7 +302,7 @@ function EgresoAlimento() {
     cursor: "pointer"
   };
 
-  return (<OperationPanel maxWidth={1600}><OperationRecordsModal title="Egresos de alimento" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={inventoryColumns} rowFilter={(row) => row.movement_type === "OUTPUT" && row.module_code === "FOOD"} onEdit={cargarEdicion}/>
+  return (<OperationPanel maxWidth={1600}><OperationRecordsModal title="Egresos de alimento" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={foodOutputColumns} rowFilter={(row) => row.movement_type === "OUTPUT" && row.module_code === "FOOD"} onEdit={cargarEdicion}/>
     <div
       style={{
         width: "100%",

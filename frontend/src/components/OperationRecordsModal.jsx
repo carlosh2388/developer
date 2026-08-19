@@ -25,7 +25,7 @@ export const inventoryColumns = [
   { key: "supplier_name", label: "Proveedor", render: (value) => value || "Sin proveedor" },
   { key: "products", label: "Productos", render: (value) => productNames(value) || "Sin detalles" },
   { key: "line_count", label: "Detalles", render: (value) => value ?? 0 },
-  { key: "total_quantity", label: "Cantidad total", render: (value) => Number(value || 0).toLocaleString("es-GT", { maximumFractionDigits: 0 }) },
+  { key: "total_quantity", label: "Cantidad total", render: (value) => Number(value || 0).toLocaleString("es-GT", { maximumFractionDigits: 2 }) },
   { key: "movement_type", label: "Movimiento", render: (value) => ({ INPUT: "Ingreso", OUTPUT: "Egreso", ADJUSTMENT_IN: "Ajuste entrada", ADJUSTMENT_OUT: "Ajuste salida" }[value] || value) },
   { key: "status", label: "Estado", render: (value) => ({ POSTED: "Registrado", VOID: "Anulado", DRAFT: "Borrador" }[value] || value) },
 ];
