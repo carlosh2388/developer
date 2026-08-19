@@ -321,10 +321,13 @@ function Productos() {
                 type="number"
                 value={existencia}
                 placeholder="0"
-                readOnly
-                disabled
-                aria-readonly="true"
-                style={{ ...inputStyle, cursor: "not-allowed", opacity: 0.75 }}
+                min="0"
+                step="1"
+                onChange={(e) => setExistencia(e.target.value)}
+                readOnly={Boolean(editingId)}
+                disabled={Boolean(editingId)}
+                aria-readonly={Boolean(editingId)}
+                style={{ ...inputStyle, ...(editingId ? { cursor: "not-allowed", opacity: 0.75 } : {}) }}
               />
             </div>
           </div>

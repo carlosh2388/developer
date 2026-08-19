@@ -527,7 +527,7 @@ function EgresoAlimento() {
                     <td>
                       <input
                         type="number"
-                        {...quantityInput((fila.tipo === "Vacuna" ? vacunas : alimentos).find((item) => item.value === (fila.vacuna || fila.alimento))?.unitCode)}
+                        {...quantityInput((fila.tipo === "Vacuna" ? vacunasDisponibles : alimentosOptions).find((item) => item.value === (fila.vacuna || fila.alimento))?.unitCode)}
                         value={
                           fila.cantidad
                         }
@@ -596,7 +596,7 @@ function EgresoAlimento() {
                                 </select>
                                 <input
                                   type="number"
-                                  {...quantityInput(aditivos.find((item) => item.value === aditivo.producto)?.unitCode)}
+                                  {...quantityInput(aditivosDisponibles.find((item) => item.value === aditivo.producto)?.unitCode)}
                                   value={aditivo.cantidad}
                                   onChange={(e) => cambiarAditivo(grupo.id, fila.id, index, "cantidad", e.target.value)}
                                   placeholder="Cantidad"
@@ -673,7 +673,7 @@ function EgresoAlimento() {
                                 </select>
                                 <input
                                   type="number"
-                                  {...quantityInput(medicamentos.find((item) => item.value === med.producto)?.unitCode)}
+                                  {...quantityInput(medicamentosDisponibles.find((item) => item.value === med.producto)?.unitCode)}
                                   value={med.cantidad}
                                   onChange={(e) => cambiarMedicamento(grupo.id, fila.id, index, "cantidad", e.target.value)}
                                   placeholder="Cantidad"
