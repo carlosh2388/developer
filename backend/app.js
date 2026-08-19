@@ -39,7 +39,13 @@ const PORT = Number(process.env.PORT || 3000);
 async function startServer() {
   try {
     await db.query("SELECT 1");
-    app.listen(PORT, "0.0.0.0", () => console.log(`API AVINEXT disponible en http://localhost:${PORT}`));
+    app.listen(PORT, "0.0.0.0", (error) => {
+      if (error) {
+        console.error(`No fue posible iniciar la API en el puerto ${PORT}:`, error.message);
+        process.exit(1);
+      }
+      console.log(`API AVINEXT disponible en http://localhost:${PORT}`);
+    });
   } catch (error) {
     if (error.code === "28P01") {
       console.error("No fue posible autenticar el usuario de PostgreSQL. Revisa DATABASE_URL en backend/.env.");
