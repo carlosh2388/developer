@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { eggGradeCode, eggGradeLabel, eggPackageDetail, saveOperation } from "../services/operations";
+import { clientId, eggGradeCode, eggGradeLabel, eggPackageDetail, saveOperation } from "../services/operations";
 import { api } from "../services/api";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import OperationRecordsModal from "../components/OperationRecordsModal";
@@ -61,7 +61,7 @@ function IngresoHuevos() {
   // =========================
   const [grupos, setGrupos] = useState([crearGrupo()]);
   const [editingId, setEditingId] = useState(null);
-  const cargarEdicion = async (row) => { try { const data = await api(`/huevos/movimientos/${row.id}`); setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setGrupos(data.detalles.map((item) => ({ id: crypto.randomUUID(), abierto: true, tipo: item.grade_code.startsWith("INC_") ? "Incubable" : "Comercial", lote: item.flock_code, recolector: item.collector_id || "", clasificador: item.classifier_id || "", peso: item.total_weight_grams || 0, datos: { [eggGradeLabel(item.grade_code)]: { cajaB336: item.boxes_trays_336, cajaC360: item.boxes_cartons_360, bandeja84: item.trays_84, carton30: item.cartons_30, unidades: item.loose_units } } }))); } catch (error) { alert(error.message); } };
+  const cargarEdicion = async (row) => { try { const data = await api(`/huevos/movimientos/${row.id}`); setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setGrupos(data.detalles.map((item) => ({ id: clientId(), abierto: true, tipo: item.grade_code.startsWith("INC_") ? "Incubable" : "Comercial", lote: item.flock_code, recolector: item.collector_id || "", clasificador: item.classifier_id || "", peso: item.total_weight_grams || 0, datos: { [eggGradeLabel(item.grade_code)]: { cajaB336: item.boxes_trays_336, cajaC360: item.boxes_cartons_360, bandeja84: item.trays_84, carton30: item.cartons_30, unidades: item.loose_units } } }))); } catch (error) { alert(error.message); } };
 
   // =========================
   // INIT FECHA

@@ -17,7 +17,7 @@ export const quantityInputFor = (options, value) => {
   return quantityInput(selected?.unitCode, selected?.unitLabel);
 };
 const priceText = (value) => Number(value || 0).toFixed(2);
-const clientId = () => globalThis.crypto?.randomUUID?.()
+export const clientId = () => globalThis.crypto?.randomUUID?.()
   || `row-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 
 export function inventoryDetails(rows, { allocate = false } = {}) {
