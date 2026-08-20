@@ -434,6 +434,11 @@ async function crearMovimientoHuevos(req, res, next) {
         if (values.some((v) => !Number.isInteger(v) || v < 0) || values.every((v) => v === 0)) {
           throw new HttpError(400, `El detalle ${index + 1} debe contener cantidades enteras positivas.`, "VALIDATION_ERROR");
         }
+        const totalWeight = d.pesoTotalGramos === undefined || d.pesoTotalGramos === null || d.pesoTotalGramos === ""
+          ? null : Number(d.pesoTotalGramos);
+        if (totalWeight !== null && (!Number.isInteger(totalWeight) || totalWeight < 0)) {
+          throw new HttpError(400, `El peso del detalle ${index + 1} debe ser un número entero no negativo.`, "VALIDATION_ERROR");
+        }
         const requestedUnits = values[0] * 336 + values[1] * 360 + values[2] * 84 + values[3] * 30 + values[4];
         let existingUnits = Number(d.existencia || 0);
         if (body.tipoMovimiento === "OUTPUT") {
@@ -443,14 +448,14 @@ async function crearMovimientoHuevos(req, res, next) {
             FROM egg_movement_lines l JOIN egg_movements m ON m.id=l.movement_id AND m.organization_id=l.organization_id
             WHERE l.organization_id=$1 AND l.flock_id=$2 AND l.quality_grade_id=$3`, [orgId, flockId, gradeId, req.params.id || null]);
           existingUnits = Number(balance.rows[0].available_units || 0);
-          if (requestedUnits > existingUnits) throw new HttpError(409, `La salida del detalle ${index + 1} supera la existencia disponible (${existingUnits}).`, "INSUFFICIENT_EGG_STOCK");
+          if (requestedUnits > existingUnits) throw new HttpError(409, "Inventario insuficiente para operar egresos.", "INSUFFICIENT_EGG_STOCK");
         }
         const line = await client.query(
           `INSERT INTO egg_movement_lines(organization_id,movement_id,flock_id,quality_grade_id,collector_id,classifier_id,existing_units,boxes_trays_336,boxes_cartons_360,trays_84,cartons_30,loose_units,total_weight_grams,line_number)
            VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
           [orgId, header.rows[0].id, flockId, gradeId,
             collectorId, classifierId, existingUnits, ...values,
-            d.pesoTotalGramos || null, index + 1]
+            totalWeight, index + 1]
         );
         lines.push(line.rows[0]);
       }
@@ -501,6 +506,17 @@ async function listarEgresosAves(req, res, next) {
       LEFT JOIN flocks f ON f.id=l.flock_id AND f.organization_id=l.organization_id
       WHERE d.organization_id=$1 GROUP BY d.id ORDER BY d.movement_date DESC,d.created_at DESC`, [organizationId(req)]);
     res.json(rows);
+  } catch (error) { next(error); }
+}
+
+async function resumenExistenciasHuevos(req, res, next) {
+  try {
+    const { rows } = await db.query(`SELECT COALESCE(SUM(CASE WHEN m.movement_type='INPUT' THEN l.total_units ELSE -l.total_units END)
+      FILTER (WHERE m.status='POSTED'),0)::BIGINT AS available_units
+      FROM egg_movement_lines l
+      JOIN egg_movements m ON m.id=l.movement_id AND m.organization_id=l.organization_id
+      WHERE l.organization_id=$1`, [organizationId(req)]);
+    res.json({ availableUnits: Number(rows[0]?.available_units || 0) });
   } catch (error) { next(error); }
 }
 
@@ -677,7 +693,7 @@ async function crearPesoHuevos(req, res, next) {
 module.exports = {
   listarInventario, obtenerInventario, crearInventario, actualizarInventario, anularInventario,
   anularOperacion,
-  listarHuevos, obtenerHuevos, crearMovimientoHuevos, listarClasificacionesHuevos, listarExistenciasHuevos, siguienteEnvioHuevos,
+  listarHuevos, obtenerHuevos, crearMovimientoHuevos, listarClasificacionesHuevos, listarExistenciasHuevos, resumenExistenciasHuevos, siguienteEnvioHuevos,
   listarEgresosAves, obtenerEgresoAves, crearEgresoAves,
   listarPesoAves, obtenerPesoAves, crearPesoAves,
   listarPesoHuevos, obtenerPesoHuevos, crearPesoHuevos,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { eggGradeCode, eggGradeLabel, eggPackageDetail, post, saveOperation } from "../services/operations";
 import { api } from "../services/api";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
@@ -21,6 +21,8 @@ function EgresoHuevos() {
   // =====================================================
 
   const [egreso, setEgreso] = useState("");
+  const [inventarioDisponible, setInventarioDisponible] = useState(null);
+  const alertaInventarioMostrada = useRef(false);
 
   const cargarSiguienteEnvio = () => api("/huevos/envios/siguiente")
     .then((data) => setEgreso(data.shipmentNumber))
@@ -121,8 +123,8 @@ function EgresoHuevos() {
 
 const crearFilaIncubadora = () => ({
   existencias: 0,
-  cajaBandejas336: 0,
-  cajaCartones360: 0,
+  cajaB336: 0,
+  cajaC360: 0,
   bandeja84: 0,
   carton30: 0,
   unidades: 0
@@ -199,9 +201,43 @@ const crearFilaComercial = () => ({
     crearLote()
   ]);
   const [editingId, setEditingId] = useState(null);
-  const cargarEdicion = async (row) => { try { const data = await api(`/huevos/movimientos/${row.id}`); const editLots = data.detalles.map((item) => { const classification = item.grade_code.startsWith("INC_") ? "Incubable" : "Comercial"; const lot = crearLote(item.flock_code); lot.clasificacion = classification; const target = classification === "Comercial" ? lot.comercial : lot.incubadora; target[eggGradeLabel(item.grade_code)] = { existencias: item.existing_units, cajaBandejas336: item.boxes_trays_336, cajaCartones360: item.boxes_cartons_360, cajaC360: item.boxes_cartons_360, bandeja84: item.trays_84, carton30: item.cartons_30, unidades: item.loose_units }; return lot; }); setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setHora(String(data.movement_time || "").slice(0, 5)); setFechaProduccion(String(data.production_date || "").slice(0, 10)); setEgreso(data.shipment_number || ""); setBodegaSalida(data.source_warehouse_code || ""); setBodegaDestino(data.destination_warehouse_code || data.destination_name || ""); setPlaca(data.vehicle_plate || ""); setPiloto(data.driver_name || ""); setLotes(editLots); } catch (error) { alert(error.message); } };
+  const cargarEdicion = async (row) => { try {
+    const data = await api(`/huevos/movimientos/${row.id}`);
+    const grouped = new Map();
+    data.detalles.forEach((item) => {
+      const classification = item.grade_code.startsWith("INC_") ? "Incubable" : "Comercial";
+      const key = `${classification}|${item.flock_code}`;
+      if (!grouped.has(key)) {
+        const lot = crearLote(item.flock_code);
+        lot.clasificacion = classification;
+        grouped.set(key, lot);
+      }
+      const lot = grouped.get(key);
+      const target = classification === "Comercial" ? lot.comercial : lot.incubadora;
+      const quality = eggGradeLabel(item.grade_code);
+      target[quality] = {
+        ...target[quality], existencias: item.existing_units, cajaB336: item.boxes_trays_336,
+        cajaC360: item.boxes_cartons_360, bandeja84: item.trays_84, carton30: item.cartons_30, unidades: item.loose_units,
+      };
+    });
+    setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setHora(String(data.movement_time || "").slice(0, 5));
+    setFechaProduccion(String(data.production_date || "").slice(0, 10)); setEgreso(data.shipment_number || "");
+    setBodegaSalida(data.source_warehouse_code || ""); setBodegaDestino(data.destination_warehouse_code || data.destination_name || "");
+    setPlaca(data.vehicle_plate || ""); setPiloto(data.driver_name || ""); setLotes([...grouped.values()]);
+  } catch (error) { alert(error.message); } };
 
   useEffect(() => { cargarSiguienteEnvio(); }, []);
+
+  useEffect(() => {
+    api("/huevos/existencias/resumen").then((data) => {
+      const disponible = Number(data.availableUnits || 0) > 0;
+      setInventarioDisponible(disponible);
+      if (!disponible && !alertaInventarioMostrada.current) {
+        alertaInventarioMostrada.current = true;
+        alert("Inventario insuficiente para operar egresos.");
+      }
+    }).catch((error) => alert(error.message));
+  }, []);
 
   useEffect(() => {
     const selected = bodegas.find((item) => item.code === bodegaSalida || item.id === bodegaSalida);
@@ -633,6 +669,10 @@ const calcularSubTotal = (
 
   const guardar = async () => {
     try {
+      if (inventarioDisponible === false) {
+        alert("Inventario insuficiente para operar egresos.");
+        return;
+      }
       const detalles = lotes.flatMap((item) => {
         const source = item.clasificacion === "Comercial" ? item.comercial : item.incubadora;
         return Object.entries(source || {}).map(([calidad, datos]) => ({
@@ -652,7 +692,9 @@ const calcularSubTotal = (
       setPiloto(""); setNuevoPiloto(""); setMostrarNuevoPiloto(false);
       setLotes([crearLote()]); setEditingId(null);
       await cargarSiguienteEnvio();
-    } catch (error) { alert(error.message); }
+    } catch (error) {
+      alert(error.code === "INSUFFICIENT_EGG_STOCK" ? "Inventario insuficiente para operar egresos." : error.message);
+    }
   };
 
   // =====================================================

@@ -12,6 +12,7 @@ router.patch("/inventario/documentos/:id/anular", requirePermission("operations.
 router.patch("/operaciones/:tipo/:id/anular", requirePermission("operations.approve"), controller.anularOperacion);
 
 router.get("/huevos/clasificaciones", requirePermission("operations.read"), controller.listarClasificacionesHuevos);
+router.get("/huevos/existencias/resumen", requirePermission("operations.read"), controller.resumenExistenciasHuevos);
 router.get("/huevos/existencias", requirePermission("operations.read"), controller.listarExistenciasHuevos);
 router.get("/huevos/envios/siguiente", requirePermission("operations.read"), controller.siguienteEnvioHuevos);
 router.get("/huevos/movimientos", requirePermission("operations.read"), controller.listarHuevos);
