@@ -27,10 +27,13 @@ function Bodegas() {
   const [nuevaLocalidad, setNuevaLocalidad] =
     useState("");
 
-  const cargarSiguienteCodigo = () => api("/bodegas/siguiente")
-    .then((data) => setIdBodega(data.code))
-    .catch((error) => alert(error.message));
-  const cancelarEdicion = async () => { setEditingId(null); setNombreBodega(""); setLocalidad(""); setEstado("Activo"); setDescripcion(""); setNuevaLocalidad(""); setMostrarNuevaLocalidad(false); setFecha(new Date().toISOString().split("T")[0]); await cargarSiguienteCodigo(); };
+  const cargarSiguienteCodigo = (localidadId) => {
+    if (!localidadId) { setIdBodega(""); return Promise.resolve(); }
+    return api(`/bodegas/siguiente?localidadId=${encodeURIComponent(localidadId)}`)
+      .then((data) => setIdBodega(data.code))
+      .catch((error) => { setIdBodega(""); alert(error.message); });
+  };
+  const cancelarEdicion = () => { setEditingId(null); setNombreBodega(""); setLocalidad(""); setIdBodega(""); setEstado("Activo"); setDescripcion(""); setNuevaLocalidad(""); setMostrarNuevaLocalidad(false); setFecha(new Date().toISOString().split("T")[0]); };
 
   // =========================
   // FECHA AUTOMÁTICA
@@ -43,7 +46,6 @@ function Bodegas() {
 
     setFecha(hoy);
     api("/localidades").then((rows) => setLocalidades([...rows].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "es", { sensitivity: "base", numeric: true })))).catch((error) => alert(error.message));
-    cargarSiguienteCodigo();
   }, []);
 
   // =========================
@@ -60,7 +62,7 @@ function Bodegas() {
       const nueva = await api("/localidades", { method: "POST", body: JSON.stringify({
         codigo: `LOC-${Date.now().toString().slice(-6)}`, nombre: nuevaLocalidad.trim(), fechaApertura: fecha,
       }) });
-      setLocalidades((current) => [...current, nueva].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "es", { sensitivity: "base", numeric: true }))); setLocalidad(nueva.id);
+      setLocalidades((current) => [...current, nueva].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "es", { sensitivity: "base", numeric: true }))); setLocalidad(nueva.id); await cargarSiguienteCodigo(nueva.id);
       setNuevaLocalidad(""); setMostrarNuevaLocalidad(false);
     } catch (error) { alert(error.message); }
   };
@@ -83,7 +85,7 @@ function Bodegas() {
       setFecha(new Date().toISOString().split("T")[0]);
       setEditingId(null);
       await list.reload();
-      await cargarSiguienteCodigo();
+      setIdBodega("");
     } catch (error) { alert(error.message); }
   };
 
@@ -165,11 +167,11 @@ function Bodegas() {
             <div style={{ flex: 1 }}>
               <select
                 value={localidad}
-                onChange={(e) =>
-                  setLocalidad(
-                    e.target.value
-                  )
-                }
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setLocalidad(value);
+                  if (!editingId) cargarSiguienteCodigo(value);
+                }}
                 style={inputStyle}
               >
                 <option value="">
@@ -251,7 +253,7 @@ function Bodegas() {
           <input
             type="text"
             value={idBodega}
-            placeholder="BO01 Automático"
+            placeholder="BG01 / BI01 Automático"
             readOnly
             aria-readonly="true"
             style={inputStyle}

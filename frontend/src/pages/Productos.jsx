@@ -24,7 +24,6 @@ function Productos() {
   const [abreviaturaNuevaUnidad, setAbreviaturaNuevaUnidad] = useState("");
   const [estado, setEstado] = useState("Activo");
   const [precio, setPrecio] = useState("");
-  const [existencia, setExistencia] = useState("");
 
   const [costo, setCosto] = useState("");
   const [presentacion, setPresentacion] = useState("");
@@ -38,7 +37,7 @@ function Productos() {
   const [helpId, setHelpId] = useState("");
   const [mostrarGuardar, setMostrarGuardar] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const cancelarEdicion = () => { setEditingId(null); setTipoInventario(""); setIdProducto(""); setNombre(""); setUnidad(""); setEstado("Activo"); setPrecio(""); setExistencia(""); setCosto(""); setPresentacion(""); setEnfermedad(""); setDosis(""); setTipo(""); setMostrarGenerales(false); setMostrarInsumos(false); setHelpId(""); setMostrarGuardar(false); setMostrarNuevaUnidad(false); setCodigoNuevaUnidad(""); setNombreNuevaUnidad(""); setAbreviaturaNuevaUnidad(""); };
+  const cancelarEdicion = () => { setEditingId(null); setTipoInventario(""); setIdProducto(""); setNombre(""); setUnidad(""); setEstado("Activo"); setPrecio(""); setCosto(""); setPresentacion(""); setEnfermedad(""); setDosis(""); setTipo(""); setMostrarGenerales(false); setMostrarInsumos(false); setHelpId(""); setMostrarGuardar(false); setMostrarNuevaUnidad(false); setCodigoNuevaUnidad(""); setNombreNuevaUnidad(""); setAbreviaturaNuevaUnidad(""); };
 
   useEffect(() => { setUnidades(referencias.UNIT || []); }, [referencias.UNIT]);
 
@@ -109,12 +108,12 @@ function Productos() {
       const saved = await api(editingId ? `/productos/${editingId}` : "/productos", { method: editingId ? "PUT" : "POST", body: JSON.stringify({
         ...(!editingId ? { tipoProducto: tipoInventario } : {}), nombre, unidad: units[unidad] || unidad,
         estado: estado === "Activo" ? "ACTIVE" : "INACTIVE", precioVenta: precio || 0,
-        existenciaInicial: existencia || 0, costoEstandar: costo || 0, presentacion,
+        existenciaInicial: 0, costoEstandar: costo || 0, presentacion,
         enfermedadObjetivo: enfermedad, dosis, tipoVacuna: tipo || null,
       }) });
       alert(`Producto ${saved.code} guardado correctamente`);
       setTipoInventario(""); setIdProducto(""); setNombre(""); setUnidad(""); setEstado("Activo");
-      setPrecio(""); setExistencia(""); setCosto(""); setPresentacion(""); setEnfermedad(""); setDosis(""); setTipo("");
+      setPrecio(""); setCosto(""); setPresentacion(""); setEnfermedad(""); setDosis(""); setTipo("");
       setMostrarGenerales(false); setMostrarInsumos(false); setHelpId(""); setMostrarGuardar(false);
       setMostrarNuevaUnidad(false); setCodigoNuevaUnidad(""); setNombreNuevaUnidad(""); setAbreviaturaNuevaUnidad("");
       setEditingId(null);
@@ -319,15 +318,14 @@ function Productos() {
 
               <input
                 type="number"
-                value={existencia}
+                value="0"
                 placeholder="0"
                 min="0"
                 step="1"
-                onChange={(e) => setExistencia(e.target.value)}
-                readOnly={Boolean(editingId)}
-                disabled={Boolean(editingId)}
-                aria-readonly={Boolean(editingId)}
-                style={{ ...inputStyle, ...(editingId ? { cursor: "not-allowed", opacity: 0.75 } : {}) }}
+                readOnly
+                disabled
+                aria-readonly="true"
+                style={{ ...inputStyle, cursor: "not-allowed", opacity: 0.75 }}
               />
             </div>
           </div>
@@ -461,7 +459,7 @@ function Productos() {
       ]} onEdit={(row) => {
         setEditingId(row.id); setTipoInventario(row.productType); setIdProducto(row.code); setNombre(row.name);
         setUnidad(row.unitCode); setEstado(row.status === "INACTIVE" ? "Inactivo" : "Activo"); setPrecio(row.salePrice || "");
-        setExistencia(row.currentStock ?? row.openingStock ?? ""); setCosto(row.standardCost || ""); setPresentacion(row.presentation || "");
+        setCosto(row.standardCost || ""); setPresentacion(row.presentation || "");
         setEnfermedad(row.targetDisease || ""); setDosis(row.dosage || ""); setTipo(row.vaccineKind || "");
         setMostrarGenerales(true); setMostrarGuardar(true); setMostrarInsumos(["MD", "VA"].includes(row.productType));
       }} onDeactivate={async (row) => {

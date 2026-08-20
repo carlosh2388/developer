@@ -147,6 +147,29 @@ async function crearProveedor(req, res, next) {
   finally { client.release(); }
 }
 
+async function siguienteBodega(req, res, next) {
+  try {
+    const orgId = organizationId(req);
+    const prefix = await warehousePrefixForLocation(db, orgId, req.query.localidadId);
+    res.json({ code: await nextPrefixedCode(db, "warehouses", orgId, prefix) });
+  } catch (error) { next(error); }
+}
+
+async function warehousePrefixForLocation(queryable, orgId, locationId) {
+  if (!locationId) throw new HttpError(400, "Seleccione una localidad para generar el código de bodega.", "VALIDATION_ERROR");
+  const { rows } = await queryable.query(
+    "SELECT name FROM locations WHERE id=$1 AND organization_id=$2",
+    [locationId, orgId]
+  );
+  if (!rows[0]) throw new HttpError(400, "La localidad seleccionada no existe.", "INVALID_LOCATION");
+  const words = String(rows[0].name || "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase().match(/[A-Z0-9]+/g) || [];
+  const initials = words.map((word) => word[0]).join("");
+  if (!initials) throw new HttpError(400, "El nombre de la localidad no permite generar un código de bodega.", "INVALID_WAREHOUSE_LOCATION");
+  return `B${initials}`;
+}
+
 function twoDecimalValue(value, name) {
   const number = Number(value || 0);
   if (!Number.isFinite(number) || number < 0 || Math.abs(number * 100 - Math.round(number * 100)) > 0.000001) {
@@ -163,8 +186,9 @@ async function crearBodega(req, res, next) {
     delete values.code;
     validateRequired(catalogos.bodegas, { ...values, code: "AUTO" });
     await client.query("BEGIN");
-    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:BO`]);
-    values.code = await nextPrefixedCode(client, "warehouses", orgId, "BO");
+    const prefix = await warehousePrefixForLocation(client, orgId, values.location_id);
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:WAREHOUSE:${prefix}`]);
+    values.code = await nextPrefixedCode(client, "warehouses", orgId, prefix);
     values.created_by = req.user.id;
     const columns = ["organization_id", ...Object.keys(values)];
     const params = [orgId, ...Object.values(values)];
@@ -197,6 +221,7 @@ async function crearProducto(req, res, next) {
     const type = String(values.product_type || "").trim().toUpperCase();
     if (!productPrefixes.has(type)) throw new HttpError(400, "El tipo de producto seleccionado no es válido.", "INVALID_PRODUCT_TYPE");
     values.product_type = type;
+    values.opening_stock = 0;
     validateRequired(catalogos.productos, { ...values, code: "AUTO" });
     await client.query("BEGIN");
     await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:PRODUCT:${type}`]);
@@ -626,7 +651,7 @@ async function actualizarCliente(req, res, next) {
 module.exports = {
   catalogController, listarValores, siguienteRegion, crearRegion, siguienteUnidad, crearUnidad, listarPersonal, guardarPersonal, actualizarPersonal,
   listarClientes, guardarCliente, actualizarCliente,
-  siguienteBodega: siguienteCodigo("warehouses", "BO"), crearBodega,
+  siguienteBodega, crearBodega,
   siguienteCliente: siguienteCodigo("customers", "CL"), siguienteProveedor: siguienteCodigo("suppliers", "PR"), crearProveedor,
   siguienteProducto, crearProducto,
   crearGalera,
