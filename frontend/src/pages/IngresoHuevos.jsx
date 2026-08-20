@@ -6,6 +6,12 @@ import OperationRecordsModal from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
 import CancelEditButton from "../components/CancelEditButton";
 
+const nonNegativeInteger = (value) => {
+  const text = String(value ?? "");
+  if (!/^\d*$/.test(text)) return null;
+  return text === "" ? "" : Number(text);
+};
+
 function IngresoHuevos() {
   const { opciones, personal = [] } = useOperationalCatalogs(["lotes", "personal"]);
   // =========================
@@ -106,6 +112,8 @@ function IngresoHuevos() {
   };
 
   const actualizarTabla = (grupoId, tamaño, campo, valor) => {
+    const quantity = nonNegativeInteger(valor);
+    if (quantity === null) return;
     setGrupos(prev =>
       prev.map(g => {
         if (g.id !== grupoId) return g;
@@ -115,7 +123,7 @@ function IngresoHuevos() {
             ...g.datos,
             [tamaño]: {
               ...g.datos?.[tamaño],
-              [campo]: Number(valor)
+              [campo]: quantity
             }
           }
         };
@@ -551,7 +559,7 @@ const calcularSubTotal = (grupo, filtro) => {
     { key: "total_units", label: "Total unidades", render: (value) => Number(value || 0).toLocaleString("es-GT") },
     { key: "status", label: "Estado", render: (value) => ({ POSTED: "Registrado", VOID: "Anulado" }[value] || value) },
   ]} rowFilter={(row) => row.movement_type === "INPUT"} onEdit={cargarEdicion}/>
-    <div>
+    <div className="egg-operation-form">
       <h2>Ingreso Huevos</h2>
 
       <input

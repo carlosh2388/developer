@@ -54,6 +54,17 @@ async function resolveGradeId(client, value) {
   return rows[0].id;
 }
 
+async function tableHasColumn(queryable, tableName, columnName) {
+  const { rows } = await queryable.query(
+    `SELECT EXISTS (
+       SELECT 1 FROM information_schema.columns
+       WHERE table_schema=current_schema() AND table_name=$1 AND column_name=$2
+     ) AS exists`,
+    [tableName, columnName]
+  );
+  return Boolean(rows[0]?.exists);
+}
+
 function positiveInteger(value, name) {
   const number = positive(value, name);
   if (!Number.isInteger(number)) throw new HttpError(400, `${name} debe ser un número entero.`, "VALIDATION_ERROR");
@@ -350,6 +361,9 @@ async function obtenerHuevos(req, res, next) {
 
 async function siguienteEnvioHuevos(req, res, next) {
   try {
+    if (!(await tableHasColumn(db, "egg_movements", "shipment_number"))) {
+      return res.json({ shipmentNumber: null });
+    }
     const { rows } = await db.query(
       `SELECT COALESCE(MAX(substring(shipment_number FROM 3)::integer),0) last_number
        FROM egg_movements
@@ -369,6 +383,7 @@ async function crearMovimientoHuevos(req, res, next) {
     const detalles = Array.isArray(body.detalles) ? body.detalles : [];
     if (!detalles.length) throw new HttpError(400, "Agrega al menos un detalle de huevos.", "VALIDATION_ERROR");
     const result = await transaction(async (client) => {
+      const supportsShipmentNumbers = await tableHasColumn(client, "egg_movements", "shipment_number");
       const sourceWarehouseId = await resolveTenantId(client, "warehouses", orgId, body.bodegaOrigenId || body.bodegaOrigen, "bodega de origen", true);
       const destinationWarehouseId = await resolveTenantId(client, "warehouses", orgId, body.bodegaDestinoId || body.bodegaDestino, "bodega de destino", true);
       const customerId = await resolveTenantId(client, "customers", orgId, body.clienteId || body.cliente, "cliente", true);
@@ -383,7 +398,7 @@ async function crearMovimientoHuevos(req, res, next) {
         await client.query("DELETE FROM egg_movement_lines WHERE movement_id=$1 AND organization_id=$2",[req.params.id,orgId]);
       } else {
         let shipmentNumber = null;
-        if (body.tipoMovimiento === "OUTPUT") {
+        if (body.tipoMovimiento === "OUTPUT" && supportsShipmentNumbers) {
           await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:EGG-SHIPMENT`]);
           const sequence = await client.query(
             `SELECT COALESCE(MAX(substring(shipment_number FROM 3)::integer),0) + 1 next_number
@@ -393,14 +408,20 @@ async function crearMovimientoHuevos(req, res, next) {
           if (nextNumber > 999) throw new HttpError(409, "Se alcanzó el límite de números de envío EN999.", "SHIPMENT_LIMIT_REACHED");
           shipmentNumber = `EN${String(nextNumber).padStart(3, "0")}`;
         }
-        header = await client.query(
-        `INSERT INTO egg_movements(organization_id,movement_type,movement_date,movement_time,production_date,source_warehouse_id,destination_warehouse_id,destination_type,destination_name,customer_id,vehicle_id,driver_id,notes,shipment_number,created_by)
-         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
-        [orgId, required(body.tipoMovimiento, "tipoMovimiento"), required(body.fecha, "fecha"), body.hora || null,
+        const commonValues = [orgId, required(body.tipoMovimiento, "tipoMovimiento"), required(body.fecha, "fecha"), body.hora || null,
           body.fechaProduccion || null, sourceWarehouseId, destinationWarehouseId, body.tipoDestino || null,
-          body.nombreDestino || null, customerId, vehicleId, driverId,
-          body.observaciones || null, shipmentNumber, req.user.id]
-      );
+          body.nombreDestino || null, customerId, vehicleId, driverId, body.observaciones || null];
+        header = supportsShipmentNumbers
+          ? await client.query(
+            `INSERT INTO egg_movements(organization_id,movement_type,movement_date,movement_time,production_date,source_warehouse_id,destination_warehouse_id,destination_type,destination_name,customer_id,vehicle_id,driver_id,notes,shipment_number,created_by)
+             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+            [...commonValues, shipmentNumber, req.user.id]
+          )
+          : await client.query(
+            `INSERT INTO egg_movements(organization_id,movement_type,movement_date,movement_time,production_date,source_warehouse_id,destination_warehouse_id,destination_type,destination_name,customer_id,vehicle_id,driver_id,notes,created_by)
+             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+            [...commonValues, req.user.id]
+          );
       }
       const lines = [];
       for (let index = 0; index < detalles.length; index += 1) {

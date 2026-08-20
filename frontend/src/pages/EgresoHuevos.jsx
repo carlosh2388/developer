@@ -7,6 +7,12 @@ import OperationPanel from "../components/OperationPanel";
 import CancelEditButton from "../components/CancelEditButton";
 import InlineAddActions from "../components/InlineAddActions";
 
+const nonNegativeInteger = (value) => {
+  const text = String(value ?? "");
+  if (!/^\d*$/.test(text)) return null;
+  return text === "" ? "" : Number(text);
+};
+
 function EgresoHuevos() {
   const { bodegas, localidades, opciones } = useOperationalCatalogs(["lotes", "personal", "vehiculos", "bodegas", "localidades"]);
 
@@ -310,7 +316,8 @@ const crearFilaComercial = () => ({
   const toggleLote = (
     loteId
   ) => {
-
+    const quantity = nonNegativeInteger(value);
+    if (quantity === null) return;
     setLotes(prev =>
       prev.map(l =>
         l.id === loteId
@@ -376,7 +383,7 @@ const crearFilaComercial = () => ({
                 [fila]: {
                   ...l.incubadora[fila],
 
-                  [campo]: value
+                  [campo]: quantity
                 }
               }
             }
@@ -396,7 +403,8 @@ const crearFilaComercial = () => ({
     campo,
     value
   ) => {
-
+    const quantity = nonNegativeInteger(value);
+    if (quantity === null) return;
     setLotes(prev =>
       prev.map(l =>
 
@@ -411,7 +419,7 @@ const crearFilaComercial = () => ({
                 [fila]: {
                   ...l.comercial[fila],
 
-                  [campo]: value
+                  [campo]: quantity
                 }
               }
             }
@@ -1159,7 +1167,7 @@ const calcularSubTotal = (
     { key: "movement_number", label: "Movimiento" }, { key: "movement_date", label: "Fecha" }, { key: "production_date", label: "Producción" }, { key: "destination_name", label: "Destino" }, { key: "status", label: "Estado" },
   ]} rowFilter={(row) => row.movement_type === "OUTPUT"} onEdit={cargarEdicion}/>
 
-    <div className="form-container">
+    <div className="form-container egg-operation-form">
 
       <h2>Egreso de Huevos</h2>
 
