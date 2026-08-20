@@ -4,6 +4,7 @@ import ConfigRecordsTable from "../components/ConfigRecordsTable";
 import { assertUniqueCode, useCatalogList } from "../hooks/useCatalogList";
 import CancelEditButton from "../components/CancelEditButton";
 import { confirmAction } from "../services/notifications";
+import InlineAddActions from "../components/InlineAddActions";
 
 function Bodegas() {
   const list = useCatalogList("/bodegas");
@@ -192,7 +193,7 @@ function Bodegas() {
             </div>
 
             {mostrarNuevaLocalidad && (
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, display: "flex", gap: 8 }}>
                 <input
                   type="text"
                   value={nuevaLocalidad}
@@ -204,18 +205,13 @@ function Bodegas() {
                   placeholder="Nueva localidad"
                   style={inputStyle}
                 />
+                <InlineAddActions onSave={agregarLocalidad} onCancel={() => { setMostrarNuevaLocalidad(false); setNuevaLocalidad(""); }} />
               </div>
             )}
 
             <button
               type="button"
-              onClick={() =>
-                mostrarNuevaLocalidad
-                  ? agregarLocalidad()
-                  : setMostrarNuevaLocalidad(
-                      true
-                    )
-              }
+              onClick={() => setMostrarNuevaLocalidad(true)}
               style={addButtonStyle}
             >
               +

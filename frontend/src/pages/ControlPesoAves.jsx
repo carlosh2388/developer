@@ -6,6 +6,7 @@ import OperationRecordsModal from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
 import { calculateFlockWeek } from "../utils/flockWeek";
 import CancelEditButton from "../components/CancelEditButton";
+import InlineAddActions from "../components/InlineAddActions";
 
 function ControlPesoAves() {
   const { opciones, errors, lotes } = useOperationalCatalogs(["lotes", "etapas"]);
@@ -25,17 +26,18 @@ function ControlPesoAves() {
   const cargarEdicion = async (row) => { try {
     const data = await api(`/controles/peso-aves/${row.id}`);
     setEditingId(row.id); setFecha(String(data.control_date).slice(0, 10)); setLote(data.flock_code);
-    setEtapa(data.stage_code || ""); setSemana(data.week_number); setTamanoMuestra(data.sample_size);
+    setEtapa(data.stage_code || ""); setSemana(data.week_number);
+    const femaleSamples = data.muestras.filter((item) => item.sex === "F").sort((a, b) => a.sample_number - b.sample_number);
+    const maleSamples = data.muestras.filter((item) => item.sex === "M").sort((a, b) => a.sample_number - b.sample_number);
+    const samplesPerSex = Math.max(femaleSamples.length, maleSamples.length, Math.ceil(Number(data.sample_size || 0) / 2));
+    setTamanoMuestra(samplesPerSex * 2);
     const female = {}, male = {};
-    let femaleIndex = 0, maleIndex = 0;
-    data.muestras.forEach((item) => {
-      if (item.sex === "F") female[`m${++femaleIndex}`] = String(item.weight_grams);
-      else male[`m${++maleIndex}`] = String(item.weight_grams);
-    });
+    femaleSamples.forEach((item, index) => { female[`m${index + 1}`] = String(item.weight_grams); });
+    maleSamples.forEach((item, index) => { male[`m${index + 1}`] = String(item.weight_grams); });
     setHembras(female); setMachos(male);
   } catch (error) { alert(error.message); } };
 
-  const [tamanoMuestra, setTamanoMuestra] = useState(0);
+  const [tamanoMuestra, setTamanoMuestra] = useState("");
 
   const [uniformidad, setUniformidad] = useState(0);
   const [promedioGeneral, setPromedioGeneral] = useState(0);
@@ -103,7 +105,7 @@ const [uniformidadMachos, setUniformidadMachos] =
   // =========================
 
   const buildSamples = (total, setFn) => {
-    const half = Math.floor(total / 2);
+    const half = Number(total) > 0 && Number(total) % 2 === 0 ? Number(total) / 2 : 0;
     setFn((current) => {
       const obj = {};
       for (let i = 1; i <= half; i++) obj[`m${i}`] = current[`m${i}`] ?? "";
@@ -128,8 +130,9 @@ useEffect(() => {
 
 useEffect(() => {
   const valores = Object.values(hembras)
+    .filter((v) => String(v).trim() !== "")
     .map(Number)
-    .filter((v) => !isNaN(v));
+    .filter((v) => Number.isFinite(v) && v > 0);
 
   if (!valores.length || !promHembras) {
     setUniformidadHembras(0);
@@ -163,8 +166,9 @@ useEffect(() => {
 
 useEffect(() => {
   const valores = Object.values(machos)
+    .filter((v) => String(v).trim() !== "")
     .map(Number)
-    .filter((v) => !isNaN(v));
+    .filter((v) => Number.isFinite(v) && v > 0);
 
   if (!valores.length || !promMachos) {
     setUniformidadMachos(0);
@@ -203,8 +207,9 @@ useEffect(() => {
 
   useEffect(() => {
     const all = [...Object.values(hembras), ...Object.values(machos)]
+      .filter((value) => String(value).trim() !== "")
       .map(Number)
-      .filter((n) => !isNaN(n));
+      .filter((n) => Number.isFinite(n) && n > 0);
 
     if (!all.length || !promedioGeneral) {
       setUniformidad(0);
@@ -265,6 +270,12 @@ useEffect(() => {
           <input
             key={k}
             name={k}
+            type="number"
+            min="0.001"
+            step="0.001"
+            required
+            aria-label={`Muestra ${Number(k.slice(1))}`}
+            placeholder={`Muestra ${Number(k.slice(1))}`}
             value={data[k]}
             onChange={handler}
             style={{ flex: 1, padding: 8 }}
@@ -280,17 +291,32 @@ useEffect(() => {
 
   const guardar = async () => {
     try {
-      const muestras = [...Object.values(hembras).map((pesoGramos) => ({ sexo: "F", pesoGramos: Number(pesoGramos) })),
-        ...Object.values(machos).map((pesoGramos) => ({ sexo: "M", pesoGramos: Number(pesoGramos) }))].filter((x) => x.pesoGramos > 0);
+      const total = Number(tamanoMuestra);
+      if (!Number.isInteger(total) || total < 2 || total % 2 !== 0) {
+        alert("El tamaño de la muestra debe ser un número par mayor que cero.");
+        return;
+      }
+      const expectedPerSex = total / 2;
+      const femaleWeights = Object.values(hembras);
+      const maleWeights = Object.values(machos);
+      const incomplete = femaleWeights.length !== expectedPerSex || maleWeights.length !== expectedPerSex
+        || [...femaleWeights, ...maleWeights].some((value) => String(value).trim() === "" || !Number.isFinite(Number(value)) || Number(value) <= 0);
+      if (incomplete) {
+        alert("Debes ingresar el peso de todas las muestras de hembras y machos antes de guardar.");
+        return;
+      }
+      const muestras = [...femaleWeights.map((pesoGramos) => ({ sexo: "F", pesoGramos: Number(pesoGramos) })),
+        ...maleWeights.map((pesoGramos) => ({ sexo: "M", pesoGramos: Number(pesoGramos) }))];
       await saveOperation("/controles/peso-aves", { fecha, lote, semana, etapa, promedioHembras: promHembras,
-        promedioMachos: promMachos, promedioGeneral, uniformidadHembras, uniformidadMachos, uniformidadGeneral: uniformidad, muestras }, editingId);
+        promedioMachos: promMachos, promedioGeneral, uniformidadHembras, uniformidadMachos, uniformidadGeneral: uniformidad,
+        tamanoMuestra: total, muestras }, editingId);
       alert(editingId ? "Control actualizado correctamente" : "Control de peso guardado correctamente");
       setEditingId(null);
       setFecha(new Date().toISOString().split("T")[0]);
       setLote("");
       setEtapa("");
       setSemana(1);
-      setTamanoMuestra(0);
+      setTamanoMuestra("");
       setHembras({});
       setMachos({});
       setPromHembras(0);
@@ -354,8 +380,7 @@ useEffect(() => {
           </div>
           {mostrarNuevaEtapa && <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
             <input autoFocus value={nuevaEtapa} onChange={(event) => setNuevaEtapa(event.target.value)} placeholder="Nombre de la nueva etapa" />
-            <button type="button" onClick={agregarEtapa}>Guardar etapa</button>
-            <button type="button" onClick={() => { setMostrarNuevaEtapa(false); setNuevaEtapa(""); }}>Cancelar</button>
+            <InlineAddActions onSave={agregarEtapa} onCancel={() => { setMostrarNuevaEtapa(false); setNuevaEtapa(""); }} />
           </div>}
           {errors.etapas && <small style={{ color: "#b91c1c", display: "block" }}>No se pudieron cargar las etapas: {errors.etapas}</small>}
           {!errors.etapas && etapas.length === 0 && !mostrarNuevaEtapa && <small style={{ color: "#92400e", display: "block" }}>No existen etapas activas. Presiona + para registrar la primera.</small>}
@@ -366,7 +391,17 @@ useEffect(() => {
           <input
             type="number"
             value={tamanoMuestra}
-            onChange={(e) => setTamanoMuestra(Number(e.target.value))}
+            min="2"
+            step="2"
+            inputMode="numeric"
+            onChange={(e) => setTamanoMuestra(e.target.value.replace(/[^0-9]/g, ""))}
+            onBlur={() => {
+              const value = Number(tamanoMuestra);
+              if (tamanoMuestra !== "" && (!Number.isInteger(value) || value < 2 || value % 2 !== 0)) {
+                alert("El tamaño de la muestra debe ser un número par mayor que cero.");
+                setTamanoMuestra("");
+              }
+            }}
           />
         </div>
 
@@ -441,7 +476,7 @@ useEffect(() => {
       {expandM && renderInputs(machos, handleM)}
 
       {/* ================= GUARDAR ================= */}
-      <div className="edit-actions"><button onClick={guardar}>{editingId ? "Guardar cambios" : "Guardar Registro"}</button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setLote(""); setEtapa(""); setTamanoMuestra(0); setHembras({}); setMachos({}); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
+      <div className="edit-actions"><button onClick={guardar}>{editingId ? "Guardar cambios" : "Guardar Registro"}</button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setLote(""); setEtapa(""); setTamanoMuestra(""); setHembras({}); setMachos({}); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
     </div>
   </OperationPanel>);
 }

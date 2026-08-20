@@ -546,6 +546,18 @@ async function crearPesoAves(req, res, next) {
   try {
     const orgId = organizationId(req); const body = req.body || {}; const muestras = body.muestras || [];
     if (!muestras.length) throw new HttpError(400, "Agrega las muestras de peso.", "VALIDATION_ERROR");
+    const sampleSize = Number(body.tamanoMuestra || muestras.length);
+    const femaleSamples = muestras.filter((sample) => sample.sexo === "F");
+    const maleSamples = muestras.filter((sample) => sample.sexo === "M");
+    if (!Number.isInteger(sampleSize) || sampleSize < 2 || sampleSize % 2 !== 0 || muestras.length !== sampleSize) {
+      throw new HttpError(400, "El tamaño de la muestra debe ser par y todas las filas deben estar completas.", "VALIDATION_ERROR");
+    }
+    if (femaleSamples.length !== sampleSize / 2 || maleSamples.length !== sampleSize / 2) {
+      throw new HttpError(400, "Debe registrar la misma cantidad de muestras para hembras y machos.", "VALIDATION_ERROR");
+    }
+    if (muestras.some((sample) => !Number.isFinite(Number(sample.pesoGramos)) || Number(sample.pesoGramos) <= 0)) {
+      throw new HttpError(400, "Todas las muestras deben tener un peso mayor que cero.", "VALIDATION_ERROR");
+    }
     const result = await transaction(async (client) => {
       const flockId = await resolveTenantId(client, "flocks", orgId, body.loteId || body.lote, "lote");
       const stageId = await resolveTenantId(client, "production_stages", orgId, body.etapaId || body.etapa, "etapa", true);
@@ -557,7 +569,7 @@ async function crearPesoAves(req, res, next) {
         header = await client.query(`UPDATE bird_weight_controls SET flock_id=$1,stage_id=$2,control_date=$3,week_number=$4,sample_size=$5,
           female_average_grams=$6,male_average_grams=$7,overall_average_grams=$8,female_uniformity=$9,male_uniformity=$10,overall_uniformity=$11,
           updated_by=$12,updated_at=NOW() WHERE id=$13 AND organization_id=$14 RETURNING *`,
-        [flockId, stageId, required(body.fecha, "fecha"), positive(body.semana, "semana"), muestras.length,
+        [flockId, stageId, required(body.fecha, "fecha"), positive(body.semana, "semana"), sampleSize,
           body.promedioHembras || null, body.promedioMachos || null, body.promedioGeneral || null,
           body.uniformidadHembras || null, body.uniformidadMachos || null, body.uniformidadGeneral || null,
           req.user.id, req.params.id, orgId]);
@@ -566,7 +578,7 @@ async function crearPesoAves(req, res, next) {
         `INSERT INTO bird_weight_controls(organization_id,flock_id,stage_id,control_date,week_number,sample_size,female_average_grams,male_average_grams,overall_average_grams,female_uniformity,male_uniformity,overall_uniformity,created_by)
          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
         [orgId, flockId, stageId, required(body.fecha, "fecha"), positive(body.semana, "semana"),
-          muestras.length, body.promedioHembras || null, body.promedioMachos || null, body.promedioGeneral || null,
+          sampleSize, body.promedioHembras || null, body.promedioMachos || null, body.promedioGeneral || null,
           body.uniformidadHembras || null, body.uniformidadMachos || null, body.uniformidadGeneral || null, req.user.id]
       );
       for (let index = 0; index < muestras.length; index += 1) {

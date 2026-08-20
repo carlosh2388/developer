@@ -4,6 +4,7 @@ import { useReferenceValues } from "../hooks/useOperationalCatalogs";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
 import { useCatalogList } from "../hooks/useCatalogList";
 import CancelEditButton from "../components/CancelEditButton";
+import InlineAddActions from "../components/InlineAddActions";
 import { confirmAction } from "../services/notifications";
 
 function Lotes() {
@@ -294,23 +295,20 @@ function Lotes() {
             </select>
 
             {mostrarNuevaGalera && (
-              <input
-                value={nuevaGalera}
-                onChange={(e) =>
-                  setNuevaGalera(e.target.value)
-                }
-                style={styles.input}
-                placeholder="Nueva galera"
-              />
+              <div style={{ display: "flex", gap: 8, flex: 1 }}>
+                <input
+                  value={nuevaGalera}
+                  onChange={(e) => setNuevaGalera(e.target.value)}
+                  style={styles.input}
+                  placeholder="Nueva galera"
+                />
+                <InlineAddActions onSave={agregarGalera} onCancel={() => { setMostrarNuevaGalera(false); setNuevaGalera(""); }} />
+              </div>
             )}
 
             <button
               type="button"
-              onClick={() =>
-                mostrarNuevaGalera
-                  ? agregarGalera()
-                  : setMostrarNuevaGalera(true)
-              }
+              onClick={() => setMostrarNuevaGalera(true)}
               style={styles.addButton}
             >
               +

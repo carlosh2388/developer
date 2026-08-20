@@ -5,6 +5,7 @@ import ConfigRecordsTable from "../components/ConfigRecordsTable";
 import CancelEditButton from "../components/CancelEditButton";
 import { confirmAction } from "../services/notifications";
 import { useCatalogList } from "../hooks/useCatalogList";
+import InlineAddActions from "../components/InlineAddActions";
 
 function Productos() {
   const referencias = useReferenceValues(["PRODUCT_TYPE", "UNIT", "VACCINE_KIND"]);
@@ -266,7 +267,9 @@ function Productos() {
               <label>Abreviatura</label>
               <input value={abreviaturaNuevaUnidad} onChange={(e) => setAbreviaturaNuevaUnidad(e.target.value)} placeholder="Ejemplo: m" style={inputStyle} />
             </div>
-            <button type="button" onClick={agregarUnidad} style={{ height: 38, padding: "8px 18px" }}>Agregar unidad</button>
+            <InlineAddActions onSave={agregarUnidad} onCancel={() => {
+              setMostrarNuevaUnidad(false); setCodigoNuevaUnidad(""); setNombreNuevaUnidad(""); setAbreviaturaNuevaUnidad("");
+            }} />
           </div>}
 
           {/* FILA 2 */}

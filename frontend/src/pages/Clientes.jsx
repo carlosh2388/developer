@@ -4,6 +4,7 @@ import { useReferenceValues } from "../hooks/useOperationalCatalogs";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
 import { useCatalogList } from "../hooks/useCatalogList";
 import CancelEditButton from "../components/CancelEditButton";
+import InlineAddActions from "../components/InlineAddActions";
 import { confirmAction } from "../services/notifications";
 
 function Clientes() {
@@ -281,7 +282,7 @@ function Clientes() {
           {mostrarNuevaRegion && <div style={{ display: "grid", gridTemplateColumns: "90px 1fr auto", gap: "8px", marginTop: "8px" }}>
             <input value={codigoNuevaRegion} readOnly aria-label="Código de la nueva región" style={inputStyle} />
             <input value={nombreNuevaRegion} onChange={(e) => setNombreNuevaRegion(e.target.value)} placeholder="Nombre de la región" style={inputStyle} />
-            <button type="button" onClick={agregarRegion} style={buttonStyle}>Agregar</button>
+            <InlineAddActions onSave={agregarRegion} onCancel={() => { setMostrarNuevaRegion(false); setCodigoNuevaRegion(""); setNombreNuevaRegion(""); }} />
           </div>}
         </div>
 

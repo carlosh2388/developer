@@ -5,9 +5,10 @@ import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import OperationRecordsModal from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
 import CancelEditButton from "../components/CancelEditButton";
+import InlineAddActions from "../components/InlineAddActions";
 
 function EgresoHuevos() {
-  const { opciones } = useOperationalCatalogs(["lotes", "personal", "vehiculos", "bodegas"]);
+  const { bodegas, localidades, opciones } = useOperationalCatalogs(["lotes", "personal", "vehiculos", "bodegas", "localidades"]);
 
   // =====================================================
   // DATOS GENERALES
@@ -35,6 +36,13 @@ function EgresoHuevos() {
 
   const [bodegaDestino, setBodegaDestino] =
     useState("");
+
+  const [localidadSalida, setLocalidadSalida] = useState("");
+  const [localidadDestino, setLocalidadDestino] = useState("");
+
+  const localidadesActivas = localidades.filter((item) => item.status !== "INACTIVE");
+  const bodegasSalida = bodegas.filter((item) => item.status !== "INACTIVE" && String(item.locationId) === String(localidadSalida));
+  const bodegasDestino = bodegas.filter((item) => item.status !== "INACTIVE" && String(item.locationId) === String(localidadDestino));
 
   // =====================================================
   // PLACAS
@@ -188,6 +196,16 @@ const crearFilaComercial = () => ({
   const cargarEdicion = async (row) => { try { const data = await api(`/huevos/movimientos/${row.id}`); const editLots = data.detalles.map((item) => { const classification = item.grade_code.startsWith("INC_") ? "Incubable" : "Comercial"; const lot = crearLote(item.flock_code); lot.clasificacion = classification; const target = classification === "Comercial" ? lot.comercial : lot.incubadora; target[eggGradeLabel(item.grade_code)] = { existencias: item.existing_units, cajaBandejas336: item.boxes_trays_336, cajaCartones360: item.boxes_cartons_360, cajaC360: item.boxes_cartons_360, bandeja84: item.trays_84, carton30: item.cartons_30, unidades: item.loose_units }; return lot; }); setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setHora(String(data.movement_time || "").slice(0, 5)); setFechaProduccion(String(data.production_date || "").slice(0, 10)); setEgreso(data.shipment_number || ""); setBodegaSalida(data.source_warehouse_code || ""); setBodegaDestino(data.destination_warehouse_code || data.destination_name || ""); setPlaca(data.vehicle_plate || ""); setPiloto(data.driver_name || ""); setLotes(editLots); } catch (error) { alert(error.message); } };
 
   useEffect(() => { cargarSiguienteEnvio(); }, []);
+
+  useEffect(() => {
+    const selected = bodegas.find((item) => item.code === bodegaSalida || item.id === bodegaSalida);
+    if (selected?.locationId) setLocalidadSalida(String(selected.locationId));
+  }, [bodegas, bodegaSalida]);
+
+  useEffect(() => {
+    const selected = bodegas.find((item) => item.code === bodegaDestino || item.id === bodegaDestino);
+    if (selected?.locationId) setLocalidadDestino(String(selected.locationId));
+  }, [bodegas, bodegaDestino]);
 
   // =====================================================
   // FECHA Y HORA ACTUAL
@@ -621,7 +639,7 @@ const calcularSubTotal = (
       alert(editingId ? "Egreso actualizado correctamente" : `Egreso ${egreso} registrado correctamente`);
       const now = new Date();
       setFecha(now.toISOString().split("T")[0]); setHora(now.toTimeString().slice(0, 5));
-      setFechaProduccion(now.toISOString().split("T")[0]); setBodegaSalida("BA"); setBodegaDestino("");
+      setFechaProduccion(now.toISOString().split("T")[0]); setLocalidadSalida(""); setBodegaSalida(""); setLocalidadDestino(""); setBodegaDestino("");
       setPlaca(""); setNuevaPlaca(""); setMostrarNuevaPlaca(false);
       setPiloto(""); setNuevoPiloto(""); setMostrarNuevoPiloto(false);
       setLotes([crearLote()]); setEditingId(null);
@@ -1201,7 +1219,7 @@ const calcularSubTotal = (
 
       </div>
 
-      {/* FILA 2 */}
+      {/* LOCALIDAD Y BODEGA DE SALIDA */}
 
       <div
         style={{
@@ -1212,54 +1230,6 @@ const calcularSubTotal = (
           marginTop: "10px"
         }}
       >
-
-        <div>
-
-          <label>
-            Localidad Salida
-          </label>
-
-          <select
-            value={bodegaSalida}
-            onChange={(e) =>
-              setBodegaSalida(
-                e.target.value
-              )
-            }
-          >
-
-            <option value="">Seleccione</option>
-            {opciones("bodegas").map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-
-           </select>
-
-        </div>
-
-        <div>
-
-          <label>
-            Localidad Destino
-          </label>
-
-          <select
-            value={bodegaDestino}
-            onChange={(e) =>
-              setBodegaDestino(
-                e.target.value
-              )
-            }
-          >
-
-            <option value="">
-              Seleccione
-            </option>
-
-            {opciones("bodegas").map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-
-
-          </select>
-
-        </div>
 
         <div>
 
@@ -1281,6 +1251,54 @@ const calcularSubTotal = (
 
         </div>
 
+        <div>
+          <label>Localidad Salida</label>
+          <select
+            value={localidadSalida}
+            onChange={(e) => { setLocalidadSalida(e.target.value); setBodegaSalida(""); }}
+          >
+            <option value="">Seleccione</option>
+            {localidadesActivas.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <label>Bodega Salida</label>
+          <select value={bodegaSalida} onChange={(e) => setBodegaSalida(e.target.value)} disabled={!localidadSalida}>
+            <option value="">Seleccione</option>
+            {bodegasSalida.map((item) => <option key={item.id} value={item.code}>{item.name}</option>)}
+          </select>
+        </div>
+
+      </div>
+
+      {/* LOCALIDAD Y BODEGA DE DESTINO */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: "10px",
+          marginTop: "10px"
+        }}
+      >
+        <div>
+          <label>Localidad Destino</label>
+          <select
+            value={localidadDestino}
+            onChange={(e) => { setLocalidadDestino(e.target.value); setBodegaDestino(""); }}
+          >
+            <option value="">Seleccione</option>
+            {localidadesActivas.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <label>Bodega Destino</label>
+          <select value={bodegaDestino} onChange={(e) => setBodegaDestino(e.target.value)} disabled={!localidadDestino}>
+            <option value="">Seleccione</option>
+            {bodegasDestino.map((item) => <option key={item.id} value={item.code}>{item.name}</option>)}
+          </select>
+        </div>
       </div>
 
       {/* FILA 3 */}
@@ -1373,14 +1391,7 @@ const calcularSubTotal = (
                 }
               />
 
-              <button
-                type="button"
-                onClick={
-                  agregarPlaca
-                }
-              >
-                Guardar
-              </button>
+              <InlineAddActions onSave={agregarPlaca} onCancel={() => { setMostrarNuevaPlaca(false); setNuevaPlaca(""); }} />
 
             </div>
 
@@ -1466,14 +1477,7 @@ const calcularSubTotal = (
                 }
               />
 
-              <button
-                type="button"
-                onClick={
-                  agregarPiloto
-                }
-              >
-                Guardar
-              </button>
+              <InlineAddActions onSave={agregarPiloto} onCancel={() => { setMostrarNuevoPiloto(false); setNuevoPiloto(""); }} />
 
             </div>
 
@@ -1790,7 +1794,7 @@ const calcularSubTotal = (
 
       <div className="edit-actions"><button onClick={guardar}>
         {editingId ? "Guardar cambios" : "Registrar Egreso"}
-      </button><CancelEditButton editing={editingId} onCancel={() => { const now = new Date(); setEditingId(null); setFecha(now.toISOString().split("T")[0]); setHora(now.toTimeString().slice(0, 5)); setFechaProduccion(now.toISOString().split("T")[0]); setBodegaSalida("BA"); setBodegaDestino(""); setPlaca(""); setPiloto(""); setLotes([crearLote()]); cargarSiguienteEnvio(); }}/></div>
+      </button><CancelEditButton editing={editingId} onCancel={() => { const now = new Date(); setEditingId(null); setFecha(now.toISOString().split("T")[0]); setHora(now.toTimeString().slice(0, 5)); setFechaProduccion(now.toISOString().split("T")[0]); setLocalidadSalida(""); setBodegaSalida(""); setLocalidadDestino(""); setBodegaDestino(""); setPlaca(""); setPiloto(""); setLotes([crearLote()]); cargarSiguienteEnvio(); }}/></div>
 
     </div>
 
