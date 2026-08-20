@@ -50,7 +50,7 @@ export default function InventoryAlertBell() {
       <div className="inventory-alert-list">{total ? result.alerts.map((item) => <article key={item.id} className={item.severity === "CRITICAL" ? "critical" : "warning"}>
         <div className="inventory-alert-icon">{item.severity === "CRITICAL" ? "!" : "▲"}</div><div><strong>{item.name}</strong><span>{item.code} · {number(item.current_stock)} {item.unit_code}</span><div className="inventory-level-track"><i style={{ width: `${Math.min(100, Math.max(2, Number(item.stock_percentage)))}%` }}/></div></div><b>{Number(item.stock_percentage).toFixed(0)}%</b>
       </article>) : <div className="inventory-alert-empty"><span>✓</span><strong>Inventario en buen nivel</strong><p>No hay productos por debajo del 50%.</p></div>}</div>
-      <footer><span className="healthy">Verde: &gt;50%</span><span>Amarillo: 36–50%</span><span>Rojo: ≤35%</span><button type="button" onClick={() => load(false)}>↻ Actualizar</button></footer>
+      <footer><span className="critical">Rojo: ≤35%</span><span className="warning">Amarillo: 36–50%</span><span className="healthy">Verde: &gt;50%</span><button type="button" onClick={() => load(false)}>↻ Actualizar</button></footer>
     </section>}
   </div>;
 }
