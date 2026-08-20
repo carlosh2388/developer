@@ -279,7 +279,7 @@ function Clientes() {
             </select>
             <button type="button" onClick={abrirNuevaRegion} style={addButtonStyle} title="Agregar región">+</button>
           </div>
-          {mostrarNuevaRegion && <div style={{ display: "grid", gridTemplateColumns: "90px 1fr auto", gap: "8px", marginTop: "8px" }}>
+          {mostrarNuevaRegion && <div className="inline-add-row">
             <input value={codigoNuevaRegion} readOnly aria-label="Código de la nueva región" style={inputStyle} />
             <input value={nombreNuevaRegion} onChange={(e) => setNombreNuevaRegion(e.target.value)} placeholder="Nombre de la región" style={inputStyle} />
             <InlineAddActions onSave={agregarRegion} onCancel={() => { setMostrarNuevaRegion(false); setCodigoNuevaRegion(""); setNombreNuevaRegion(""); }} />

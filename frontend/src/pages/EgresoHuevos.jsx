@@ -1372,13 +1372,7 @@ const calcularSubTotal = (
 
           {mostrarNuevaPlaca && (
 
-            <div
-              style={{
-                display: "flex",
-                gap: "8px",
-                marginTop: "8px"
-              }}
-            >
+            <div className="inline-add-row">
 
               <input
                 value={
@@ -1458,13 +1452,7 @@ const calcularSubTotal = (
 
           {mostrarNuevoPiloto && (
 
-            <div
-              style={{
-                display: "flex",
-                gap: "8px",
-                marginTop: "8px"
-              }}
-            >
+            <div className="inline-add-row">
 
               <input
                 value={

@@ -10,7 +10,7 @@ function InlineAddActions({ onSave, onCancel }) {
   };
 
   return (
-    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+    <div className="inline-add-actions" style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
       <button type="button" onClick={onSave} style={{ ...baseStyle, backgroundColor: "#1976d2" }}>
         Guardar
       </button>

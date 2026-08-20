@@ -294,18 +294,6 @@ function Lotes() {
               ))}
             </select>
 
-            {mostrarNuevaGalera && (
-              <div style={{ display: "flex", gap: 8, flex: 1 }}>
-                <input
-                  value={nuevaGalera}
-                  onChange={(e) => setNuevaGalera(e.target.value)}
-                  style={styles.input}
-                  placeholder="Nueva galera"
-                />
-                <InlineAddActions onSave={agregarGalera} onCancel={() => { setMostrarNuevaGalera(false); setNuevaGalera(""); }} />
-              </div>
-            )}
-
             <button
               type="button"
               onClick={() => setMostrarNuevaGalera(true)}
@@ -314,6 +302,13 @@ function Lotes() {
               +
             </button>
           </div>
+          {mostrarNuevaGalera && (
+            <div className="inline-add-row">
+              <input value={nuevaGalera} onChange={(e) => setNuevaGalera(e.target.value)}
+                style={styles.input} placeholder="Nueva galera" />
+              <InlineAddActions onSave={agregarGalera} onCancel={() => { setMostrarNuevaGalera(false); setNuevaGalera(""); }} />
+            </div>
+          )}
         </div>
       </div>
 

@@ -192,23 +192,6 @@ function Bodegas() {
               </select>
             </div>
 
-            {mostrarNuevaLocalidad && (
-              <div style={{ flex: 1, display: "flex", gap: 8 }}>
-                <input
-                  type="text"
-                  value={nuevaLocalidad}
-                  onChange={(e) =>
-                    setNuevaLocalidad(
-                      e.target.value
-                    )
-                  }
-                  placeholder="Nueva localidad"
-                  style={inputStyle}
-                />
-                <InlineAddActions onSave={agregarLocalidad} onCancel={() => { setMostrarNuevaLocalidad(false); setNuevaLocalidad(""); }} />
-              </div>
-            )}
-
             <button
               type="button"
               onClick={() => setMostrarNuevaLocalidad(true)}
@@ -217,6 +200,13 @@ function Bodegas() {
               +
             </button>
           </div>
+          {mostrarNuevaLocalidad && (
+            <div className="inline-add-row">
+              <input type="text" value={nuevaLocalidad} onChange={(e) => setNuevaLocalidad(e.target.value)}
+                placeholder="Nueva localidad" style={inputStyle} />
+              <InlineAddActions onSave={agregarLocalidad} onCancel={() => { setMostrarNuevaLocalidad(false); setNuevaLocalidad(""); }} />
+            </div>
+          )}
         </div>
 
         {/* ESTADO */}

@@ -251,7 +251,7 @@ function Productos() {
             </div>
           </div>
 
-          {mostrarNuevaUnidad && <div style={{
+          {mostrarNuevaUnidad && <div className="inline-add-row" style={{
             display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end",
             marginBottom: 15, padding: 14, border: "1px solid #d7e0da", borderRadius: 8
           }}>

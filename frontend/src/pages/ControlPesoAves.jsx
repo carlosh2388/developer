@@ -378,7 +378,7 @@ useEffect(() => {
 
             <button type="button" onClick={agregarEtapa}>+</button>
           </div>
-          {mostrarNuevaEtapa && <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          {mostrarNuevaEtapa && <div className="inline-add-row">
             <input autoFocus value={nuevaEtapa} onChange={(event) => setNuevaEtapa(event.target.value)} placeholder="Nombre de la nueva etapa" />
             <InlineAddActions onSave={agregarEtapa} onCancel={() => { setMostrarNuevaEtapa(false); setNuevaEtapa(""); }} />
           </div>}
