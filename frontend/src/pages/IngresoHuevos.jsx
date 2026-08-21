@@ -35,10 +35,6 @@ function IngresoHuevos() {
   // =========================
   // PERSONAS
   // =========================
-  const personalDisponible = personal.filter((item) => item.status !== "INACTIVE");
-  const recolectores = personalDisponible.filter((item) => (item.roles || []).includes("COLLECTOR"));
-  const clasificadores = personalDisponible.filter((item) => (item.roles || []).includes("CLASSIFIER"));
-
   // =========================
   // CREAR FILA
   // =========================
@@ -55,7 +51,7 @@ function IngresoHuevos() {
     id: Date.now() + Math.random(),
     abierto: true,
     tipo: "",
-    lote: lotes[0],
+    lote: "",
     recolector: "",
     clasificador: "",
     peso: 0, 
@@ -67,6 +63,14 @@ function IngresoHuevos() {
   // =========================
   const [grupos, setGrupos] = useState([crearGrupo()]);
   const [editingId, setEditingId] = useState(null);
+  const referenciasRecolectores = new Set(grupos.map((grupo) => String(grupo.recolector || "")).filter(Boolean));
+  const referenciasClasificadores = new Set(grupos.map((grupo) => String(grupo.clasificador || "")).filter(Boolean));
+  const recolectores = personal.filter((item) =>
+    (item.status !== "INACTIVE" && (item.roles || []).includes("COLLECTOR")) || referenciasRecolectores.has(String(item.id))
+  );
+  const clasificadores = personal.filter((item) =>
+    (item.status !== "INACTIVE" && (item.roles || []).includes("CLASSIFIER")) || referenciasClasificadores.has(String(item.id))
+  );
   const cargarEdicion = async (row) => { try {
     const data = await api(`/huevos/movimientos/${row.id}`);
     const grouped = new Map();
@@ -75,7 +79,8 @@ function IngresoHuevos() {
       const key = [tipo, item.flock_code, item.collector_id || "", item.classifier_id || "", item.total_weight_grams || 0].join("|");
       if (!grouped.has(key)) grouped.set(key, {
         id: clientId(), abierto: true, tipo, lote: item.flock_code, recolector: item.collector_id || "",
-        clasificador: item.classifier_id || "", peso: item.total_weight_grams || 0, datos: {},
+        recolectorNombre: item.collector_name || "", clasificador: item.classifier_id || "",
+        clasificadorNombre: item.classifier_name || "", peso: item.total_weight_grams || 0, datos: {},
       });
       grouped.get(key).datos[eggGradeLabel(item.grade_code)] = {
         cajaB336: item.boxes_trays_336, cajaC360: item.boxes_cartons_360, bandeja84: item.trays_84,
@@ -85,6 +90,15 @@ function IngresoHuevos() {
     setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setGrupos([...grouped.values()]);
   } catch (error) { alert(error.message); } };
 
+  useEffect(() => {
+    if (!personal.length) return;
+    setGrupos((actuales) => actuales.map((grupo) => ({
+      ...grupo,
+      recolector: grupo.recolector || personal.find((item) => item.fullName === grupo.recolectorNombre)?.id || "",
+      clasificador: grupo.clasificador || personal.find((item) => item.fullName === grupo.clasificadorNombre)?.id || "",
+    })));
+  }, [personal]);
+
   // =========================
   // INIT FECHA
   // =========================
@@ -92,13 +106,6 @@ function IngresoHuevos() {
     const now = new Date();
     setFecha(now.toISOString().split("T")[0]);
   }, []);
-
-  // Los catálogos llegan después del primer render. Sin esta sincronización el
-  // navegador podía mostrar el primer lote aunque el estado aún fuera undefined.
-  useEffect(() => {
-    if (!lotes.length) return;
-    setGrupos((actuales) => actuales.map((grupo) => grupo.lote ? grupo : { ...grupo, lote: lotes[0] }));
-  }, [lotes.join("|")]);
 
   // =========================
   // CRUD
@@ -248,6 +255,7 @@ const calcularSubTotal = (grupo, filtro) => {
                 value={grupo.lote}
                 onChange={(e) => actualizarGrupo(grupo.id, "lote", e.target.value)}
               >
+                <option value="">Seleccione</option>
                 {lotes.map(l => (
                   <option key={l} value={l}>{l}</option>
                 ))}

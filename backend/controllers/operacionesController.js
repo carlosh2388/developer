@@ -348,8 +348,9 @@ async function listarHuevos(req, res, next) {
 
 async function obtenerHuevos(req, res, next) {
   try { const orgId=organizationId(req); const header=await db.query(`SELECT m.*,sw.code source_warehouse_code,dw.code destination_warehouse_code,
-      v.plate vehicle_plate,p.full_name driver_name FROM egg_movements m
+      c.commercial_name customer_name,v.plate vehicle_plate,p.full_name driver_name FROM egg_movements m
       LEFT JOIN warehouses sw ON sw.id=m.source_warehouse_id LEFT JOIN warehouses dw ON dw.id=m.destination_warehouse_id
+      LEFT JOIN customers c ON c.id=m.customer_id AND c.organization_id=m.organization_id
       LEFT JOIN vehicles v ON v.id=m.vehicle_id LEFT JOIN personnel p ON p.id=m.driver_id
       WHERE m.id=$1 AND m.organization_id=$2`,[req.params.id,orgId]);
     if(!header.rows[0]) throw new HttpError(404,"El movimiento no existe.","NOT_FOUND");

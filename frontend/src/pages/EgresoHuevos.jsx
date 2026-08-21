@@ -14,7 +14,7 @@ const nonNegativeInteger = (value) => {
 };
 
 function EgresoHuevos() {
-  const { bodegas, localidades, opciones } = useOperationalCatalogs(["lotes", "personal", "vehiculos", "bodegas", "localidades"]);
+  const { bodegas, localidades, clientes, opciones } = useOperationalCatalogs(["lotes", "personal", "vehiculos", "bodegas", "localidades", "clientes"]);
 
   // =====================================================
   // DATOS GENERALES
@@ -40,7 +40,7 @@ function EgresoHuevos() {
   // =====================================================
 
   const [bodegaSalida, setBodegaSalida] =
-    useState("BA");
+    useState("");
 
   const [bodegaDestino, setBodegaDestino] =
     useState("");
@@ -51,6 +51,9 @@ function EgresoHuevos() {
   const localidadesActivas = localidades.filter((item) => item.status !== "INACTIVE");
   const bodegasSalida = bodegas.filter((item) => item.status !== "INACTIVE" && String(item.locationId) === String(localidadSalida));
   const bodegasDestino = bodegas.filter((item) => item.status !== "INACTIVE" && String(item.locationId) === String(localidadDestino));
+  const clientesDestino = clientes
+    .filter((item) => item.status !== "INACTIVE")
+    .sort((left, right) => String(left.commercialName || "").localeCompare(String(right.commercialName || ""), "es", { sensitivity: "base", numeric: true }));
 
   // =====================================================
   // PLACAS
@@ -222,7 +225,12 @@ const crearFilaComercial = () => ({
     });
     setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setHora(String(data.movement_time || "").slice(0, 5));
     setFechaProduccion(String(data.production_date || "").slice(0, 10)); setEgreso(data.shipment_number || "");
-    setBodegaSalida(data.source_warehouse_code || ""); setBodegaDestino(data.destination_warehouse_code || data.destination_name || "");
+    setBodegaSalida(data.source_warehouse_code || "");
+    if (data.customer_id) {
+      setLocalidadDestino("CLIENTE"); setBodegaDestino(data.customer_id);
+    } else {
+      setBodegaDestino(data.destination_warehouse_code || data.destination_name || "");
+    }
     setPlaca(data.vehicle_plate || ""); setPiloto(data.driver_name || ""); setLotes([...grouped.values()]);
   } catch (error) { alert(error.message); } };
 
@@ -269,15 +277,6 @@ const crearFilaComercial = () => ({
     );
 
   }, []);
-
-  // El catálogo llega después del primer render. Se debe guardar en el estado
-  // el mismo lote que el select muestra visualmente.
-  useEffect(() => {
-    if (!lotesDisponibles.length) return;
-    setLotes((actuales) => actuales.map((item) =>
-      lotesDisponibles.includes(item.lote) ? item : { ...item, lote: lotesDisponibles[0] }
-    ));
-  }, [lotesDisponibles.join("|")]);
 
   // =====================================================
   // CAMBIAR LOTE
@@ -330,7 +329,7 @@ const crearFilaComercial = () => ({
   ) => {
 
     const actual = lotes.find((item) => item.id === id);
-    const codigoLote = lotesDisponibles.includes(actual?.lote) ? actual.lote : (lotesDisponibles[0] || "");
+    const codigoLote = lotesDisponibles.includes(actual?.lote) ? actual.lote : "";
     setLotes(prev =>
       prev.map(l =>
         l.id === id
@@ -352,8 +351,6 @@ const crearFilaComercial = () => ({
   const toggleLote = (
     loteId
   ) => {
-    const quantity = nonNegativeInteger(value);
-    if (quantity === null) return;
     setLotes(prev =>
       prev.map(l =>
         l.id === loteId
@@ -404,6 +401,8 @@ const crearFilaComercial = () => ({
     campo,
     value
   ) => {
+    const quantity = nonNegativeInteger(value);
+    if (quantity === null) return;
 
     setLotes(prev =>
       prev.map(l =>
@@ -681,8 +680,14 @@ const calcularSubTotal = (
         })).filter((d) => d.cajasBandejas336 + d.cajasCartones360 + d.bandejas84 + d.cartones30 + d.unidades > 0);
       });
       await saveOperation("/huevos/movimientos", { tipoMovimiento: "OUTPUT", fecha, hora, fechaProduccion,
-        bodegaOrigen: bodegaSalida || undefined, bodegaDestino: bodegaDestino || undefined,
-        nombreDestino: bodegaDestino || undefined, placa: placa || undefined,
+        bodegaOrigen: bodegaSalida || undefined,
+        bodegaDestino: localidadDestino === "CLIENTE" ? undefined : (bodegaDestino || undefined),
+        clienteId: localidadDestino === "CLIENTE" ? (bodegaDestino || undefined) : undefined,
+        tipoDestino: localidadDestino === "CLIENTE" ? "CUSTOMER" : "WAREHOUSE",
+        nombreDestino: localidadDestino === "CLIENTE"
+          ? clientesDestino.find((item) => String(item.id) === String(bodegaDestino))?.commercialName
+          : (bodegaDestino || undefined),
+        placa: placa || undefined,
         piloto: piloto || undefined, detalles }, editingId);
       alert(editingId ? "Egreso actualizado correctamente" : `Egreso ${egreso} registrado correctamente`);
       const now = new Date();
@@ -1326,7 +1331,7 @@ const calcularSubTotal = (
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
+          gridTemplateColumns: "minmax(220px, 1fr) minmax(360px, 2fr)",
           gap: "10px",
           marginTop: "10px"
         }}
@@ -1338,6 +1343,7 @@ const calcularSubTotal = (
             onChange={(e) => { setLocalidadDestino(e.target.value); setBodegaDestino(""); }}
           >
             <option value="">Seleccione</option>
+            <option value="CLIENTE">Cliente</option>
             {localidadesActivas.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
         </div>
@@ -1346,7 +1352,9 @@ const calcularSubTotal = (
           <label>Bodega Destino</label>
           <select value={bodegaDestino} onChange={(e) => setBodegaDestino(e.target.value)} disabled={!localidadDestino}>
             <option value="">Seleccione</option>
-            {bodegasDestino.map((item) => <option key={item.id} value={item.code}>{item.name}</option>)}
+            {localidadDestino === "CLIENTE"
+              ? clientesDestino.map((item) => <option key={item.id} value={item.id}>{item.commercialName}</option>)
+              : bodegasDestino.map((item) => <option key={item.id} value={item.code}>{item.name}</option>)}
           </select>
         </div>
       </div>
