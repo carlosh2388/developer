@@ -21,7 +21,7 @@ const catalogos = {
     orderBy: "code",
     hasUpdatedAt: true,
     required: ["code", "name"],
-    fields: { codigo: "code", nombre: "name", nit: "tax_id", direccion: "address", contacto: "contact_name", telefono: "phone", correo: "email", estado: "status" },
+    fields: { codigo: "code", nombre: "name", nit: "tax_id", direccion: "address", contacto: "contact_name", codigoPais: "country_code", telefono: "phone", correo: "email", estado: "status" },
   },
   lineasAvicolas: {
     table: "poultry_lines",
@@ -57,6 +57,7 @@ const catalogos = {
       codigo: "code", tipoProducto: "product_type", nombre: "name", unidad: "unit_code", estado: "status",
       precioVenta: "sale_price", costoEstandar: "standard_cost", existenciaInicial: "opening_stock",
       presentacion: "presentation", enfermedadObjetivo: "target_disease", dosis: "dosage", tipoVacuna: "vaccine_kind",
+      diluyente: "has_diluent", cepa: "vaccine_strain_code", modoAplicacion: "application_mode_code",
     },
   },
   lotes: {
@@ -91,8 +92,11 @@ function valuesFromBody(config, body) {
     if (Object.prototype.hasOwnProperty.call(body, publicName)) result[column] = body[publicName];
   }
   const integerFields = new Set(["opening_stock", "female_count", "male_count"]);
-  const moneyFields = new Set(["sale_price", "standard_cost", "unit_cost", "super_nick_box_price", "brown_nick_box_price"]);
+  const moneyFields = new Set(["sale_price", "standard_cost", "unit_cost", "super_nick_box_price", "brown_nick_box_price", "white_egg_price", "red_egg_price"]);
   for (const [field, value] of Object.entries(result)) {
+    if (field === "country_code" && !/^\+[0-9]{1,4}$/.test(String(value || ""))) {
+      throw new HttpError(400, "El código de país debe iniciar con + y contener de 1 a 4 dígitos.", "VALIDATION_ERROR");
+    }
     if (integerFields.has(field) && (!Number.isInteger(Number(value)) || Number(value) < 0)) {
       throw new HttpError(400, `${field} debe ser un número entero.`, "VALIDATION_ERROR");
     }
@@ -433,6 +437,65 @@ async function listarValores(req, res, next) {
   } catch (error) { next(error); }
 }
 
+const smallCatalogs = {
+  VACCINE_STRAIN: "VS",
+  VACCINE_APPLICATION_MODE: "AM",
+};
+
+async function crearValorCatalogo(req, res, next) {
+  const client = await db.connect();
+  try {
+    const catalog = String(req.body?.catalogo || "").trim().toUpperCase();
+    const label = String(req.body?.nombre || "").trim();
+    const prefix = smallCatalogs[catalog];
+    if (!prefix) throw new HttpError(400, "El catálogo solicitado no permite agregar opciones.", "INVALID_CATALOG");
+    if (!label) throw new HttpError(400, "El nombre de la opción es obligatorio.", "VALIDATION_ERROR");
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`REFERENCE_VALUE:${catalog}`]);
+    const duplicate = await client.query(
+      "SELECT 1 FROM reference_values WHERE catalog_code=$1 AND lower(label)=lower($2)", [catalog, label]
+    );
+    if (duplicate.rows[0]) throw new HttpError(409, "Ya existe una opción con ese nombre.", "DUPLICATE_REFERENCE_VALUE");
+    const next = await client.query(
+      `SELECT COALESCE(MAX(CASE WHEN value_code ~ $2 THEN substring(value_code FROM '([0-9]+)$')::integer END),0)+1 number,
+              COALESCE(MAX(sort_order),0)+1 sort_order
+       FROM reference_values WHERE catalog_code=$1`, [catalog, `^${prefix}[0-9]+$`]
+    );
+    const code = `${prefix}${String(Number(next.rows[0].number)).padStart(2, "0")}`;
+    const { rows } = await client.query(
+      `INSERT INTO reference_values(catalog_code,value_code,label,sort_order,is_active)
+       VALUES($1,$2,$3,$4,TRUE) RETURNING catalog_code,value_code,label,sort_order,metadata`,
+      [catalog, code, label, Number(next.rows[0].sort_order)]
+    );
+    await client.query("COMMIT");
+    res.status(201).json(serialize(rows[0]));
+  } catch (error) { await client.query("ROLLBACK"); next(error); }
+  finally { client.release(); }
+}
+
+async function trasladarLoteProduccion(req, res, next) {
+  try {
+    const orgId = organizationId(req);
+    const numeroLote = String(req.body?.numeroLote || "").trim().toUpperCase();
+    const fechaIngreso = req.body?.fechaIngreso;
+    if (!numeroLote || !fechaIngreso) {
+      throw new HttpError(400, "El número de lote y la fecha de ingreso son obligatorios.", "VALIDATION_ERROR");
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(fechaIngreso))) {
+      throw new HttpError(400, "La fecha de ingreso no es válida.", "VALIDATION_ERROR");
+    }
+    const { rows } = await db.query(
+      `UPDATE flocks SET production_entry_on=$1, updated_at=NOW()
+       WHERE organization_id=$2 AND UPPER(code)=$3 RETURNING *`,
+      [fechaIngreso, orgId, numeroLote]
+    );
+    if (!rows[0]) {
+      throw new HttpError(404, "El lote no existe. Guárdalo antes de trasladarlo a producción.", "FLOCK_NOT_FOUND");
+    }
+    res.json(serialize(rows[0]));
+  } catch (error) { next(error); }
+}
+
 async function siguienteRegion(req, res, next) {
   try {
     const { rows } = await db.query(
@@ -591,14 +654,16 @@ async function guardarCliente(req, res, next) {
     if (!body.nombreComercial) throw new HttpError(400, "El nombre comercial es obligatorio.", "VALIDATION_ERROR");
     const superNickPrice = twoDecimalValue(body.precioCajaSuperNick, "precio de caja Super Nick");
     const brownNickPrice = twoDecimalValue(body.precioCajaBrownNick, "precio de caja Brown Nick");
+    const whiteEggPrice = twoDecimalValue(body.precioHuevoBlanco, "precio de huevo blanco");
+    const redEggPrice = twoDecimalValue(body.precioHuevoRojo, "precio de huevo rojo");
     await client.query("BEGIN");
     await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:CL`]);
     const code = await nextPrefixedCode(client, "customers", orgId, "CL");
     const { rows } = await client.query(
-      `INSERT INTO customers(organization_id,code,commercial_name,contact_name,phone,email,region_code,category_code,super_nick_box_price,brown_nick_box_price,created_by)
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      `INSERT INTO customers(organization_id,code,commercial_name,contact_name,phone,email,region_code,category_code,super_nick_box_price,brown_nick_box_price,white_egg_price,red_egg_price,created_by)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
       [orgId, code, body.nombreComercial, body.contacto || null, body.telefono || null, body.correo || null,
-        body.region || null, body.categoria || null, superNickPrice, brownNickPrice, req.user.id]
+        body.region || null, body.categoria || null, superNickPrice, brownNickPrice, whiteEggPrice, redEggPrice, req.user.id]
     );
     for (const address of body.ubicaciones || []) {
       await client.query(
@@ -623,13 +688,15 @@ async function actualizarCliente(req, res, next) {
     const row = current.rows[0];
     const superNickPrice = body.precioCajaSuperNick === undefined ? row.super_nick_box_price : twoDecimalValue(body.precioCajaSuperNick, "precio de caja Super Nick");
     const brownNickPrice = body.precioCajaBrownNick === undefined ? row.brown_nick_box_price : twoDecimalValue(body.precioCajaBrownNick, "precio de caja Brown Nick");
+    const whiteEggPrice = body.precioHuevoBlanco === undefined ? row.white_egg_price : twoDecimalValue(body.precioHuevoBlanco, "precio de huevo blanco");
+    const redEggPrice = body.precioHuevoRojo === undefined ? row.red_egg_price : twoDecimalValue(body.precioHuevoRojo, "precio de huevo rojo");
     const updated = await client.query(
       `UPDATE customers SET code=$1,commercial_name=$2,contact_name=$3,phone=$4,email=$5,region_code=$6,category_code=$7,
-       super_nick_box_price=$8,brown_nick_box_price=$9,status=$10,updated_at=NOW()
-       WHERE id=$11 AND organization_id=$12 RETURNING *`,
+       super_nick_box_price=$8,brown_nick_box_price=$9,white_egg_price=$10,red_egg_price=$11,status=$12,updated_at=NOW()
+       WHERE id=$13 AND organization_id=$14 RETURNING *`,
       [row.code, body.nombreComercial ?? row.commercial_name, body.contacto ?? row.contact_name,
         body.telefono ?? row.phone, body.correo ?? row.email, body.region ?? row.region_code, body.categoria ?? row.category_code,
-        superNickPrice, brownNickPrice,
+        superNickPrice, brownNickPrice, whiteEggPrice, redEggPrice,
         body.estado ?? row.status, req.params.id, orgId]
     );
     if (Array.isArray(body.ubicaciones)) {
@@ -649,12 +716,12 @@ async function actualizarCliente(req, res, next) {
 }
 
 module.exports = {
-  catalogController, listarValores, siguienteRegion, crearRegion, siguienteUnidad, crearUnidad, listarPersonal, guardarPersonal, actualizarPersonal,
+  catalogController, listarValores, crearValorCatalogo, siguienteRegion, crearRegion, siguienteUnidad, crearUnidad, listarPersonal, guardarPersonal, actualizarPersonal,
   listarClientes, guardarCliente, actualizarCliente,
   siguienteBodega, crearBodega,
   siguienteCliente: siguienteCodigo("customers", "CL"), siguienteProveedor: siguienteCodigo("suppliers", "PR"), crearProveedor,
   siguienteProducto, crearProducto,
   crearGalera,
-  listarSiguientesLotes, crearLote, actualizarLote,
+  listarSiguientesLotes, crearLote, actualizarLote, trasladarLoteProduccion,
   configs: catalogos,
 };

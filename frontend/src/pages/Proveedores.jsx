@@ -19,12 +19,13 @@ function Proveedores() {
 
   const [contacto, setContacto] = useState("");
 
+  const [codigoPais, setCodigoPais] = useState("+502");
   const [telefono, setTelefono] = useState("");
   const [correo, setCorreo] = useState("");
   const [editingId, setEditingId] = useState(null);
 
   const cargarSiguienteCodigo = () => api("/proveedores/siguiente").then((data) => setCodigoProveedor(data.code)).catch((error) => alert(error.message));
-  const cancelarEdicion = async () => { setEditingId(null); setNombreProveedor(""); setNit(""); setDireccion(""); setContacto(""); setTelefono(""); setCorreo(""); await cargarSiguienteCodigo(); };
+  const cancelarEdicion = async () => { setEditingId(null); setNombreProveedor(""); setNit(""); setDireccion(""); setContacto(""); setCodigoPais("+502"); setTelefono(""); setCorreo(""); await cargarSiguienteCodigo(); };
   useEffect(() => { cargarSiguienteCodigo(); }, []);
 
   // =========================
@@ -34,14 +35,21 @@ function Proveedores() {
   const handleTelefono = (e) => {
     let value = e.target.value.replace(/\D/g, "");
 
-    if (value.length > 4) {
+    if (codigoPais === "+502" && value.length > 4) {
       value =
         value.slice(0, 4) +
         "-" +
         value.slice(4, 8);
+    } else {
+      value = value.slice(0, 15);
     }
 
     setTelefono(value);
+  };
+
+  const handleCodigoPais = (e) => {
+    const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+    setCodigoPais(digits ? `+${digits}` : "+");
   };
 
   // =========================
@@ -52,11 +60,11 @@ function Proveedores() {
     e.preventDefault();
     try {
       await api(editingId ? `/proveedores/${editingId}` : "/proveedores", { method: editingId ? "PUT" : "POST", body: JSON.stringify({
-        nombre: nombreProveedor, nit, direccion, contacto, telefono, correo,
+        nombre: nombreProveedor, nit, direccion, contacto, codigoPais, telefono, correo,
       }) });
       alert("Proveedor guardado correctamente");
       setCodigoProveedor(""); setNombreProveedor(""); setNit(""); setDireccion("");
-      setContacto(""); setTelefono(""); setCorreo("");
+      setContacto(""); setCodigoPais("+502"); setTelefono(""); setCorreo("");
       setEditingId(null);
       await list.reload();
       await cargarSiguienteCodigo();
@@ -70,7 +78,7 @@ function Proveedores() {
   const rowStyle = {
     display: "grid",
     gridTemplateColumns:
-      "1fr 1fr 1fr",
+      "1fr 0.65fr 1fr 1fr",
     gap: "10px",
     marginBottom: "15px"
   };
@@ -138,6 +146,21 @@ function Proveedores() {
         </div>
 
         <div>
+          <label>Código de país</label>
+
+          <input
+            value={codigoPais}
+            onChange={handleCodigoPais}
+            inputMode="numeric"
+            placeholder="+502"
+            pattern="\+[0-9]{1,4}"
+            title="Ingresa el signo + seguido de 1 a 4 dígitos"
+            required
+            style={inputStyle}
+          />
+        </div>
+
+        <div>
           <label>Teléfono</label>
 
           <input
@@ -145,6 +168,8 @@ function Proveedores() {
             onChange={
               handleTelefono
             }
+            inputMode="tel"
+            maxLength={codigoPais === "+502" ? 9 : 15}
             style={inputStyle}
           />
         </div>
@@ -251,8 +276,8 @@ function Proveedores() {
       </button><CancelEditButton editing={editingId} onCancel={cancelarEdicion}/></div>
       <ConfigRecordsTable title="Proveedores registrados" rows={list.rows} loading={list.loading} error={list.error} columns={[
         { key: "code", label: "Código" }, { key: "name", label: "Proveedor" }, { key: "taxId", label: "NIT" },
-        { key: "contactName", label: "Contacto" }, { key: "phone", label: "Teléfono" }, { key: "email", label: "Correo" }, { key: "status", label: "Estado" },
-      ]} onEdit={(row) => { setEditingId(row.id); setCodigoProveedor(row.code); setNombreProveedor(row.name); setNit(row.taxId || ""); setDireccion(row.address || ""); setContacto(row.contactName || ""); setTelefono(row.phone || ""); setCorreo(row.email || ""); }} onDeactivate={async (row) => {
+        { key: "contactName", label: "Contacto" }, { key: "countryCode", label: "Código país" }, { key: "phone", label: "Teléfono" }, { key: "email", label: "Correo" }, { key: "status", label: "Estado" },
+      ]} onEdit={(row) => { setEditingId(row.id); setCodigoProveedor(row.code); setNombreProveedor(row.name); setNit(row.taxId || ""); setDireccion(row.address || ""); setContacto(row.contactName || ""); setCodigoPais(row.countryCode || "+502"); setTelefono(row.phone || ""); setCorreo(row.email || ""); }} onDeactivate={async (row) => {
         if (!(await confirmAction(`¿Deseas dar de baja al proveedor ${row.name}?`, { title: "Dar de baja proveedor", confirmLabel: "Sí, dar de baja" }))) return;
         try { await api(`/proveedores/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); alert("Proveedor dado de baja correctamente."); }
         catch (error) { alert(error.message); }

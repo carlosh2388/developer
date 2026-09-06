@@ -30,12 +30,14 @@ function Clientes() {
 
   const [precioCajaSuperNick, setPrecioCajaSuperNick] = useState("");
   const [precioCajaBrownNick, setPrecioCajaBrownNick] = useState("");
+  const [precioHuevoBlanco, setPrecioHuevoBlanco] = useState("");
+  const [precioHuevoRojo, setPrecioHuevoRojo] = useState("");
 
   const [ubicaciones, setUbicaciones] = useState([]);
   const [editingId, setEditingId] = useState(null);
 
   const cargarSiguienteCodigo = () => api("/clientes/siguiente").then((data) => setCodigoCliente(data.code)).catch((error) => alert(error.message));
-  const cancelarEdicion = async () => { setEditingId(null); setNombreComercial(""); setContacto(""); setTelefono(""); setCorreo(""); setUbicaciones([]); setRegion(""); setCategoria(""); setPrecioCajaSuperNick(""); setPrecioCajaBrownNick(""); setMostrarNuevaRegion(false); setCodigoNuevaRegion(""); setNombreNuevaRegion(""); await cargarSiguienteCodigo(); };
+  const cancelarEdicion = async () => { setEditingId(null); setNombreComercial(""); setContacto(""); setTelefono(""); setCorreo(""); setUbicaciones([]); setRegion(""); setCategoria(""); setPrecioCajaSuperNick(""); setPrecioCajaBrownNick(""); setPrecioHuevoBlanco(""); setPrecioHuevoRojo(""); setMostrarNuevaRegion(false); setCodigoNuevaRegion(""); setNombreNuevaRegion(""); await cargarSiguienteCodigo(); };
   useEffect(() => { cargarSiguienteCodigo(); }, []);
   useEffect(() => { setRegiones(referencias.CUSTOMER_REGION || []); }, [referencias.CUSTOMER_REGION]);
 
@@ -115,11 +117,11 @@ function Clientes() {
     try {
       await api(editingId ? `/clientes/${editingId}` : "/clientes", { method: editingId ? "PUT" : "POST", body: JSON.stringify({
         telefono, correo, contacto, nombreComercial,
-        region, categoria, precioCajaSuperNick, precioCajaBrownNick, ubicaciones,
+        region, categoria, precioCajaSuperNick, precioCajaBrownNick, precioHuevoBlanco, precioHuevoRojo, ubicaciones,
       }) });
       alert("Cliente guardado correctamente");
       setCodigoCliente(""); setNombreComercial(""); setContacto(""); setTelefono(""); setCorreo(""); setUbicaciones([]);
-      setRegion(""); setCategoria(""); setPrecioCajaSuperNick(""); setPrecioCajaBrownNick("");
+      setRegion(""); setCategoria(""); setPrecioCajaSuperNick(""); setPrecioCajaBrownNick(""); setPrecioHuevoBlanco(""); setPrecioHuevoRojo("");
       setMostrarNuevaRegion(false); setCodigoNuevaRegion(""); setNombreNuevaRegion("");
       setEditingId(null);
       await list.reload();
@@ -147,7 +149,7 @@ function Clientes() {
 
   const priceRow = {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr auto",
+    gridTemplateColumns: "repeat(4, minmax(130px, 1fr)) auto",
     gap: "10px",
     alignItems: "end",
     marginBottom: "15px"
@@ -325,6 +327,30 @@ function Clientes() {
           />
         </div>
 
+        <div>
+          <label>Precio Huevo Blanco</label>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={precioHuevoBlanco}
+            onChange={(e) => setPrecioHuevoBlanco(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
+
+        <div>
+          <label>Precio Huevo Rojo</label>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={precioHuevoRojo}
+            onChange={(e) => setPrecioHuevoRojo(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
+
         <button
           type="button"
           onClick={agregarUbicacion}
@@ -398,6 +424,7 @@ function Clientes() {
         setEditingId(row.id); setCodigoCliente(row.code); setNombreComercial(row.commercialName); setContacto(row.contactName || "");
         setTelefono(row.phone || ""); setCorreo(row.email || ""); setRegion(row.regionCode || ""); setCategoria(row.categoryCode || "");
         setPrecioCajaSuperNick(row.superNickBoxPrice || ""); setPrecioCajaBrownNick(row.brownNickBoxPrice || "");
+        setPrecioHuevoBlanco(row.whiteEggPrice || ""); setPrecioHuevoRojo(row.redEggPrice || "");
         setUbicaciones((row.addresses || []).map((item) => ({ id: item.id, nit: item.tax_id || "", razonSocial: item.legal_name || "", direccionFiscal: item.fiscal_address || "", direccionEntrega: item.delivery_address || "" })));
       }} onDeactivate={async (row) => {
         if (!(await confirmAction(`¿Deseas dar de baja al cliente ${row.commercialName}?`, { title: "Dar de baja cliente", confirmLabel: "Sí, dar de baja" }))) return;

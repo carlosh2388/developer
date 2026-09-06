@@ -45,13 +45,43 @@ async function resolveTenantId(client, table, orgId, value, fieldName, optional 
   return rows[0].id;
 }
 
-async function resolveGradeId(client, value) {
+async function resolveActiveFlockId(client, orgId, value) {
+  required(value, "lote");
+  const { rows } = await client.query(
+    `SELECT id FROM flocks
+     WHERE organization_id=$1 AND status='ACTIVE'
+       AND (id::text=$2 OR LOWER(code)=LOWER($2)) LIMIT 1`,
+    [orgId, String(value).trim()]
+  );
+  if (!rows[0]) throw new HttpError(400, "El lote seleccionado no existe o está inactivo.", "INVALID_REFERENCE");
+  return rows[0].id;
+}
+
+async function insertInventoryAllocation(client, orgId, lineId, allocation, target) {
+  const quantity = positiveQuantity(allocation.cantidad, "cantidad distribuida", allocation._allowsDecimals);
+  if (target === "flock") {
+    const flockId = await resolveActiveFlockId(client, orgId, allocation.loteId || allocation.lote);
+    await client.query(
+      "INSERT INTO inventory_line_allocations(organization_id,line_id,flock_id,quantity) VALUES($1,$2,$3,$4)",
+      [orgId, lineId, flockId, quantity]
+    );
+  } else {
+    const houseId = await resolveTenantId(client, "houses", orgId, allocation.galeraId || allocation.galera, "galera");
+    await client.query(
+      "INSERT INTO inventory_line_allocations(organization_id,line_id,house_id,quantity) VALUES($1,$2,$3,$4)",
+      [orgId, lineId, houseId, quantity]
+    );
+  }
+  return quantity;
+}
+
+async function resolveGrade(client, value) {
   required(value, "clasificacion");
   const { rows } = await client.query(
-    "SELECT id FROM egg_quality_grades WHERE id::text=$1 OR LOWER(code)=LOWER($1) OR LOWER(label)=LOWER($1) LIMIT 1", [String(value).trim()]
+    "SELECT id,egg_class FROM egg_quality_grades WHERE id::text=$1 OR LOWER(code)=LOWER($1) OR LOWER(label)=LOWER($1) LIMIT 1", [String(value).trim()]
   );
   if (!rows[0]) throw new HttpError(400, "La clasificación de huevo no existe.", "INVALID_REFERENCE");
-  return rows[0].id;
+  return rows[0];
 }
 
 async function tableHasColumn(queryable, tableName, columnName) {
@@ -80,14 +110,16 @@ function positiveQuantity(value, name, allowTwoDecimals = false) {
   return number;
 }
 
-const decimalQuantityUnits = new Set([
-  "GRAM", "GRAMO", "G", "KILOGRAM", "KILOGRAMO", "KG", "POUND", "LIBRA", "LB",
-  "QUINTAL", "Q", "LITER", "LITRO", "L",
-]);
-
-function unitAllowsDecimals(unitCode, unitLabel = "") {
-  const normalized = [unitCode, unitLabel].map((value) => String(value || "").trim().toUpperCase());
-  return normalized.some((value) => decimalQuantityUnits.has(value));
+function validateFoodOutputAllocations(body, details) {
+  if (body.tipoMovimiento !== "OUTPUT" || body.modulo !== "FOOD") return;
+  const primaryDetails = details.filter((detail) => !Number.isInteger(detail.detallePadreIndice));
+  const invalid = primaryDetails.some((detail) =>
+    !Array.isArray(detail.distribuciones) || detail.distribuciones.length !== 1
+    || !(detail.distribuciones[0].loteId || detail.distribuciones[0].lote)
+  );
+  if (invalid) {
+    throw new HttpError(400, "Cada alimento o vacuna debe estar asociado a un lote.", "FLOCK_REQUIRED");
+  }
 }
 
 function money(value, name) {
@@ -105,12 +137,15 @@ async function prepareInventoryDetails(client, orgId, details) {
   for (const detail of details) {
     const productId = await resolveTenantId(client, "products", orgId,
       detail.productoId || detail.producto || detail.item || detail.alimento || detail.material || detail.vacuna, "producto");
-    const product = await client.query(`SELECT p.unit_code,cv.label unit_label FROM products p
-      LEFT JOIN reference_values cv ON cv.catalog_code='UNIT' AND cv.value_code=p.unit_code
-      WHERE p.id=$1 AND p.organization_id=$2`, [productId, orgId]);
-    const allowTwoDecimals = unitAllowsDecimals(product.rows[0]?.unit_code, product.rows[0]?.unit_label);
+    const { rows } = await client.query(
+      "SELECT product_type FROM products WHERE id=$1 AND organization_id=$2", [productId, orgId]
+    );
+    const allowTwoDecimals = !["HC", "HI"].includes(rows[0]?.product_type);
+    const observationComponent = Number.isInteger(detail.detallePadreIndice)
+      && ["ADDITIVE", "MEDICINE"].includes(detail.rol) && detail.observacion !== undefined;
     prepared.push({ ...detail, _productId: productId, _allowsDecimals: allowTwoDecimals,
-      _quantity: positiveQuantity(detail.cantidad, "cantidad", allowTwoDecimals), _unitCost: money(detail.costoUnitario, "precio") });
+      _quantity: observationComponent ? null : positiveQuantity(detail.cantidad, "cantidad", allowTwoDecimals),
+      _unitCost: money(detail.costoUnitario, "precio") });
   }
   return prepared;
 }
@@ -157,6 +192,12 @@ async function listarInventario(req, res, next) {
       `SELECT d.*,s.code supplier_code,s.name supplier_name,
               COUNT(l.id)::INTEGER line_count,COALESCE(SUM(l.quantity),0) total_quantity,
               COALESCE(SUM(l.quantity * l.unit_cost),0) total_amount,
+              COALESCE((SELECT STRING_AGG(DISTINCT f.code, ', ' ORDER BY f.code)
+                FROM inventory_document_lines flock_line
+                JOIN inventory_line_allocations allocation ON allocation.line_id=flock_line.id
+                  AND allocation.organization_id=flock_line.organization_id
+                JOIN flocks f ON f.id=allocation.flock_id AND f.organization_id=allocation.organization_id
+                WHERE flock_line.document_id=d.id AND flock_line.organization_id=d.organization_id),'') flock_codes,
               COALESCE(STRING_AGG(p.code || ' - ' || p.name, ', ' ORDER BY l.line_number),'') products
        FROM inventory_documents d
        LEFT JOIN suppliers s ON s.id=d.supplier_id AND s.organization_id=d.organization_id
@@ -181,11 +222,12 @@ async function obtenerInventario(req, res, next) {
     if (!header.rows[0]) throw new HttpError(404, "El documento no existe.", "NOT_FOUND");
     const details = await db.query(
       `SELECT l.*,p.code product_code,p.name product_name,p.unit_code product_unit_code,COALESCE(json_agg(json_build_object(
-         'id',a.id,'house_id',a.house_id,'house_code',h.code,'quantity',a.quantity) ORDER BY a.id) FILTER (WHERE a.id IS NOT NULL),'[]') allocations
+         'id',a.id,'house_id',a.house_id,'house_code',h.code,'flock_id',a.flock_id,'flock_code',f.code,'quantity',a.quantity) ORDER BY a.id) FILTER (WHERE a.id IS NOT NULL),'[]') allocations
        FROM inventory_document_lines l
        JOIN products p ON p.id=l.product_id AND p.organization_id=l.organization_id
        LEFT JOIN inventory_line_allocations a ON a.line_id=l.id AND a.organization_id=l.organization_id
        LEFT JOIN houses h ON h.id=a.house_id AND h.organization_id=a.organization_id
+       LEFT JOIN flocks f ON f.id=a.flock_id AND f.organization_id=a.organization_id
        WHERE l.document_id=$1 AND l.organization_id=$2 GROUP BY l.id,p.id ORDER BY l.line_number`, [req.params.id, orgId]
     );
     res.json({ ...header.rows[0], detalles: details.rows });
@@ -197,6 +239,7 @@ async function actualizarInventario(req, res, next) {
     const orgId = organizationId(req); const body = req.body || {};
     const detalles = Array.isArray(body.detalles) ? body.detalles : [];
     if (!detalles.length) throw new HttpError(400, "Agrega al menos un detalle.", "VALIDATION_ERROR");
+    validateFoodOutputAllocations(body, detalles);
     if (body.tipoMovimiento === "INPUT" && body.modulo === "FOOD" && !(body.proveedorId || body.proveedor)) throw new HttpError(400, "Selecciona el proveedor del ingreso de alimento.", "VALIDATION_ERROR");
     const result = await transaction(async (client) => {
       const current = await client.query("SELECT * FROM inventory_documents WHERE id=$1 AND organization_id=$2 FOR UPDATE", [req.params.id, orgId]);
@@ -224,7 +267,7 @@ async function actualizarInventario(req, res, next) {
           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,[orgId,req.params.id,parent,productId,detail.rol || "PRIMARY",detail._quantity,detail._unitCost,detail.justificacion || null,index+1]);
         inserted.push(line.rows[0]);
         let distributed=0;
-        for (const allocation of detail.distribuciones || []) { const quantity=positiveQuantity(allocation.cantidad,"cantidad distribuida",detail._allowsDecimals); const houseId=await resolveTenantId(client,"houses",orgId,allocation.galeraId || allocation.galera,"galera"); distributed+=quantity; await client.query("INSERT INTO inventory_line_allocations(organization_id,line_id,house_id,quantity) VALUES($1,$2,$3,$4)",[orgId,line.rows[0].id,houseId,quantity]); }
+        for (const allocation of detail.distribuciones || []) { distributed += await insertInventoryAllocation(client, orgId, line.rows[0].id, { ...allocation, _allowsDecimals: detail._allowsDecimals }, movementType === "OUTPUT" && body.modulo === "FOOD" ? "flock" : "house"); }
         if ((detail.distribuciones || []).length && Math.abs(distributed-Number(detail.cantidad))>0.0001) throw new HttpError(400,`La distribución de la línea ${index+1} no coincide con su cantidad.`,"ALLOCATION_MISMATCH");
       }
       return { ...header.rows[0], detalles: inserted };
@@ -239,6 +282,7 @@ async function crearInventario(req, res, next) {
     const body = req.body || {};
     const detalles = Array.isArray(body.detalles) ? body.detalles : [];
     if (!detalles.length) throw new HttpError(400, "Agrega al menos un detalle.", "VALIDATION_ERROR");
+    validateFoodOutputAllocations(body, detalles);
     if (body.tipoMovimiento === "INPUT" && body.modulo === "FOOD" && !(body.proveedorId || body.proveedor)) {
       throw new HttpError(400, "Selecciona el proveedor del ingreso de alimento.", "VALIDATION_ERROR");
     }
@@ -269,13 +313,7 @@ async function crearInventario(req, res, next) {
         inserted.push(line.rows[0]);
         let distributed = 0;
         for (const allocation of detail.distribuciones || []) {
-          const quantity = positiveQuantity(allocation.cantidad, "cantidad distribuida", detail._allowsDecimals);
-          const houseId = await resolveTenantId(client, "houses", orgId, allocation.galeraId || allocation.galera, "galera");
-          distributed += quantity;
-          await client.query(
-            "INSERT INTO inventory_line_allocations(organization_id,line_id,house_id,quantity) VALUES($1,$2,$3,$4)",
-            [orgId, line.rows[0].id, houseId, quantity]
-          );
+          distributed += await insertInventoryAllocation(client, orgId, line.rows[0].id, { ...allocation, _allowsDecimals: detail._allowsDecimals }, movementType === "OUTPUT" && body.modulo === "FOOD" ? "flock" : "house");
         }
         if ((detail.distribuciones || []).length && Math.abs(distributed - Number(detail.cantidad)) > 0.0001) {
           throw new HttpError(400, `La distribución de la línea ${index + 1} no coincide con su cantidad.`, "ALLOCATION_MISMATCH");
@@ -355,7 +393,7 @@ async function obtenerHuevos(req, res, next) {
       WHERE m.id=$1 AND m.organization_id=$2`,[req.params.id,orgId]);
     if(!header.rows[0]) throw new HttpError(404,"El movimiento no existe.","NOT_FOUND");
     const details=await db.query(`SELECT l.*,f.code flock_code,g.code grade_code,pc.full_name collector_name,pf.full_name classifier_name
-      FROM egg_movement_lines l JOIN flocks f ON f.id=l.flock_id JOIN egg_quality_grades g ON g.id=l.quality_grade_id
+      FROM egg_movement_lines l LEFT JOIN flocks f ON f.id=l.flock_id JOIN egg_quality_grades g ON g.id=l.quality_grade_id
       LEFT JOIN personnel pc ON pc.id=l.collector_id LEFT JOIN personnel pf ON pf.id=l.classifier_id
       WHERE l.movement_id=$1 AND l.organization_id=$2 ORDER BY l.line_number`,[req.params.id,orgId]); res.json({...header.rows[0],detalles:details.rows});
   } catch(error){next(error);} }
@@ -387,6 +425,23 @@ async function crearMovimientoHuevos(req, res, next) {
       const supportsShipmentNumbers = await tableHasColumn(client, "egg_movements", "shipment_number");
       const sourceWarehouseId = await resolveTenantId(client, "warehouses", orgId, body.bodegaOrigenId || body.bodegaOrigen, "bodega de origen", true);
       const destinationWarehouseId = await resolveTenantId(client, "warehouses", orgId, body.bodegaDestinoId || body.bodegaDestino, "bodega de destino", true);
+      const adjustmentMovement = ["ADJUSTMENT_IN", "ADJUSTMENT_OUT"].includes(body.tipoMovimiento);
+      const adjustmentWarehouseId = body.tipoMovimiento === "ADJUSTMENT_OUT" ? sourceWarehouseId : destinationWarehouseId;
+      let adjustmentWarehouseClass = "";
+      if (adjustmentMovement) {
+        if (!adjustmentWarehouseId) throw new HttpError(400, "Selecciona la bodega para el ajuste de huevo.", "VALIDATION_ERROR");
+        const locationId = await resolveTenantId(client, "locations", orgId, body.localidadId || body.localidad, "localidad");
+        const selectedWarehouse = await client.query(
+          "SELECT code,name,location_id FROM warehouses WHERE id=$1 AND organization_id=$2", [adjustmentWarehouseId, orgId]
+        );
+        if (String(selectedWarehouse.rows[0]?.location_id) !== String(locationId)) {
+          throw new HttpError(400, "La bodega no pertenece a la localidad seleccionada.", "VALIDATION_ERROR");
+        }
+        const warehouseName = `${selectedWarehouse.rows[0]?.code || ""} ${selectedWarehouse.rows[0]?.name || ""}`.toUpperCase();
+        adjustmentWarehouseClass = warehouseName.includes("HUEVO COMERCIAL") ? "COMMERCIAL"
+          : warehouseName.includes("HUEVO INCUBABLE") ? "INCUBABLE" : "";
+        if (!adjustmentWarehouseClass) throw new HttpError(400, "Selecciona una bodega de huevo incubable o comercial.", "VALIDATION_ERROR");
+      }
       const customerId = await resolveTenantId(client, "customers", orgId, body.clienteId || body.cliente, "cliente", true);
       const vehicleId = await resolveTenantId(client, "vehicles", orgId, body.vehiculoId || body.placa, "vehículo", true);
       const driverId = await resolveTenantId(client, "personnel", orgId, body.pilotoId || body.piloto, "piloto", true);
@@ -427,10 +482,18 @@ async function crearMovimientoHuevos(req, res, next) {
       const lines = [];
       for (let index = 0; index < detalles.length; index += 1) {
         const d = detalles[index];
-        const flockId = await resolveTenantId(client, "flocks", orgId, d.loteId || d.lote, "lote");
-        const gradeId = await resolveGradeId(client, d.clasificacionId || d.clasificacion || d.calidad);
-        const collectorId = await resolveTenantId(client, "personnel", orgId, d.recolectorId || d.recolector, "recolector", true);
-        const classifierId = await resolveTenantId(client, "personnel", orgId, d.clasificadorId || d.clasificador, "clasificador", true);
+        const grade = await resolveGrade(client, d.clasificacionId || d.clasificacion || d.calidad);
+        const gradeId = grade.id;
+        if (adjustmentMovement && grade.egg_class !== adjustmentWarehouseClass) {
+          throw new HttpError(400, `La clasificación del detalle ${index + 1} no corresponde a la bodega.`, "VALIDATION_ERROR");
+        }
+        const commercialMovement = grade.egg_class === "COMMERCIAL";
+        const flockId = commercialMovement
+          ? null
+          : await resolveTenantId(client, "flocks", orgId, d.loteId || d.lote, "lote");
+        const requiresPersonnel = body.tipoMovimiento === "INPUT";
+        const collectorId = await resolveTenantId(client, "personnel", orgId, d.recolectorId || d.recolector, "recolector", !requiresPersonnel);
+        const classifierId = await resolveTenantId(client, "personnel", orgId, d.clasificadorId || d.clasificador, "clasificador", !requiresPersonnel);
         const values = [d.cajasBandejas336, d.cajasCartones360, d.bandejas84, d.cartones30, d.unidades].map((v) => Number(v || 0));
         if (values.some((v) => !Number.isInteger(v) || v < 0) || values.every((v) => v === 0)) {
           throw new HttpError(400, `El detalle ${index + 1} debe contener cantidades enteras positivas.`, "VALIDATION_ERROR");
@@ -442,12 +505,14 @@ async function crearMovimientoHuevos(req, res, next) {
         }
         const requestedUnits = values[0] * 336 + values[1] * 360 + values[2] * 84 + values[3] * 30 + values[4];
         let existingUnits = Number(d.existencia || 0);
-        if (body.tipoMovimiento === "OUTPUT") {
+        if (["OUTPUT", "ADJUSTMENT_OUT"].includes(body.tipoMovimiento)) {
           await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:${flockId}:${gradeId}`]);
-          const balance = await client.query(`SELECT COALESCE(SUM(CASE WHEN m.movement_type='INPUT' THEN l.total_units ELSE -l.total_units END)
+          const balance = await client.query(`SELECT COALESCE(SUM(CASE WHEN m.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.total_units ELSE -l.total_units END)
             FILTER (WHERE m.status='POSTED' AND ($4::uuid IS NULL OR m.id<>$4::uuid)),0)::BIGINT AS available_units
             FROM egg_movement_lines l JOIN egg_movements m ON m.id=l.movement_id AND m.organization_id=l.organization_id
-            WHERE l.organization_id=$1 AND l.flock_id=$2 AND l.quality_grade_id=$3`, [orgId, flockId, gradeId, req.params.id || null]);
+            WHERE l.organization_id=$1 AND ($2::uuid IS NULL OR l.flock_id=$2) AND l.quality_grade_id=$3
+              AND COALESCE(m.source_warehouse_id,m.destination_warehouse_id)=$5`,
+            [orgId, flockId, gradeId, req.params.id || null, sourceWarehouseId]);
           existingUnits = Number(balance.rows[0].available_units || 0);
           if (requestedUnits > existingUnits) throw new HttpError(409, "Inventario insuficiente para operar egresos.", "INSUFFICIENT_EGG_STOCK");
         }
@@ -476,19 +541,39 @@ async function listarClasificacionesHuevos(req, res, next) {
 async function listarExistenciasHuevos(req, res, next) {
   try {
     const orgId = organizationId(req);
-    const lote = required(req.query.lote, "lote");
+    const lote = req.query.lote;
+    const bodega = req.query.bodega;
+    const comercial = String(req.query.clasificacion || "").toUpperCase() === "COMERCIAL";
+    if (!lote && !comercial) required(lote, "lote");
+    let flockId = null;
+    const warehouseId = await resolveTenantId(db, "warehouses", orgId, bodega, "bodega", true);
+    if (lote) {
     const { rows: flocks } = await db.query(
       "SELECT id FROM flocks WHERE organization_id=$1 AND (id::text=$2 OR LOWER(code)=LOWER($2)) LIMIT 1",
       [orgId, String(lote).trim()]
     );
     if (!flocks[0]) throw new HttpError(404, "El lote seleccionado no existe.", "INVALID_REFERENCE");
+      flockId = flocks[0].id;
+    }
     const { rows } = await db.query(`SELECT g.code AS grade_code,g.label,
-      COALESCE(SUM(CASE WHEN m.movement_type='INPUT' THEN l.total_units ELSE -l.total_units END)
-        FILTER (WHERE m.status='POSTED'),0)::BIGINT AS available_units
+      COALESCE(SUM(CASE WHEN m.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.total_units ELSE -l.total_units END)
+        FILTER (WHERE m.status='POSTED'),0)::BIGINT AS available_units,
+      COALESCE(SUM(CASE WHEN m.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.boxes_trays_336 ELSE -l.boxes_trays_336 END)
+        FILTER (WHERE m.status='POSTED'),0)::BIGINT AS available_boxes_trays_336,
+      COALESCE(SUM(CASE WHEN m.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.boxes_cartons_360 ELSE -l.boxes_cartons_360 END)
+        FILTER (WHERE m.status='POSTED'),0)::BIGINT AS available_boxes_cartons_360,
+      COALESCE(SUM(CASE WHEN m.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.trays_84 ELSE -l.trays_84 END)
+        FILTER (WHERE m.status='POSTED'),0)::BIGINT AS available_trays_84,
+      COALESCE(SUM(CASE WHEN m.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.cartons_30 ELSE -l.cartons_30 END)
+        FILTER (WHERE m.status='POSTED'),0)::BIGINT AS available_cartons_30,
+      COALESCE(SUM(CASE WHEN m.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.loose_units ELSE -l.loose_units END)
+        FILTER (WHERE m.status='POSTED'),0)::BIGINT AS available_loose_units
       FROM egg_quality_grades g
-      LEFT JOIN egg_movement_lines l ON l.quality_grade_id=g.id AND l.organization_id=$1 AND l.flock_id=$2
+      LEFT JOIN egg_movement_lines l ON l.quality_grade_id=g.id AND l.organization_id=$1 AND ($2::uuid IS NULL OR l.flock_id=$2)
       LEFT JOIN egg_movements m ON m.id=l.movement_id AND m.organization_id=l.organization_id
-      WHERE g.is_active=TRUE GROUP BY g.id ORDER BY g.egg_class,g.sort_order`, [orgId, flocks[0].id]);
+        AND ($4::uuid IS NULL OR COALESCE(m.source_warehouse_id,m.destination_warehouse_id)=$4)
+      WHERE g.is_active=TRUE AND ($3::boolean=FALSE OR g.egg_class='COMMERCIAL')
+      GROUP BY g.id ORDER BY g.egg_class,g.sort_order`, [orgId, flockId, comercial, warehouseId]);
     res.json(rows);
   } catch (error) { next(error); }
 }
@@ -620,7 +705,6 @@ async function crearPesoAves(req, res, next) {
           body.uniformidadHembras || null, body.uniformidadMachos || null, body.uniformidadGeneral || null, req.user.id]
       );
       for (let index = 0; index < muestras.length; index += 1) {
-        const sample = muestras[index];
         await client.query(
           "INSERT INTO bird_weight_samples(organization_id,control_id,sex,sample_number,weight_grams) VALUES($1,$2,$3,$4,$5)",
           [orgId, header.rows[0].id, required(sample.sexo, "sexo"), index + 1, positive(sample.pesoGramos, "pesoGramos")]
@@ -634,9 +718,12 @@ async function crearPesoAves(req, res, next) {
 
 async function listarPesoHuevos(req, res, next) {
   try {
-    const { rows } = await db.query(`SELECT c.*,f.code AS flock_code
+    const { rows } = await db.query(`SELECT c.*,f.code AS flock_code,o.name AS farm_name,
+      COALESCE(uu.full_name,cu.full_name) AS operator_name,COALESCE(c.updated_at,c.created_at) AS operated_at
       FROM egg_weight_controls c
       JOIN flocks f ON f.id=c.flock_id AND f.organization_id=c.organization_id
+      JOIN organizations o ON o.id=c.organization_id
+      LEFT JOIN users cu ON cu.id=c.created_by LEFT JOIN users uu ON uu.id=c.updated_by
       WHERE c.organization_id=$1 ORDER BY c.control_date DESC,c.created_at DESC`, [organizationId(req)]);
     res.json(rows);
   } catch (error) { next(error); }
@@ -645,8 +732,11 @@ async function listarPesoHuevos(req, res, next) {
 async function obtenerPesoHuevos(req, res, next) {
   try {
     const orgId = organizationId(req);
-    const header = await db.query(`SELECT c.*,f.code flock_code FROM egg_weight_controls c
-      JOIN flocks f ON f.id=c.flock_id WHERE c.id=$1 AND c.organization_id=$2`, [req.params.id, orgId]);
+    const header = await db.query(`SELECT c.*,f.code flock_code,o.name farm_name,
+      COALESCE(uu.full_name,cu.full_name) operator_name,COALESCE(c.updated_at,c.created_at) operated_at
+      FROM egg_weight_controls c JOIN flocks f ON f.id=c.flock_id JOIN organizations o ON o.id=c.organization_id
+      LEFT JOIN users cu ON cu.id=c.created_by LEFT JOIN users uu ON uu.id=c.updated_by
+      WHERE c.id=$1 AND c.organization_id=$2`, [req.params.id, orgId]);
     if (!header.rows[0]) throw new HttpError(404, "El control no existe.", "NOT_FOUND");
     const samples = await db.query("SELECT * FROM egg_weight_samples WHERE control_id=$1 AND organization_id=$2 ORDER BY sample_number", [req.params.id, orgId]);
     res.json({ ...header.rows[0], muestras: samples.rows });
@@ -657,6 +747,11 @@ async function crearPesoHuevos(req, res, next) {
   try {
     const orgId = organizationId(req); const body = req.body || {}; const muestras = body.muestras || [];
     if (!muestras.length) throw new HttpError(400, "Agrega las muestras de peso.", "VALIDATION_ERROR");
+    const eggWeights = muestras.map((sample) => positive(sample.pesoHuevoGramos, "pesoHuevoGramos"));
+    const averageWeight = eggWeights.reduce((sum, weight) => sum + weight, 0) / eggWeights.length;
+    const lowerLimit = averageWeight * 0.9;
+    const upperLimit = averageWeight * 1.1;
+    const uniformity = eggWeights.filter((weight) => weight >= lowerLimit && weight <= upperLimit).length * 100 / eggWeights.length;
     const result = await transaction(async (client) => {
       const flockId = await resolveTenantId(client, "flocks", orgId, body.loteId || body.lote, "lote");
       let header;
@@ -668,21 +763,20 @@ async function crearPesoHuevos(req, res, next) {
           average_weight_grams=$5,uniformity_percentage=$6,updated_by=$7,updated_at=NOW()
           WHERE id=$8 AND organization_id=$9 RETURNING *`,
         [flockId, required(body.fecha, "fecha"), positive(body.semana, "semana"), muestras.length,
-          body.pesoPromedio || null, body.uniformidad || null, req.user.id, req.params.id, orgId]);
+          averageWeight.toFixed(2), uniformity.toFixed(2), req.user.id, req.params.id, orgId]);
         await client.query("DELETE FROM egg_weight_samples WHERE control_id=$1 AND organization_id=$2", [req.params.id, orgId]);
       } else header = await client.query(
         `INSERT INTO egg_weight_controls(organization_id,flock_id,control_date,week_number,sample_size,average_weight_grams,uniformity_percentage,created_by)
          VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
         [orgId, flockId, required(body.fecha, "fecha"), positive(body.semana, "semana"), muestras.length,
-          body.pesoPromedio || null, body.uniformidad || null, req.user.id]
+          averageWeight.toFixed(2), uniformity.toFixed(2), req.user.id]
       );
       for (let index = 0; index < muestras.length; index += 1) {
         const sample = muestras[index];
         await client.query(
-          `INSERT INTO egg_weight_samples(organization_id,control_id,sample_number,gross_box_weight_grams,packaging_type,packaging_weight_grams,unit_weight_grams)
-           VALUES($1,$2,$3,$4,$5,$6,$7)`,
-          [orgId, header.rows[0].id, index + 1, positive(sample.pesoCaja, "pesoCaja"), required(sample.tipoEmpaque, "tipoEmpaque"),
-            Number(sample.pesoEmpaque || 0), positive(sample.pesoUnitario, "pesoUnitario")]
+          `INSERT INTO egg_weight_samples(organization_id,control_id,sample_number,egg_weight_grams)
+           VALUES($1,$2,$3,$4)`,
+          [orgId, header.rows[0].id, index + 1, eggWeights[index]]
         );
       }
       return header.rows[0];

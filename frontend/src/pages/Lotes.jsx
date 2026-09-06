@@ -16,6 +16,8 @@ function Lotes() {
 
   const [lote, setLote] = useState("");
   const [fecha, setFecha] = useState("");
+  const [fechaIngreso, setFechaIngreso] = useState("");
+  const [trasladando, setTrasladando] = useState(false);
 
   const [lineas, setLineas] = useState([]);
   const [lotesDisponibles, setLotesDisponibles] = useState([]);
@@ -56,6 +58,27 @@ function Lotes() {
       .split("T")[0];
 
     setFecha(today);
+    setFechaIngreso(today);
+  };
+
+  const loteExistente = Boolean(editingId) && list.rows.some(
+    (item) => String(item.code || "").toUpperCase() === lote.trim().toUpperCase()
+  );
+
+  const trasladarAProduccion = async () => {
+    try {
+      if (!loteExistente) throw new Error("El lote no existe. Guárdalo antes de trasladarlo a producción.");
+      if (!fechaIngreso) throw new Error("Selecciona la fecha de ingreso a producción.");
+      setTrasladando(true);
+      const actualizado = await api("/lotes/trasladar-produccion", {
+        method: "POST",
+        body: JSON.stringify({ numeroLote: lote, fechaIngreso }),
+      });
+      setFechaIngreso(actualizado.productionEntryOn?.slice(0, 10) || fechaIngreso);
+      await list.reload();
+      alert(`Lote ${actualizado.code} trasladado a producción correctamente`);
+    } catch (error) { alert(error.message); }
+    finally { setTrasladando(false); }
   };
 
   // =========================
@@ -274,10 +297,10 @@ function Lotes() {
         </div>
       </div>
 
-      {/* GALERA */}
+      {/* GALERA DE CRIANZA, FECHA DE INGRESO Y TRASLADO */}
       <div style={styles.row}>
-        <div style={styles.field}>
-          <label>Galera</label>
+        <div style={{ ...styles.field, flex: 2 }}>
+          <label>Galera Crianza</label>
 
           <div style={styles.row}>
             <select
@@ -310,6 +333,29 @@ function Lotes() {
             </div>
           )}
         </div>
+        <div style={styles.field}>
+          <label>Fecha Ingreso</label>
+          <input
+            type="date"
+            value={fechaIngreso}
+            onChange={(e) => setFechaIngreso(e.target.value)}
+            style={styles.input}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={trasladarAProduccion}
+          disabled={!loteExistente || trasladando}
+          title={!loteExistente ? "Guarda o selecciona un lote existente para trasladarlo" : ""}
+          style={{
+            ...styles.button,
+            minWidth: "240px",
+            opacity: !loteExistente || trasladando ? 0.55 : 1,
+            cursor: !loteExistente || trasladando ? "not-allowed" : "pointer",
+          }}
+        >
+          {trasladando ? "Trasladando..." : "Trasladar a Producción"}
+        </button>
       </div>
 
       {/* PROVEEDOR Y ORIGEN */}
@@ -437,11 +483,12 @@ function Lotes() {
         {editingId ? "Guardar cambios" : "Guardar"}
       </button><CancelEditButton editing={editingId} onCancel={cancelarEdicion}/></div>
       <ConfigRecordsTable title="Lotes registrados" rows={list.rows} loading={list.loading} error={list.error} dateField="receivedOn" columns={[
-        { key: "code", label: "Lote" }, { key: "receivedOn", label: "Recepción" }, { key: "originCountry", label: "Origen" },
+        { key: "code", label: "Lote" }, { key: "receivedOn", label: "Recepción" }, { key: "productionEntryOn", label: "Ingreso a producción" }, { key: "originCountry", label: "Origen" },
         { key: "femaleCount", label: "Hembras" }, { key: "maleCount", label: "Machos" }, { key: "unitCost", label: "Costo unitario" },
         { key: "currencyCode", label: "Moneda" }, { key: "status", label: "Estado" },
       ]} onEdit={(row) => {
         setEditingId(row.id); setLote(row.code); setFecha(row.receivedOn?.slice(0, 10) || ""); setLinea(row.poultryLineId || "");
+        setFechaIngreso(row.productionEntryOn?.slice(0, 10) || new Date().toISOString().split("T")[0]);
         setGalera(row.houseId || ""); setProveedor(row.supplierId || ""); setOrigen(row.originCountry || "");
         setHembras(row.femaleCount || 0); setMachos(row.maleCount || 0); setCostoUnitario(row.unitCost || 0);
         setMoneda(row.currencyCode || "GTQ"); setEstado(row.status === "INACTIVE" ? "Inactivo" : "Activo");

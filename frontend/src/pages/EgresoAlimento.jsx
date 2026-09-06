@@ -10,19 +10,23 @@ const catalogName = (item) => {
   return item.label?.startsWith(prefix) ? item.label.slice(prefix.length) : item.label;
 };
 
-const foodOutputColumns = inventoryColumns.filter((column) => column.key !== "supplier_name");
+const foodOutputColumns = inventoryColumns
+  .filter((column) => column.key !== "supplier_name")
+  .flatMap((column) => column.key === "movement_date"
+    ? [column, { key: "flock_codes", label: "Lotes", render: (value) => value || "Sin lote" }]
+    : [column]);
 
 function EgresoAlimento() {
-  const { productosPorTipo, opciones } = useOperationalCatalogs(["productos", "galeras"]);
+  const { productosPorTipo, opciones } = useOperationalCatalogs(["productos", "lotes"]);
 
   const [fecha, setFecha] = useState(
     new Date().toISOString().split("T")[0]
   );
 
-  const [galeraSeleccionada, setGaleraSeleccionada] =
+  const [loteSeleccionado, setLoteSeleccionado] =
     useState("");
 
-  const galeras = opciones("galeras");
+  const lotes = opciones("lotes");
   const alimentosOptions = productosPorTipo(["AL"]);
   const aditivosDisponibles = productosPorTipo(["AD"]);
   const medicamentosDisponibles = productosPorTipo(["MD"]);
@@ -50,29 +54,34 @@ function EgresoAlimento() {
         : []
   });
 
-  const crearGrupoGalera = (galera) => ({
+  const crearGrupoLote = (lote) => ({
     id: Date.now() + Math.random(),
-    galera,
+    lote,
     filas: []
   });
 
   const [grupos, setGrupos] = useState([]);
   const [editingId, setEditingId] = useState(null);
-  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); const grouped = new Map(); data.rows.forEach((item) => { const galera = item.galeras[0]?.galera || ""; if (!grouped.has(galera)) grouped.set(galera, { id: clientId(), galera, filas: [] }); grouped.get(galera).filas.push({ id: clientId(), tipo: item.tipo === "Vacunas" ? "Vacuna" : "Alimento", alimento: item.tipo === "Vacunas" ? "" : item.item, vacuna: item.tipo === "Vacunas" ? item.item : "", cantidad: item.cantidad, aditivos: item.aditivos.map((x) => ({ producto: x.producto, cantidad: x.cantidad })), medicamentos: item.medicamentos.map((x) => ({ producto: x.producto, cantidad: x.cantidad })) }); }); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setGrupos([...grouped.values()]); } catch (error) { alert(error.message); } };
+  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); const grouped = new Map(); data.rows.forEach((item) => { const lote = item.lotes[0]?.lote || ""; if (!lote) throw new Error("Este registro no tiene un lote asociado."); if (!grouped.has(lote)) grouped.set(lote, { id: clientId(), lote, filas: [] }); grouped.get(lote).filas.push({ id: clientId(), tipo: item.tipo === "Vacunas" ? "Vacuna" : "Alimento", alimento: item.tipo === "Vacunas" ? "" : item.item, vacuna: item.tipo === "Vacunas" ? item.item : "", cantidad: item.cantidad, aditivos: item.aditivos.map((x) => ({ producto: x.producto, cantidad: x.cantidad })), medicamentos: item.medicamentos.map((x) => ({ producto: x.producto, cantidad: x.cantidad })) }); }); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setGrupos([...grouped.values()]); } catch (error) { alert(error.message); } };
 
-  const agregarGrupoGalera = () => {
+  const agregarGrupoLote = () => {
 
-    if (!galeraSeleccionada) {
-      alert("Seleccione una galera");
+    if (!loteSeleccionado) {
+      alert("Seleccione un lote");
+      return;
+    }
+
+    if (grupos.some((grupo) => grupo.lote === loteSeleccionado)) {
+      alert("El lote seleccionado ya fue agregado");
       return;
     }
 
     setGrupos(prev => [
       ...prev,
-      crearGrupoGalera(galeraSeleccionada)
+      crearGrupoLote(loteSeleccionado)
     ]);
 
-    setGaleraSeleccionada("");
+    setLoteSeleccionado("");
   };
 
   const agregarFila = (
@@ -269,11 +278,11 @@ function EgresoAlimento() {
   const guardar = async (e) => {
     e.preventDefault();
     try {
-      const rows = grupos.flatMap((grupo) => grupo.filas.filter((fila) => fila.alimento || fila.vacuna).map((fila) => ({ ...fila, item: fila.alimento || fila.vacuna, galeras: [{ galera: grupo.galera, cantidad: fila.cantidad }] })));
+      const rows = grupos.flatMap((grupo) => grupo.filas.filter((fila) => fila.alimento || fila.vacuna).map((fila) => ({ ...fila, item: fila.alimento || fila.vacuna, lotes: [{ lote: grupo.lote, cantidad: fila.cantidad }] })));
       const quantities = rows.flatMap((fila) => [fila.cantidad, ...(fila.aditivos || []).filter((item) => item.producto).map((item) => item.cantidad), ...(fila.medicamentos || []).filter((item) => item.producto).map((item) => item.cantidad)]);
       if (quantities.some((value) => !/^\d+(?:\.\d{1,2})?$/.test(String(value)) || Number(value) <= 0)) throw new Error("Las cantidades deben ser mayores que cero y tener como máximo dos decimales.");
       await saveInventory({ id: editingId, fecha, rows, movementType: "OUTPUT", module: "FOOD", allocate: true });
-      alert(editingId ? "Registro actualizado correctamente" : "Registro guardado correctamente"); setGrupos([]); setGaleraSeleccionada(""); setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
+      alert(editingId ? "Registro actualizado correctamente" : "Registro guardado correctamente"); setGrupos([]); setLoteSeleccionado(""); setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
     } catch (error) { alert(error.message); }
   };
 
@@ -335,11 +344,11 @@ function EgresoAlimento() {
         </div>
 
         <div>
-          <label>Galera</label>
+          <label>Lote</label>
           <select
-            value={galeraSeleccionada}
+            value={loteSeleccionado}
             onChange={(e) =>
-              setGaleraSeleccionada(
+              setLoteSeleccionado(
                 e.target.value
               )
             }
@@ -349,7 +358,7 @@ function EgresoAlimento() {
               Seleccione
             </option>
 
-            {galeras.map(g => (
+            {lotes.map(g => (
               <option
                 key={g.value}
                 value={g.value}
@@ -362,7 +371,7 @@ function EgresoAlimento() {
 
         <div><button
           type="button"
-          onClick={agregarGrupoGalera}
+          onClick={agregarGrupoLote}
           style={btnAdd}
         >
           +
@@ -380,7 +389,7 @@ function EgresoAlimento() {
               marginBottom: "20px"
             }}
           >
-            <h3>{catalogName(galeras.find((item) => item.value === grupo.galera) || { value: grupo.galera, label: grupo.galera })}</h3>
+            <h3>{catalogName(lotes.find((item) => item.value === grupo.lote) || { value: grupo.lote, label: grupo.lote })}</h3>
 
             <div
               style={{
@@ -729,7 +738,7 @@ function EgresoAlimento() {
           style={btnAdd}
         >
           {editingId ? "Guardar cambios" : "Guardar"}
-        </button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setGrupos([]); setGaleraSeleccionada(""); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
+        </button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setGrupos([]); setLoteSeleccionado(""); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
       </form>
     </div>
   </OperationPanel>);

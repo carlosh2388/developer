@@ -47,8 +47,8 @@ function IngresoAlimento() {
         const related = children.get(detail.id) || [];
         return { ...crearFila(tipo), alimento: tipo === "Alimento" ? detail.product_code : "", material: tipo === "Material" ? detail.product_code : "",
           aditivo: tipo === "Aditivo" ? detail.product_code : "", cantidad: String(Math.round(Number(detail.quantity || 0))), precio: Number(detail.unit_cost || 0).toFixed(2), modoPrecio: "UNITARIO",
-          aditivos: related.filter((item) => item.line_role === "ADDITIVE").map((item) => ({ producto: item.product_code, cantidad: String(Math.round(Number(item.quantity || 0))) })),
-          medicamentos: related.filter((item) => item.line_role === "MEDICINE").map((item) => ({ producto: item.product_code, cantidad: String(Math.round(Number(item.quantity || 0))) })) };
+          aditivos: related.filter((item) => item.line_role === "ADDITIVE").map((item) => ({ producto: item.product_code, observacion: item.justification || "" })),
+          medicamentos: related.filter((item) => item.line_role === "MEDICINE").map((item) => ({ producto: item.product_code, observacion: item.justification || "" })) };
       });
       setEditingId(document.id); setFecha(String(document.movement_date).slice(0, 10)); setProveedor(document.supplier_code || ""); setFilas(rows);
     } catch (error) { alert(error.message); }
@@ -73,12 +73,12 @@ const crearFila = (
 
   aditivos:
     tipo === "Alimento"
-      ? [{ producto: "", cantidad: "" }]
+      ? [{ producto: "", observacion: "" }]
       : [],
 
   medicamentos:
     tipo === "Alimento"
-      ? [{ producto: "", cantidad: "" }]
+      ? [{ producto: "", observacion: "" }]
       : []
 });
 
@@ -126,7 +126,9 @@ const cambiarModoPrecio = (id) => {
 const calcularCostoUnitario = (fila) => {
   const cantidad = Number(fila.cantidad || 0);
   const precio = Number(fila.precio || 0);
-  if (cantidad <= 0 || precio < 0) return "0.00";
+  if (precio < 0) return "0.00";
+  if (fila.modoPrecio === "TOTAL") return precio.toFixed(2);
+  if (cantidad <= 0) return "0.00";
   return (cantidad * precio).toFixed(2);
 };
 
@@ -140,7 +142,7 @@ const agregarAditivoFila = (
             ...f,
             aditivos: [
               ...(f.aditivos || []),
-              { producto: "", cantidad: "" }
+              { producto: "", observacion: "" }
             ]
           }
         : f
@@ -158,7 +160,7 @@ const agregarMedicamentoFila = (
             ...f,
             medicamentos: [
               ...(f.medicamentos || []),
-              { producto: "", cantidad: "" }
+              { producto: "", observacion: "" }
             ]
           }
         : f
@@ -215,10 +217,7 @@ const agregarMedicamentoFila = (
       if (!filas.length) throw new Error("Agrega al menos un producto.");
       if (filas.some((fila) => !(fila.item || fila.alimento || fila.material || fila.aditivo || fila.medicamento) || Number(fila.cantidad) <= 0)) throw new Error("Selecciona el producto e ingresa una cantidad mayor que cero en cada fila.");
       if (filas.some((fila) => fila.precio === "" || Number(fila.precio) < 0)) throw new Error("Ingresa un precio válido en cada fila.");
-      const componentes = filas.flatMap((fila) => [...(fila.aditivos || []), ...(fila.medicamentos || [])]).filter((item) => item.producto);
-      if (componentes.some((item) => Number(item.cantidad) <= 0)) throw new Error("Ingresa la cantidad de cada aditivo o medicamento seleccionado.");
-      const filasConCostoUnitario = filas.map((fila) => ({ ...fila, modoPrecio: "UNITARIO" }));
-      await saveInventory({ id: editingId, fecha, proveedor, rows: filasConCostoUnitario, movementType: "INPUT", module: "FOOD" });
+      await saveInventory({ id: editingId, fecha, proveedor, rows: filas, movementType: "INPUT", module: "FOOD" });
       alert(editingId ? "Ingreso actualizado correctamente" : "Ingreso registrado correctamente"); setFilas([]); setProveedor(""); setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
     } catch (error) { alert(error.message); }
   };
@@ -609,7 +608,7 @@ const agregarMedicamentoFila = (
                                   )
                                 )}
                               </select>
-                              <input type="number" {...quantityInput(aditivosDisponibles.find((item) => item.value === aditivo.producto)?.unitCode)} value={aditivo.cantidad} onChange={(e) => cambiarAditivo(fila.id, index, "cantidad", e.target.value)} placeholder="Cantidad" style={{ ...inputStyle, minWidth: "82px" }}/>
+                              <input type="text" value={aditivo.observacion} onChange={(e) => cambiarAditivo(fila.id, index, "observacion", e.target.value)} placeholder="Observaciones" style={{ ...inputStyle, minWidth: "130px" }}/>
 
                             </div>
 
@@ -696,7 +695,7 @@ const agregarMedicamentoFila = (
                                   )
                                 )}
                               </select>
-                              <input type="number" {...quantityInput(medicamentosDisponibles.find((item) => item.value === medicamento.producto)?.unitCode)} value={medicamento.cantidad} onChange={(e) => cambiarMedicamento(fila.id, index, "cantidad", e.target.value)} placeholder="Cantidad" style={{ ...inputStyle, minWidth: "82px" }}/>
+                              <input type="text" value={medicamento.observacion} onChange={(e) => cambiarMedicamento(fila.id, index, "observacion", e.target.value)} placeholder="Observaciones" style={{ ...inputStyle, minWidth: "130px" }}/>
 
                             </div>
 

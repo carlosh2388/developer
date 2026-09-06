@@ -15,7 +15,7 @@ function EgresoReproductores() {
 
   const [fecha, setFecha] = useState("");
   const [editingId, setEditingId] = useState(null);
-  const cargarEdicion = async (row) => { try { const data = await api(`/reproductores/egresos/${row.id}`); setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setFilas(data.detalles.map((item) => ({ hembras: String(item.female_count), machos: String(item.male_count), subtotal: Number(item.female_count) + Number(item.male_count), lote: item.flock_code, tipo: item.reason_code, observacion: item.observation || "", envio: data.shipment_number || "" }))); } catch (error) { alert(error.message); } };
+  const cargarEdicion = async (row) => { try { const data = await api(`/reproductores/egresos/${row.id}`); setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setFilas(data.detalles.map((item) => ({ hembras: String(item.female_count), machos: String(item.male_count), subtotal: Number(item.female_count) + Number(item.male_count), lote: item.flock_code, tipo: item.reason_code, observacionEnvio: item.observation || data.shipment_number || "" }))); } catch (error) { alert(error.message); } };
 
   const [filas, setFilas] = useState([
     {
@@ -24,8 +24,7 @@ function EgresoReproductores() {
       subtotal: 0,
       lote: "",
       tipo: "",
-      observacion: "",
-      envio: ""
+      observacionEnvio: ""
     }
   ]);
 
@@ -63,8 +62,7 @@ function EgresoReproductores() {
         subtotal: 0,
         lote: "",
         tipo: "",
-        observacion: "",
-        envio: ""
+        observacionEnvio: ""
       }
     ]);
   };
@@ -94,6 +92,7 @@ function EgresoReproductores() {
     campo,
     valor
   ) => {
+    if (["hembras", "machos"].includes(campo) && !/^\d*$/.test(valor)) return;
     const nuevasFilas = [...filas];
 
     nuevasFilas[index][campo] = valor;
@@ -121,11 +120,15 @@ function EgresoReproductores() {
   const guardar = async () => {
     const reasons = { "Error de Sexado": "SEXING_ERROR", Mortandad: "MORTALITY", "Selección": "SELECTION", "SelecciÃ³n": "SELECTION", Venta: "SALE" };
     try {
-      await saveOperation("/reproductores/egresos", { fecha, numeroEnvio: filas.find((x) => x.envio)?.envio || undefined,
+      const invalida = filas.find((fila) => !fila.lote || !fila.tipo
+        || !/^\d+$/.test(String(fila.hembras || "0")) || !/^\d+$/.test(String(fila.machos || "0"))
+        || Number(fila.hembras || 0) + Number(fila.machos || 0) <= 0);
+      if (invalida) throw new Error("Completa lote y tipo; Hembras y Machos deben ser enteros sin negativos y el subtotal debe ser mayor que cero.");
+      await saveOperation("/reproductores/egresos", { fecha,
         detalles: filas.map((fila) => ({ lote: fila.lote, motivo: reasons[fila.tipo] || fila.tipo,
-          hembras: Number(fila.hembras), machos: Number(fila.machos), observacion: fila.observacion })) }, editingId);
+          hembras: Number(fila.hembras || 0), machos: Number(fila.machos || 0), observacion: fila.observacionEnvio })) }, editingId);
       alert(editingId ? "Egreso actualizado correctamente" : "Egreso registrado correctamente");
-      setFilas([{ hembras: "", machos: "", subtotal: 0, lote: "", tipo: "", observacion: "", envio: "" }]);
+      setFilas([{ hembras: "", machos: "", subtotal: 0, lote: "", tipo: "", observacionEnvio: "" }]);
       setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
     } catch (error) { alert(error.message); }
   };
@@ -158,8 +161,7 @@ function EgresoReproductores() {
     { key: "flock_codes", label: "Lotes", render: (value) => value || "Sin lote" },
     { key: "reason_names", label: "Tipo", render: (value) => value || "Sin tipo" },
     { key: "total_females", label: "Hembras" }, { key: "total_males", label: "Machos" }, { key: "total_birds", label: "Total" },
-    { key: "observations", label: "Observación", render: (value) => value || "Sin observación" },
-    { key: "shipment_number", label: "Envío", render: (value) => value || "No aplica" },
+    { key: "observations", label: "Observaciones y # Envío", render: (value, row) => value || row.shipment_number || "Sin información" },
     { key: "status", label: "Estado", render: (value) => ({ POSTED: "Registrado", VOID: "Anulado", DRAFT: "Borrador" }[value] || value) },
   ]} onEdit={cargarEdicion}/>
     <div
@@ -232,7 +234,12 @@ function EgresoReproductores() {
 
             <input
               type="number"
+              min="0"
+              step="1"
               value={fila.hembras}
+              onKeyDown={(e) => {
+                if (["-", "+", ".", ",", "e", "E"].includes(e.key)) e.preventDefault();
+              }}
               onChange={(e) =>
                 actualizarFila(
                   index,
@@ -251,7 +258,12 @@ function EgresoReproductores() {
 
             <input
               type="number"
+              min="0"
+              step="1"
               value={fila.machos}
+              onKeyDown={(e) => {
+                if (["-", "+", ".", ",", "e", "E"].includes(e.key)) e.preventDefault();
+              }}
               onChange={(e) =>
                 actualizarFila(
                   index,
@@ -323,39 +335,19 @@ function EgresoReproductores() {
             </select>
           </div>
 
-    {/* OBSERVACIÓN / ENVÍO */}
-    
-    <div style={{ flex: 1.5}}>
-      <label>
-        {["SALE", "Venta"].includes(fila.tipo)
-          ? "# Envío"  
-          : "Observación"}
-      </label>
-    
-      <input
-       type="text"
-        value={
-          ["SALE", "Venta"].includes(fila.tipo)
-            ? fila.envio
-            : fila.observacion
-       }
-        onChange={(e) =>
-          actualizarFila(
-            index,
-            ["SALE", "Venta"].includes(fila.tipo)
-              ? "envio"
-              : "observacion",
-            e.target.value
-          )
-        }
-        placeholder={
-          ["SALE", "Venta"].includes(fila.tipo)
-            ? "Ingrese # Envío"
-            : "Ingrese observación"
-        }
-        style={inputStyle}
-      />
-    </div>
+          {/* OBSERVACIONES Y NÚMERO DE ENVÍO */}
+
+          <div style={{ flex: 1.5 }}>
+            <label>Observaciones y # Envío</label>
+
+            <input
+              type="text"
+              value={fila.observacionEnvio}
+              onChange={(e) => actualizarFila(index, "observacionEnvio", e.target.value)}
+              placeholder="Ingrese observaciones y # envío"
+              style={inputStyle}
+            />
+          </div>
 
           {/* ELIMINAR FILA */}
 
@@ -393,7 +385,7 @@ function EgresoReproductores() {
         }}
       >
         {editingId ? "Guardar cambios" : "Guardar Egreso"}
-      </button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setFilas([{ hembras: "", machos: "", subtotal: 0, lote: "", tipo: "", observacion: "", envio: "" }]); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
+      </button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setFilas([{ hembras: "", machos: "", subtotal: 0, lote: "", tipo: "", observacionEnvio: "" }]); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
     </div>
   </OperationPanel>);
 }

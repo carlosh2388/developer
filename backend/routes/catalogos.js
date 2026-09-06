@@ -4,6 +4,7 @@ const { authenticate, requirePermission } = require("../middleware/auth");
 
 router.use(authenticate);
 router.get("/catalogos/valores", requirePermission("operations.read"), controller.listarValores);
+router.post("/catalogos/valores", requirePermission("settings.manage"), controller.crearValorCatalogo);
 router.get("/catalogos/regiones/siguiente", requirePermission("operations.read"), controller.siguienteRegion);
 router.post("/catalogos/regiones", requirePermission("settings.manage"), controller.crearRegion);
 router.get("/catalogos/unidades/siguiente", requirePermission("operations.read"), controller.siguienteUnidad);
@@ -33,6 +34,7 @@ router.get("/productos/siguiente", requirePermission("operations.read"), control
 router.post("/productos", requirePermission("settings.manage"), controller.crearProducto);
 crud("/productos", "productos", { create: false });
 router.get("/lotes/siguientes", requirePermission("operations.read"), controller.listarSiguientesLotes);
+router.post("/lotes/trasladar-produccion", requirePermission("settings.manage"), controller.trasladarLoteProduccion);
 router.post("/lotes", requirePermission("settings.manage"), controller.crearLote);
 router.put("/lotes/:id", requirePermission("settings.manage"), controller.actualizarLote);
 crud("/lotes", "lotes", { create: false, update: false });

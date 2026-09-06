@@ -4,6 +4,7 @@ import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import OperationRecordsModal, { inventoryColumns } from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
 import CancelEditButton from "../components/CancelEditButton";
+import EggAdjustmentForm from "../components/EggAdjustmentForm";
 
 function AjustesEntrada() {
   const { productosPorTipo } = useOperationalCatalogs(["productos"]);
@@ -33,6 +34,7 @@ function AjustesEntrada() {
 
   const [filas, setFilas] = useState([]);
   const [editingId, setEditingId] = useState(null);
+  const [eggMode, setEggMode] = useState(false);
   const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setFilas(data.rows.map((item) => ({ ...item, tipo: item.tipo === "Materiales" ? "Material de Empaque" : item.tipo }))); } catch (error) { alert(error.message); } };
 
   // =========================
@@ -52,6 +54,7 @@ function AjustesEntrada() {
   // =========================
 
   const agregarFila = (tipo) => {
+    if (eggMode) return;
     setFilas(prev => [
       ...prev,
       crearFila(tipo)
@@ -187,6 +190,7 @@ function AjustesEntrada() {
         <button
           type="button"
           style={btn}
+          disabled={eggMode}
           onClick={() =>
             agregarFila("Aditivos")
           }
@@ -197,6 +201,7 @@ function AjustesEntrada() {
         <button
           type="button"
           style={btn}
+          disabled={eggMode}
           onClick={() =>
             agregarFila("Alimento")
           }
@@ -204,9 +209,14 @@ function AjustesEntrada() {
           Alimento
         </button>
 
+        <button type="button" style={{ ...btn, background: eggMode ? "#0d6efd" : "#1976d2" }} onClick={() => { setEggMode(true); setFilas([]); setEditingId(null); }}>
+          Huevo
+        </button>
+
         <button
           type="button"
           style={btn}
+          disabled={eggMode}
           onClick={() =>
             agregarFila("Insumos")
           }
@@ -217,6 +227,7 @@ function AjustesEntrada() {
         <button
           type="button"
           style={btn}
+          disabled={eggMode}
           onClick={() =>
             agregarFila("Material de Empaque")
           }
@@ -227,6 +238,7 @@ function AjustesEntrada() {
         <button
           type="button"
           style={btn}
+          disabled={eggMode}
           onClick={() =>
             agregarFila("Medicamentos")
           }
@@ -237,6 +249,7 @@ function AjustesEntrada() {
         <button
           type="button"
           style={btn}
+          disabled={eggMode}
           onClick={() =>
             agregarFila("Vacunas")
           }
@@ -247,7 +260,10 @@ function AjustesEntrada() {
       </div>
 
       {/* TABLA */}
-      <form onSubmit={guardar}>
+      {eggMode ? <>
+        <EggAdjustmentForm date={fecha} movementType="ADJUSTMENT_IN" />
+        <button type="button" onClick={() => setEggMode(false)} style={{ marginTop: "10px" }}>Cancelar ajuste de huevo</button>
+      </> : <form onSubmit={guardar}>
 
         <table
           style={{
@@ -384,7 +400,7 @@ function AjustesEntrada() {
           </button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setFilas([]); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
         </div>
 
-      </form>
+      </form>}
 
     </div>
   </OperationPanel>);

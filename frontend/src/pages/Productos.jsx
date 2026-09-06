@@ -8,7 +8,7 @@ import { useCatalogList } from "../hooks/useCatalogList";
 import InlineAddActions from "../components/InlineAddActions";
 
 function Productos() {
-  const referencias = useReferenceValues(["PRODUCT_TYPE", "UNIT", "VACCINE_KIND"]);
+  const referencias = useReferenceValues(["PRODUCT_TYPE", "UNIT", "VACCINE_KIND", "VACCINE_STRAIN", "VACCINE_APPLICATION_MODE"]);
   const list = useCatalogList("/productos");
   // =========================
   // STATES
@@ -31,6 +31,15 @@ function Productos() {
   const [enfermedad, setEnfermedad] = useState("");
   const [dosis, setDosis] = useState("");
   const [tipo, setTipo] = useState("");
+  const [diluyente, setDiluyente] = useState("");
+  const [cepa, setCepa] = useState("");
+  const [modoAplicacion, setModoAplicacion] = useState("");
+  const [cepas, setCepas] = useState([]);
+  const [modosAplicacion, setModosAplicacion] = useState([]);
+  const [mostrarNuevaCepa, setMostrarNuevaCepa] = useState(false);
+  const [mostrarNuevoModo, setMostrarNuevoModo] = useState(false);
+  const [nuevaCepa, setNuevaCepa] = useState("");
+  const [nuevoModo, setNuevoModo] = useState("");
 
   const [mostrarGenerales, setMostrarGenerales] = useState(false);
   const [mostrarInsumos, setMostrarInsumos] = useState(false);
@@ -38,9 +47,22 @@ function Productos() {
   const [helpId, setHelpId] = useState("");
   const [mostrarGuardar, setMostrarGuardar] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const cancelarEdicion = () => { setEditingId(null); setTipoInventario(""); setIdProducto(""); setNombre(""); setUnidad(""); setEstado("Activo"); setPrecio(""); setCosto(""); setPresentacion(""); setEnfermedad(""); setDosis(""); setTipo(""); setMostrarGenerales(false); setMostrarInsumos(false); setHelpId(""); setMostrarGuardar(false); setMostrarNuevaUnidad(false); setCodigoNuevaUnidad(""); setNombreNuevaUnidad(""); setAbreviaturaNuevaUnidad(""); };
+  const cancelarEdicion = () => { setEditingId(null); setTipoInventario(""); setIdProducto(""); setNombre(""); setUnidad(""); setEstado("Activo"); setPrecio(""); setCosto(""); setPresentacion(""); setEnfermedad(""); setDosis(""); setTipo(""); setDiluyente(""); setCepa(""); setModoAplicacion(""); setMostrarNuevaCepa(false); setMostrarNuevoModo(false); setNuevaCepa(""); setNuevoModo(""); setMostrarGenerales(false); setMostrarInsumos(false); setHelpId(""); setMostrarGuardar(false); setMostrarNuevaUnidad(false); setCodigoNuevaUnidad(""); setNombreNuevaUnidad(""); setAbreviaturaNuevaUnidad(""); };
 
   useEffect(() => { setUnidades(referencias.UNIT || []); }, [referencias.UNIT]);
+  useEffect(() => { setCepas(referencias.VACCINE_STRAIN || []); }, [referencias.VACCINE_STRAIN]);
+  useEffect(() => { setModosAplicacion(referencias.VACCINE_APPLICATION_MODE || []); }, [referencias.VACCINE_APPLICATION_MODE]);
+
+  const agregarOpcionVacuna = async (catalogo, nombre, setOptions, setSelected, close, clear) => {
+    if (!nombre.trim()) return;
+    try {
+      const nueva = await api("/catalogos/valores", {
+        method: "POST", body: JSON.stringify({ catalogo, nombre: nombre.trim() }),
+      });
+      setOptions((current) => [...current, nueva].sort((a, b) => a.label.localeCompare(b.label, "es", { numeric: true })));
+      setSelected(nueva.valueCode); close(false); clear("");
+    } catch (error) { alert(error.message); }
+  };
 
   const abrirNuevaUnidad = async () => {
     try {
@@ -69,6 +91,9 @@ function Productos() {
     const value = e.target.value;
 
     setTipoInventario(value);
+    if (value !== "VA") { setDiluyente(""); setCepa(""); setModoAplicacion(""); }
+    if (value !== "VA") setTipo("");
+    if (value === "VA") setPresentacion("");
 
     if (value) {
       setMostrarGenerales(true);
@@ -109,12 +134,16 @@ function Productos() {
       const saved = await api(editingId ? `/productos/${editingId}` : "/productos", { method: editingId ? "PUT" : "POST", body: JSON.stringify({
         ...(!editingId ? { tipoProducto: tipoInventario } : {}), nombre, unidad: units[unidad] || unidad,
         estado: estado === "Activo" ? "ACTIVE" : "INACTIVE", precioVenta: precio || 0,
-        existenciaInicial: 0, costoEstandar: costo || 0, presentacion,
-        enfermedadObjetivo: enfermedad, dosis, tipoVacuna: tipo || null,
+        existenciaInicial: 0, costoEstandar: costo || 0, presentacion: tipoInventario === "VA" ? null : presentacion,
+        enfermedadObjetivo: enfermedad, dosis, tipoVacuna: tipoInventario === "VA" ? (tipo || null) : null,
+        diluyente: tipoInventario === "VA" ? diluyente === "SI" : null,
+        cepa: tipoInventario === "VA" ? (cepa || null) : null,
+        modoAplicacion: tipoInventario === "VA" ? (modoAplicacion || null) : null,
       }) });
       alert(`Producto ${saved.code} guardado correctamente`);
       setTipoInventario(""); setIdProducto(""); setNombre(""); setUnidad(""); setEstado("Activo");
       setPrecio(""); setCosto(""); setPresentacion(""); setEnfermedad(""); setDosis(""); setTipo("");
+      setDiluyente(""); setCepa(""); setModoAplicacion(""); setMostrarNuevaCepa(false); setMostrarNuevoModo(false); setNuevaCepa(""); setNuevoModo("");
       setMostrarGenerales(false); setMostrarInsumos(false); setHelpId(""); setMostrarGuardar(false);
       setMostrarNuevaUnidad(false); setCodigoNuevaUnidad(""); setNombreNuevaUnidad(""); setAbreviaturaNuevaUnidad("");
       setEditingId(null);
@@ -358,7 +387,7 @@ function Productos() {
               />
             </div>
 
-            <div style={{ flex: 1 }}>
+            {tipoInventario !== "VA" && <div style={{ flex: 1 }}>
               <label>
                 Presentación
               </label>
@@ -373,7 +402,7 @@ function Productos() {
                 }
                 style={inputStyle}
               />
-            </div>
+            </div>}
           </div>
 
           {/* FILA 4 */}
@@ -397,7 +426,7 @@ function Productos() {
 
             <div style={{ flex: 1 }}>
               <label>
-                Dosis
+                {tipoInventario === "VA" ? "Dosis por Frasco" : "Dosis"}
               </label>
 
               <input
@@ -412,7 +441,7 @@ function Productos() {
               />
             </div>
 
-            <div style={{ flex: 1 }}>
+            {tipoInventario === "VA" && <div style={{ flex: 1 }}>
               <label>
                 Tipo
               </label>
@@ -432,14 +461,66 @@ function Productos() {
 
                 {(referencias.VACCINE_KIND || []).map((item) => <option key={item.valueCode} value={item.valueCode}>{item.label}</option>)}
               </select>
-            </div>
+            </div>}
           </div>
+
+          {tipoInventario === "VA" && <>
+            <div style={rowStyle}>
+              <div style={{ flex: 1 }}>
+                <label>Diluyente</label>
+                <select value={diluyente} onChange={(e) => setDiluyente(e.target.value)} style={inputStyle}>
+                  <option value="">Seleccione</option>
+                  <option value="SI">Sí</option>
+                  <option value="NO">No</option>
+                </select>
+              </div>
+
+              <div style={{ flex: 2 }}>
+                <label>Cepa</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <select value={cepa} onChange={(e) => setCepa(e.target.value)} style={inputStyle}>
+                    <option value="">Seleccione</option>
+                    {cepas.map((item) => <option key={item.valueCode} value={item.valueCode}>{item.label}</option>)}
+                  </select>
+                  <button type="button" onClick={() => setMostrarNuevaCepa(true)} title="Agregar cepa"
+                    style={{ width: 42, height: 42, padding: 0, flexShrink: 0, fontSize: 20 }}>+</button>
+                </div>
+              </div>
+
+              <div style={{ flex: 2 }}>
+                <label>Modo de Aplicación</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <select value={modoAplicacion} onChange={(e) => setModoAplicacion(e.target.value)} style={inputStyle}>
+                    <option value="">Seleccione</option>
+                    {modosAplicacion.map((item) => <option key={item.valueCode} value={item.valueCode}>{item.label}</option>)}
+                  </select>
+                  <button type="button" onClick={() => setMostrarNuevoModo(true)} title="Agregar modo de aplicación"
+                    style={{ width: 42, height: 42, padding: 0, flexShrink: 0, fontSize: 20 }}>+</button>
+                </div>
+              </div>
+            </div>
+
+            {mostrarNuevaCepa && <div className="inline-add-row" style={{ marginBottom: 15 }}>
+              <input value={nuevaCepa} onChange={(e) => setNuevaCepa(e.target.value)} placeholder="Nueva cepa" style={inputStyle} />
+              <InlineAddActions
+                onSave={() => agregarOpcionVacuna("VACCINE_STRAIN", nuevaCepa, setCepas, setCepa, setMostrarNuevaCepa, setNuevaCepa)}
+                onCancel={() => { setMostrarNuevaCepa(false); setNuevaCepa(""); }}
+              />
+            </div>}
+
+            {mostrarNuevoModo && <div className="inline-add-row" style={{ marginBottom: 15 }}>
+              <input value={nuevoModo} onChange={(e) => setNuevoModo(e.target.value)} placeholder="Nuevo modo de aplicación" style={inputStyle} />
+              <InlineAddActions
+                onSave={() => agregarOpcionVacuna("VACCINE_APPLICATION_MODE", nuevoModo, setModosAplicacion, setModoAplicacion, setMostrarNuevoModo, setNuevoModo)}
+                onCancel={() => { setMostrarNuevoModo(false); setNuevoModo(""); }}
+              />
+            </div>}
+          </>}
         </div>
       )}
 
       {/* BOTÓN */}
-      {mostrarGuardar && (
-        <div className="edit-actions"><button
+      <div className="edit-actions">{mostrarGuardar && (<button
           type="submit"
           style={{
             padding: "10px 20px",
@@ -451,8 +532,7 @@ function Productos() {
           }}
         >
           {editingId ? "Guardar cambios" : "Guardar"}
-        </button><CancelEditButton editing={editingId} onCancel={cancelarEdicion}/></div>
-      )}
+        </button>)}<CancelEditButton editing={editingId} onCancel={cancelarEdicion}/></div>
       <ConfigRecordsTable title="Productos registrados" rows={productosConExistencia} loading={list.loading} error={list.error} columns={[
         { key: "code", label: "Código" }, { key: "productType", label: "Tipo", render: (value) =>
           (referencias.PRODUCT_TYPE || []).find((item) => item.valueCode === value)?.label || ({ AD: "Aditivo", AL: "Alimento", HC: "Huevo comercial", HI: "Huevo incubable", IN: "Insumo", ME: "Material de Empaque", MD: "Medicamento", VA: "Vacuna" }[value] || value)
@@ -464,6 +544,8 @@ function Productos() {
         setUnidad(row.unitCode); setEstado(row.status === "INACTIVE" ? "Inactivo" : "Activo"); setPrecio(row.salePrice || "");
         setCosto(row.standardCost || ""); setPresentacion(row.presentation || "");
         setEnfermedad(row.targetDisease || ""); setDosis(row.dosage || ""); setTipo(row.vaccineKind || "");
+        setDiluyente(row.hasDiluent === true ? "SI" : row.hasDiluent === false ? "NO" : "");
+        setCepa(row.vaccineStrainCode || ""); setModoAplicacion(row.applicationModeCode || "");
         setMostrarGenerales(true); setMostrarGuardar(true); setMostrarInsumos(["MD", "VA"].includes(row.productType));
       }} onDeactivate={async (row) => {
         if (!(await confirmAction(`¿Deseas dar de baja el producto ${row.name}?`, { title: "Dar de baja producto", confirmLabel: "Sí, dar de baja" }))) return;

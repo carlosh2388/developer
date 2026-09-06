@@ -39,7 +39,6 @@ const views = {
   clientes: <Clientes />,
   proveedores: <Proveedores />, 
   controlPesoAves: <ControlPesoAves />,
-  controlPesoHuevos: <ControlPesoHuevos />,
   IngresoAlimento: <IngresoAlimento />,
   EgresoAlimento: <EgresoAlimento />,
   ingresoHuevos: <IngresoHuevos />,
@@ -205,6 +204,8 @@ export default function App() {
       <Usuarios />
     ) : vista === "reportes" ? (
       <Reportes user={user} />
+    ) : vista === "controlPesoHuevos" ? (
+      <ControlPesoHuevos user={user} />
     ) : (
       views[vista] || <Inicio user={user} />
     );

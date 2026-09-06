@@ -150,8 +150,8 @@ function OtrosEgresos() {
   const guardar = async (e) => {
     e.preventDefault();
     const invalidas = filas.filter((fila) => !fila.galeras.length
-      || fila.galeras.some((item) => !item.galera || !Number.isInteger(Number(item.cantidad)) || Number(item.cantidad) <= 0)
-      || fila.galeras.reduce((total, item) => total + Number(item.cantidad || 0), 0) !== Number(fila.cantidad));
+      || fila.galeras.some((item) => !item.galera || !/^\d+(?:\.\d{1,2})?$/.test(String(item.cantidad)) || Number(item.cantidad) <= 0)
+      || Math.abs(fila.galeras.reduce((total, item) => total + Number(item.cantidad || 0), 0) - Number(fila.cantidad)) > 0.0001);
     if (invalidas.length) {
       setFilasSinGalera(invalidas.map((fila) => fila.id));
       const numeros = invalidas.map((fila) => filas.indexOf(fila) + 1).join(", ");

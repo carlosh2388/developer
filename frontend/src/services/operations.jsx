@@ -8,10 +8,8 @@ const roleByType = {
 
 const integerText = (value) => String(Math.round(Number(value || 0)));
 const quantityText = (value) => String(Number(value || 0));
-const decimalQuantityUnits = new Set(["GRAM", "GRAMO", "G", "KILOGRAM", "KILOGRAMO", "KG", "POUND", "LIBRA", "LB", "QUINTAL", "Q", "LITER", "LITRO", "L", "UM02", "UM03", "UM04", "UM05", "UM10"]);
-export const allowsDecimalQuantity = (unitCode, unitLabel = "") => [unitCode, unitLabel]
-  .some((value) => decimalQuantityUnits.has(String(value || "").trim().toUpperCase()));
-export const quantityInput = (unitCode, unitLabel = "") => allowsDecimalQuantity(unitCode, unitLabel) ? { min: "0.01", step: "0.01" } : { min: "1", step: "1" };
+export const allowsDecimalQuantity = () => true;
+export const quantityInput = () => ({ min: "0.01", step: "0.01" });
 export const quantityInputFor = (options, value) => {
   const selected = (options || []).find((item) => item.value === value);
   return quantityInput(selected?.unitCode, selected?.unitLabel);
@@ -32,11 +30,28 @@ export function inventoryDetails(rows, { allocate = false } = {}) {
         (row.modoPrecio === "TOTAL" ? Number(row.precio) / Number(row.cantidad) : Number(row.precio)).toFixed(2)
       ),
       justificacion: row.justificacion || undefined,
-      distribuciones: allocate ? (row.galeras || []).filter((x) => x.galera && Number(x.cantidad) > 0).map((x) => ({ galera: x.galera, cantidad: Number(x.cantidad) })) : undefined,
+      distribuciones: allocate
+        ? [
+            ...(row.lotes || []).filter((x) => x.lote && Number(x.cantidad) > 0)
+              .map((x) => ({ lote: x.lote, cantidad: Number(x.cantidad) })),
+            ...(row.galeras || []).filter((x) => x.galera && Number(x.cantidad) > 0)
+              .map((x) => ({ galera: x.galera, cantidad: Number(x.cantidad) })),
+          ]
+        : undefined,
     });
     if (row.tipo === "Alimento") {
-      (row.aditivos || []).filter((item) => item.producto).forEach((item) => details.push({ producto: item.producto, rol: "ADDITIVE", cantidad: Number(item.cantidad), detallePadreIndice: parentIndex }));
-      (row.medicamentos || []).filter((item) => item.producto).forEach((item) => details.push({ producto: item.producto, rol: "MEDICINE", cantidad: Number(item.cantidad), detallePadreIndice: parentIndex }));
+      (row.aditivos || []).filter((item) => item.producto).forEach((item) => details.push({
+        producto: item.producto, rol: "ADDITIVE", detallePadreIndice: parentIndex,
+        ...(Object.prototype.hasOwnProperty.call(item, "observacion")
+          ? { cantidad: null, observacion: item.observacion || "", justificacion: item.observacion || "" }
+          : { cantidad: Number(item.cantidad) }),
+      }));
+      (row.medicamentos || []).filter((item) => item.producto).forEach((item) => details.push({
+        producto: item.producto, rol: "MEDICINE", detallePadreIndice: parentIndex,
+        ...(Object.prototype.hasOwnProperty.call(item, "observacion")
+          ? { cantidad: null, observacion: item.observacion || "", justificacion: item.observacion || "" }
+          : { cantidad: Number(item.cantidad) }),
+      }));
     }
   });
   return details;
@@ -97,7 +112,8 @@ export async function loadInventoryDocument(id) {
     cantidad: (allowsDecimalQuantity(line.product_unit_code) ? quantityText : integerText)(line.quantity),
     precio: priceText(line.unit_cost), modoPrecio: "UNITARIO",
     justificacion: line.justification || "",
-    galeras: (line.allocations || []).map((allocation) => ({ galera: allocation.house_code || allocation.house_id, cantidad: (allowsDecimalQuantity(line.product_unit_code) ? quantityText : integerText)(allocation.quantity) })),
+    galeras: (line.allocations || []).filter((allocation) => allocation.house_id).map((allocation) => ({ galera: allocation.house_code || allocation.house_id, cantidad: (allowsDecimalQuantity(line.product_unit_code) ? quantityText : integerText)(allocation.quantity) })),
+    lotes: (line.allocations || []).filter((allocation) => allocation.flock_id).map((allocation) => ({ lote: allocation.flock_code || allocation.flock_id, cantidad: (allowsDecimalQuantity(line.product_unit_code) ? quantityText : integerText)(allocation.quantity) })),
     aditivos: document.detalles.filter((child) => child.parent_line_id === line.id && child.line_role === "ADDITIVE").map((child) => ({ id: clientId(), producto: child.product_code, unitCode: child.product_unit_code, cantidad: (allowsDecimalQuantity(child.product_unit_code) ? quantityText : integerText)(child.quantity) })),
     medicamentos: document.detalles.filter((child) => child.parent_line_id === line.id && child.line_role === "MEDICINE").map((child) => ({ id: clientId(), producto: child.product_code, unitCode: child.product_unit_code, cantidad: (allowsDecimalQuantity(child.product_unit_code) ? quantityText : integerText)(child.quantity) })),
   }));

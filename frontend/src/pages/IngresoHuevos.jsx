@@ -563,6 +563,8 @@ const calcularSubTotal = (grupo, filtro) => {
       }));
       if (!gruposConDatos.length) throw new Error("Ingresa al menos una cantidad de huevos.");
       if (gruposConDatos.some((grupo) => !grupo.lote)) throw new Error("Selecciona el lote en todos los grupos que contienen cantidades.");
+      if (gruposConDatos.some((grupo) => !grupo.recolector)) throw new Error("Selecciona el recolector en todos los grupos que contienen cantidades.");
+      if (gruposConDatos.some((grupo) => !grupo.clasificador)) throw new Error("Selecciona el clasificador en todos los grupos que contienen cantidades.");
       const detalles = grupos.flatMap((grupo) => Object.entries(grupo.datos || {}).map(([calidad, datos]) => ({
         lote: grupo.lote, clasificacion: eggGradeCode(calidad, grupo.tipo), recolectorId: grupo.recolector || undefined,
         clasificadorId: grupo.clasificador || undefined, pesoTotalGramos: Number(grupo.peso) || undefined,

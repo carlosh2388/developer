@@ -13,6 +13,16 @@ const nonNegativeInteger = (value) => {
   return text === "" ? "" : Number(text);
 };
 
+const normalizedName = (value) => String(value || "")
+  .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+
+const eggWarehouseClassification = (warehouse) => {
+  const name = normalizedName(`${warehouse?.code || ""} ${warehouse?.name || ""}`);
+  if (name.includes("HUEVO COMERCIAL")) return "Comercial";
+  if (name.includes("HUEVO INCUBABLE")) return "Incubable";
+  return "";
+};
+
 function EgresoHuevos() {
   const { bodegas, localidades, clientes, opciones } = useOperationalCatalogs(["lotes", "personal", "vehiculos", "bodegas", "localidades", "clientes"]);
 
@@ -49,8 +59,11 @@ function EgresoHuevos() {
   const [localidadDestino, setLocalidadDestino] = useState("");
 
   const localidadesActivas = localidades.filter((item) => item.status !== "INACTIVE");
-  const bodegasSalida = bodegas.filter((item) => item.status !== "INACTIVE" && String(item.locationId) === String(localidadSalida));
-  const bodegasDestino = bodegas.filter((item) => item.status !== "INACTIVE" && String(item.locationId) === String(localidadDestino));
+  const esBodegaHuevos = (item) => Boolean(eggWarehouseClassification(item));
+  const bodegasSalida = bodegas.filter((item) => item.status !== "INACTIVE" && esBodegaHuevos(item) && String(item.locationId) === String(localidadSalida));
+  const bodegasDestino = bodegas.filter((item) => item.status !== "INACTIVE" && esBodegaHuevos(item) && String(item.locationId) === String(localidadDestino));
+  const bodegaSalidaSeleccionada = bodegas.find((item) => item.code === bodegaSalida || item.id === bodegaSalida);
+  const clasificacionForzada = eggWarehouseClassification(bodegaSalidaSeleccionada);
   const clientesDestino = clientes
     .filter((item) => item.status !== "INACTIVE")
     .sort((left, right) => String(left.commercialName || "").localeCompare(String(right.commercialName || ""), "es", { sensitivity: "base", numeric: true }));
@@ -186,7 +199,7 @@ const crearFilaComercial = () => ({
 
     lote: codigo,
 
-    clasificacion: "",
+    clasificacion: clasificacionForzada || "",
 
     collapsed: false,
 
@@ -209,18 +222,23 @@ const crearFilaComercial = () => ({
     const grouped = new Map();
     data.detalles.forEach((item) => {
       const classification = item.grade_code.startsWith("INC_") ? "Incubable" : "Comercial";
-      const key = `${classification}|${item.flock_code}`;
+      const key = classification === "Comercial" ? "Comercial" : `${classification}|${item.flock_code}`;
       if (!grouped.has(key)) {
-        const lot = crearLote(item.flock_code);
+        const lot = crearLote(classification === "Comercial" ? "" : item.flock_code);
         lot.clasificacion = classification;
         grouped.set(key, lot);
       }
       const lot = grouped.get(key);
       const target = classification === "Comercial" ? lot.comercial : lot.incubadora;
       const quality = eggGradeLabel(item.grade_code);
+      const current = target[quality] || {};
       target[quality] = {
-        ...target[quality], existencias: item.existing_units, cajaB336: item.boxes_trays_336,
-        cajaC360: item.boxes_cartons_360, bandeja84: item.trays_84, carton30: item.cartons_30, unidades: item.loose_units,
+        ...current, existencias: Number(current.existencias || 0) + Number(item.existing_units || 0),
+        cajaB336: Number(current.cajaB336 || 0) + Number(item.boxes_trays_336 || 0),
+        cajaC360: Number(current.cajaC360 || 0) + Number(item.boxes_cartons_360 || 0),
+        bandeja84: Number(current.bandeja84 || 0) + Number(item.trays_84 || 0),
+        carton30: Number(current.carton30 || 0) + Number(item.cartons_30 || 0),
+        unidades: Number(current.unidades || 0) + Number(item.loose_units || 0),
       };
     });
     setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setHora(String(data.movement_time || "").slice(0, 5));
@@ -283,9 +301,12 @@ const crearFilaComercial = () => ({
   // =====================================================
 
   const cargarExistencias = async (id, codigoLote, clasificacion) => {
-    if (!codigoLote || !clasificacion) return;
+    if (!clasificacion || (clasificacion !== "Comercial" && !codigoLote)) return;
     try {
-      const saldos = await api(`/huevos/existencias?lote=${encodeURIComponent(codigoLote)}`);
+      const query = clasificacion === "Comercial"
+        ? "clasificacion=Comercial"
+        : `lote=${encodeURIComponent(codigoLote)}`;
+      const saldos = await api(`/huevos/existencias?${query}`);
       setLotes((actuales) => actuales.map((item) => {
         if (item.id !== id) return item;
         const campo = clasificacion === "Comercial" ? "comercial" : "incubadora";
@@ -329,7 +350,7 @@ const crearFilaComercial = () => ({
   ) => {
 
     const actual = lotes.find((item) => item.id === id);
-    const codigoLote = lotesDisponibles.includes(actual?.lote) ? actual.lote : "";
+    const codigoLote = value === "Comercial" ? "" : (lotesDisponibles.includes(actual?.lote) ? actual.lote : "");
     setLotes(prev =>
       prev.map(l =>
         l.id === id
@@ -343,6 +364,23 @@ const crearFilaComercial = () => ({
     );
     cargarExistencias(id, codigoLote, value);
   };
+
+  useEffect(() => {
+    if (!clasificacionForzada) return;
+    setLotes((actuales) => {
+      const actualizados = actuales.map((item) => ({
+        ...item,
+        clasificacion: clasificacionForzada,
+        lote: clasificacionForzada === "Comercial" ? "" : item.lote,
+      }));
+      return clasificacionForzada === "Comercial" ? actualizados.slice(0, 1) : actualizados;
+    });
+    (clasificacionForzada === "Comercial" ? lotes.slice(0, 1) : lotes).forEach((item) => cargarExistencias(
+      item.id,
+      clasificacionForzada === "Comercial" ? "" : item.lote,
+      clasificacionForzada
+    ));
+  }, [clasificacionForzada]);
 
   // =====================================================
   // TOGGLE LOTE
@@ -672,18 +710,29 @@ const calcularSubTotal = (
         alert("Inventario insuficiente para operar egresos.");
         return;
       }
+      if (lotes.some((item) => !item.clasificacion)) throw new Error("Selecciona la clasificación.");
+      if (lotes.some((item) => item.clasificacion === "Incubable" && !item.lote)) throw new Error("Selecciona el lote para la clasificación Incubable.");
       const detalles = lotes.flatMap((item) => {
         const source = item.clasificacion === "Comercial" ? item.comercial : item.incubadora;
         return Object.entries(source || {}).map(([calidad, datos]) => ({
-          lote: item.lote, clasificacion: eggGradeCode(calidad, item.clasificacion),
+          lote: item.clasificacion === "Comercial" ? undefined : item.lote, clasificacion: eggGradeCode(calidad, item.clasificacion),
           ...eggPackageDetail(datos),
         })).filter((d) => d.cajasBandejas336 + d.cajasCartones360 + d.bandejas84 + d.cartones30 + d.unidades > 0);
       });
+      const localidadSeleccionada = localidadesActivas.find((item) => String(item.id) === String(localidadDestino));
+      const nombreLocalidad = String(localidadSeleccionada?.name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+      const tipoDestino = localidadDestino === "CLIENTE"
+        ? "CUSTOMER"
+        : nombreLocalidad.includes("INCUBADORA")
+          ? "INCUBATOR"
+          : nombreLocalidad.includes("GRANJA")
+            ? "FARM"
+            : "OTHER";
       await saveOperation("/huevos/movimientos", { tipoMovimiento: "OUTPUT", fecha, hora, fechaProduccion,
         bodegaOrigen: bodegaSalida || undefined,
         bodegaDestino: localidadDestino === "CLIENTE" ? undefined : (bodegaDestino || undefined),
         clienteId: localidadDestino === "CLIENTE" ? (bodegaDestino || undefined) : undefined,
-        tipoDestino: localidadDestino === "CLIENTE" ? "CUSTOMER" : "WAREHOUSE",
+        tipoDestino,
         nombreDestino: localidadDestino === "CLIENTE"
           ? clientesDestino.find((item) => String(item.id) === String(bodegaDestino))?.commercialName
           : (bodegaDestino || undefined),
@@ -1558,10 +1607,10 @@ const calcularSubTotal = (
               margin: 0
             }}
           >
-            Lotes
+            Clasificación de huevos
           </h2>
 
-          <button
+          {clasificacionForzada !== "Comercial" && <button
             type="button"
             onClick={
               agregarLote
@@ -1569,7 +1618,7 @@ const calcularSubTotal = (
             style={smallButton}
           >
             +
-          </button>
+          </button>}
 
         </div>
 
@@ -1596,7 +1645,7 @@ const calcularSubTotal = (
                 style={{
                   display: "grid",
                   gridTemplateColumns:
-                    "220px 250px 180px 1fr",
+                    loteItem.clasificacion === "Comercial" ? "250px 180px 1fr" : "250px 220px 180px 1fr",
                   gap: "20px",
                   alignItems:
                     "center",
@@ -1610,6 +1659,36 @@ const calcularSubTotal = (
               >
 
                 <div>
+
+                  <label>
+                    Clasificación
+                  </label>
+
+                  <select
+                    value={
+                      loteItem.clasificacion
+                    }
+                    disabled={Boolean(clasificacionForzada)}
+                    onChange={(
+                      e
+                    ) =>
+                      handleClasificacion(
+                        loteItem.id,
+                        e.target
+                          .value
+                      )
+                    }
+                  >
+                    <option value="">Seleccione</option>
+
+                    <option value="Incubable">Incubable</option>
+                    <option value="Comercial">Comercial</option>
+
+                  </select>
+
+                </div>
+
+                {loteItem.clasificacion !== "Comercial" && <div>
 
                   <label>
                     # Lote
@@ -1630,66 +1709,11 @@ const calcularSubTotal = (
                     }
                   >
                     <option value="">Seleccione</option>
-                    {lotesDisponibles.map(
-                      (
-                        lote,
-                        index
-                      ) => (
-
-                        <option
-                          key={
-                            index
-                          }
-                          value={
-                            lote
-                          }
-                        >
-                          {lote}
-                        </option>
-
-                      )
-                    )}
+                    {lotesDisponibles.map((lote) => <option key={lote} value={lote}>{lote}</option>)}
 
                   </select>
 
-                </div>
-
-                <div>
-
-                  <label>
-                    Clasificación
-                  </label>
-
-                  <select
-                    value={
-                      loteItem.clasificacion
-                    }
-                    onChange={(
-                      e
-                    ) =>
-                      handleClasificacion(
-                        loteItem.id,
-                        e.target
-                          .value
-                      )
-                    }
-                  >
-
-                    <option value="">
-                      Seleccione
-                    </option>
-
-<option value="Incubable">
-  Incubable
-</option>
-
-<option value="Comercial">
-  Comercial
-</option>
-
-                  </select>
-
-                </div>
+                </div>}
 
 <div
   style={{

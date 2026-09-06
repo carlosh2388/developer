@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { loadInventoryDocument, saveInventory } from "../services/operations";
+import { loadInventoryDocument, quantityInput, saveInventory } from "../services/operations";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import OperationRecordsModal, { inventoryColumns } from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
@@ -273,8 +273,7 @@ function EgresoInsumos() {
                 <td>
                   <input
                     type="number"
-                    min="1"
-                    step="1"
+                    {...quantityInput()}
                     value={fila.cantidad}
                     onChange={(e) =>
                       handleChange(fila.id, "cantidad", e.target.value)
@@ -319,8 +318,7 @@ function EgresoInsumos() {
 
                       <input
                         type="number"
-                        min="1"
-                        step="1"
+                        {...quantityInput()}
                         value={g.cantidad}
                         onChange={(e) =>
                           handleGaleraChange(
