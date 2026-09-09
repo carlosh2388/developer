@@ -135,10 +135,11 @@ function Productos() {
         ...(!editingId ? { tipoProducto: tipoInventario } : {}), nombre, unidad: units[unidad] || unidad,
         estado: estado === "Activo" ? "ACTIVE" : "INACTIVE", precioVenta: precio || 0,
         existenciaInicial: 0, costoEstandar: costo || 0, presentacion: tipoInventario === "VA" ? null : presentacion,
-        enfermedadObjetivo: enfermedad, dosis, tipoVacuna: tipoInventario === "VA" ? (tipo || null) : null,
-        diluyente: tipoInventario === "VA" ? diluyente === "SI" : null,
-        cepa: tipoInventario === "VA" ? (cepa || null) : null,
-        modoAplicacion: tipoInventario === "VA" ? (modoAplicacion || null) : null,
+        enfermedadObjetivo: enfermedad, dosis,
+        ...(tipoInventario === "VA" ? {
+          tipoVacuna: tipo || null, diluyente: diluyente === "SI",
+          cepa: cepa || null, modoAplicacion: modoAplicacion || null,
+        } : {}),
       }) });
       alert(`Producto ${saved.code} guardado correctamente`);
       setTipoInventario(""); setIdProducto(""); setNombre(""); setUnidad(""); setEstado("Activo");

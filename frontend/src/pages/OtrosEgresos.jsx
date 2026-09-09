@@ -6,7 +6,7 @@ import OperationPanel from "../components/OperationPanel";
 import CancelEditButton from "../components/CancelEditButton";
 
 function OtrosEgresos() {
-  const { productosPorTipo, opciones } = useOperationalCatalogs(["productos", "galeras"]);
+  const { productosPorTipo, opciones } = useOperationalCatalogs(["productos", "lotes"]);
 
   // =========================
   // FECHA
@@ -25,23 +25,23 @@ function OtrosEgresos() {
   const aditivos = productosPorTipo(["AD"]);
   const insumos = productosPorTipo(["IN"]);
   const materiales = productosPorTipo(["ME"]);
-  const galeras = opciones("galeras");
+  const lotes = opciones("lotes");
 
   // =========================
   // FILAS
   // =========================
 
   const [filas, setFilas] = useState([]);
-  const [filasSinGalera, setFilasSinGalera] = useState([]);
+  const [filasSinLote, setFilasSinLote] = useState([]);
   const [editingId, setEditingId] = useState(null);
-  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); setFilasSinGalera([]); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setFilas(data.rows.map((item) => ({ ...item, tipo: item.tipo === "Materiales" ? "Material de Empaque" : item.tipo === "Vacunas" ? "Vacuna" : item.tipo }))); } catch (error) { alert(error.message); } };
+  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); setFilasSinLote([]); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setFilas(data.rows.map((item) => ({ ...item, tipo: item.tipo === "Materiales" ? "Material de Empaque" : item.tipo === "Vacunas" ? "Vacuna" : item.tipo }))); } catch (error) { alert(error.message); } };
 
   const crearFila = (tipo) => ({
     id: Date.now() + Math.random(),
     tipo,
     item: "",
     cantidad: "",
-    galeras: []
+    lotes: []
   });
 
   const agregarFila = (tipo) => {
@@ -50,7 +50,7 @@ function OtrosEgresos() {
 
   const eliminarFila = (id) => {
     setFilas(prev => prev.filter(f => f.id !== id));
-    setFilasSinGalera((current) => current.filter((filaId) => filaId !== id));
+    setFilasSinLote((current) => current.filter((filaId) => filaId !== id));
   };
 
   // =========================
@@ -68,19 +68,19 @@ function OtrosEgresos() {
   };
 
   // =========================
-  // GALERAS DINÁMICAS
+  // LOTES DINÁMICOS
   // =========================
 
-  const agregarGalera = (filaId) => {
+  const agregarLote = (filaId) => {
     setFilas(prev =>
       prev.map(f =>
         f.id === filaId
           ? {
               ...f,
-              galeras: [
-                ...f.galeras,
+              lotes: [
+                ...f.lotes,
                 {
-                  galera: "",
+                  lote: "",
                   cantidad: ""
                 }
               ]
@@ -90,18 +90,18 @@ function OtrosEgresos() {
     );
   };
 
-  const handleGaleraChange = (
+  const handleLoteChange = (
     filaId,
     index,
     campo,
     value
   ) => {
-    setFilasSinGalera((current) => current.filter((id) => id !== filaId));
+    setFilasSinLote((current) => current.filter((id) => id !== filaId));
     setFilas(prev =>
       prev.map(f => {
         if (f.id !== filaId) return f;
 
-        const nuevas = [...f.galeras];
+        const nuevas = [...f.lotes];
 
         nuevas[index] = {
           ...nuevas[index],
@@ -110,7 +110,7 @@ function OtrosEgresos() {
 
         return {
           ...f,
-          galeras: nuevas
+          lotes: nuevas
         };
       })
     );
@@ -149,18 +149,18 @@ function OtrosEgresos() {
 
   const guardar = async (e) => {
     e.preventDefault();
-    const invalidas = filas.filter((fila) => !fila.galeras.length
-      || fila.galeras.some((item) => !item.galera || !/^\d+(?:\.\d{1,2})?$/.test(String(item.cantidad)) || Number(item.cantidad) <= 0)
-      || Math.abs(fila.galeras.reduce((total, item) => total + Number(item.cantidad || 0), 0) - Number(fila.cantidad)) > 0.0001);
+    const invalidas = filas.filter((fila) => !fila.lotes.length
+      || fila.lotes.some((item) => !item.lote || !/^\d+(?:\.\d{1,2})?$/.test(String(item.cantidad)) || Number(item.cantidad) <= 0)
+      || Math.abs(fila.lotes.reduce((total, item) => total + Number(item.cantidad || 0), 0) - Number(fila.cantidad)) > 0.0001);
     if (invalidas.length) {
-      setFilasSinGalera(invalidas.map((fila) => fila.id));
+      setFilasSinLote(invalidas.map((fila) => fila.id));
       const numeros = invalidas.map((fila) => filas.indexOf(fila) + 1).join(", ");
-      alert(`Selecciona una galera y distribuye la cantidad completa en las filas: ${numeros}.`);
+      alert(`Selecciona un lote y distribuye la cantidad completa en las filas: ${numeros}.`);
       return;
     }
-    setFilasSinGalera([]);
+    setFilasSinLote([]);
     try { await saveInventory({ id: editingId, fecha, rows: filas, movementType: "OUTPUT", module: "OTHER", allocate: true });
-      alert(editingId ? "Egreso actualizado correctamente" : "Egreso de insumos registrado correctamente"); setFilas([]); setFilasSinGalera([]); setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
+      alert(editingId ? "Egreso actualizado correctamente" : "Otro egreso registrado correctamente"); setFilas([]); setFilasSinLote([]); setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
     } catch (error) { alert(error.message); }
   };
 
@@ -195,7 +195,7 @@ function OtrosEgresos() {
     marginBottom: "5px"
   };
 
-  const galeraRow = {
+  const loteRow = {
     display: "flex",
     gap: "8px",
     marginBottom: "5px"
@@ -217,7 +217,7 @@ function OtrosEgresos() {
       }}
     >
 
-      <h2>Egreso de Insumos</h2>
+      <h2>Otros egresos</h2>
 
       {/* FECHA */}
 
@@ -314,7 +314,7 @@ function OtrosEgresos() {
               <th>Tipo</th>
               <th>Nombre</th>
               <th>Cantidad</th>
-              <th>Galeras</th>
+              <th>Lotes</th>
               <th>Acción</th>
             </tr>
           </thead>
@@ -370,34 +370,34 @@ function OtrosEgresos() {
                   />
                 </td>
 
-                {/* GALERAS */}
+                {/* LOTES */}
 
-                <td className={filasSinGalera.includes(fila.id) ? "allocation-validation-error" : ""}>
+                <td className={filasSinLote.includes(fila.id) ? "allocation-validation-error" : ""}>
 
                   <button
                     type="button"
                     onClick={() =>
-                      agregarGalera(fila.id)
+                      agregarLote(fila.id)
                     }
                     style={btnSmall}
                   >
                     Agregar
                   </button>
 
-                  {fila.galeras.map(
+                  {fila.lotes.map(
                     (g, index) => (
                       <div
                         key={index}
-                        style={galeraRow}
+                        style={loteRow}
                       >
 
                         <select
-                          value={g.galera}
+                          value={g.lote}
                           onChange={(e) =>
-                            handleGaleraChange(
+                            handleLoteChange(
                               fila.id,
                               index,
-                              "galera",
+                              "lote",
                               e.target.value
                             )
                           }
@@ -407,7 +407,7 @@ function OtrosEgresos() {
                             Seleccione
                           </option>
 
-                          {galeras.map(opt => (
+                          {lotes.map(opt => (
                             <option
                               key={opt.value}
                               value={opt.value}
@@ -422,7 +422,7 @@ function OtrosEgresos() {
                           {...quantityInput(getOptions(fila.tipo).find((item) => item.value === fila.item)?.unitCode)}
                           value={g.cantidad}
                           onChange={(e) =>
-                            handleGaleraChange(
+                            handleLoteChange(
                               fila.id,
                               index,
                               "cantidad",
@@ -436,7 +436,7 @@ function OtrosEgresos() {
                     )
                   )}
 
-                  {filasSinGalera.includes(fila.id) && <small className="field-error-message">Selecciona una galera y distribuye la cantidad completa de esta fila.</small>}
+                  {filasSinLote.includes(fila.id) && <small className="field-error-message">Selecciona un lote y distribuye la cantidad completa de esta fila.</small>}
 
                 </td>
 
@@ -480,7 +480,7 @@ function OtrosEgresos() {
             }}
           >
             Guardar
-          </button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setFilas([]); setFilasSinGalera([]); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
+          </button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setFilas([]); setFilasSinLote([]); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
         </div>
 
       </form>

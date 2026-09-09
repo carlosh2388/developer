@@ -110,15 +110,15 @@ function positiveQuantity(value, name, allowTwoDecimals = false) {
   return number;
 }
 
-function validateFoodOutputAllocations(body, details) {
-  if (body.tipoMovimiento !== "OUTPUT" || body.modulo !== "FOOD") return;
+function validateOutputAllocations(body, details) {
+  if (body.tipoMovimiento !== "OUTPUT" || !["FOOD", "OTHER"].includes(body.modulo)) return;
   const primaryDetails = details.filter((detail) => !Number.isInteger(detail.detallePadreIndice));
   const invalid = primaryDetails.some((detail) =>
-    !Array.isArray(detail.distribuciones) || detail.distribuciones.length !== 1
-    || !(detail.distribuciones[0].loteId || detail.distribuciones[0].lote)
+    !Array.isArray(detail.distribuciones) || (body.modulo === "FOOD" ? detail.distribuciones.length !== 1 : !detail.distribuciones.length)
+    || detail.distribuciones.some((allocation) => !(allocation.loteId || allocation.lote))
   );
   if (invalid) {
-    throw new HttpError(400, "Cada alimento o vacuna debe estar asociado a un lote.", "FLOCK_REQUIRED");
+    throw new HttpError(400, "Cada línea de egreso debe estar asociada a un lote.", "FLOCK_REQUIRED");
   }
 }
 
@@ -174,7 +174,7 @@ async function validateProjectedInventory(client, orgId, details, movementType, 
   details.forEach((detail) => requested.set(detail._productId, (requested.get(detail._productId) || 0) + sign * detail._quantity));
   for (const product of rows) {
     const projected = Number(product.available || 0) + (requested.get(product.id) || 0);
-    if (projected < -0.0001) throw new HttpError(409,
+    if (projected < -0.0001 && !(!excludedDocumentId && incomingInventoryTypes.has(movementType))) throw new HttpError(409,
       `Existencia insuficiente para ${product.name}. Disponible: ${Number(product.available || 0).toFixed(4)}.`, "INSUFFICIENT_STOCK");
   }
 }
@@ -239,7 +239,7 @@ async function actualizarInventario(req, res, next) {
     const orgId = organizationId(req); const body = req.body || {};
     const detalles = Array.isArray(body.detalles) ? body.detalles : [];
     if (!detalles.length) throw new HttpError(400, "Agrega al menos un detalle.", "VALIDATION_ERROR");
-    validateFoodOutputAllocations(body, detalles);
+    validateOutputAllocations(body, detalles);
     if (body.tipoMovimiento === "INPUT" && body.modulo === "FOOD" && !(body.proveedorId || body.proveedor)) throw new HttpError(400, "Selecciona el proveedor del ingreso de alimento.", "VALIDATION_ERROR");
     const result = await transaction(async (client) => {
       const current = await client.query("SELECT * FROM inventory_documents WHERE id=$1 AND organization_id=$2 FOR UPDATE", [req.params.id, orgId]);
@@ -267,7 +267,7 @@ async function actualizarInventario(req, res, next) {
           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,[orgId,req.params.id,parent,productId,detail.rol || "PRIMARY",detail._quantity,detail._unitCost,detail.justificacion || null,index+1]);
         inserted.push(line.rows[0]);
         let distributed=0;
-        for (const allocation of detail.distribuciones || []) { distributed += await insertInventoryAllocation(client, orgId, line.rows[0].id, { ...allocation, _allowsDecimals: detail._allowsDecimals }, movementType === "OUTPUT" && body.modulo === "FOOD" ? "flock" : "house"); }
+        for (const allocation of detail.distribuciones || []) { distributed += await insertInventoryAllocation(client, orgId, line.rows[0].id, { ...allocation, _allowsDecimals: detail._allowsDecimals }, movementType === "OUTPUT" && ["FOOD", "OTHER"].includes(body.modulo) ? "flock" : "house"); }
         if ((detail.distribuciones || []).length && Math.abs(distributed-Number(detail.cantidad))>0.0001) throw new HttpError(400,`La distribución de la línea ${index+1} no coincide con su cantidad.`,"ALLOCATION_MISMATCH");
       }
       return { ...header.rows[0], detalles: inserted };
@@ -282,7 +282,7 @@ async function crearInventario(req, res, next) {
     const body = req.body || {};
     const detalles = Array.isArray(body.detalles) ? body.detalles : [];
     if (!detalles.length) throw new HttpError(400, "Agrega al menos un detalle.", "VALIDATION_ERROR");
-    validateFoodOutputAllocations(body, detalles);
+    validateOutputAllocations(body, detalles);
     if (body.tipoMovimiento === "INPUT" && body.modulo === "FOOD" && !(body.proveedorId || body.proveedor)) {
       throw new HttpError(400, "Selecciona el proveedor del ingreso de alimento.", "VALIDATION_ERROR");
     }
@@ -313,7 +313,7 @@ async function crearInventario(req, res, next) {
         inserted.push(line.rows[0]);
         let distributed = 0;
         for (const allocation of detail.distribuciones || []) {
-          distributed += await insertInventoryAllocation(client, orgId, line.rows[0].id, { ...allocation, _allowsDecimals: detail._allowsDecimals }, movementType === "OUTPUT" && body.modulo === "FOOD" ? "flock" : "house");
+          distributed += await insertInventoryAllocation(client, orgId, line.rows[0].id, { ...allocation, _allowsDecimals: detail._allowsDecimals }, movementType === "OUTPUT" && ["FOOD", "OTHER"].includes(body.modulo) ? "flock" : "house");
         }
         if ((detail.distribuciones || []).length && Math.abs(distributed - Number(detail.cantidad)) > 0.0001) {
           throw new HttpError(400, `La distribución de la línea ${index + 1} no coincide con su cantidad.`, "ALLOCATION_MISMATCH");
