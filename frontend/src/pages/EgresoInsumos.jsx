@@ -6,7 +6,7 @@ import OperationPanel from "../components/OperationPanel";
 import CancelEditButton from "../components/CancelEditButton";
 
 function EgresoInsumos() {
-  const { productosPorTipo, opciones } = useOperationalCatalogs(["productos", "galeras"]);
+  const { productosPorTipo, opciones } = useOperationalCatalogs(["productos", "lotes"]);
 
   // =========================
   // FECHA
@@ -24,22 +24,23 @@ function EgresoInsumos() {
   const medicamentos = productosPorTipo(["MD"]);
   const aditivos = productosPorTipo(["AD"]);
   const materiales = productosPorTipo(["ME", "IN"]);
-  const galeras = opciones("galeras");
+  const lotes = opciones("lotes");
 
   // =========================
   // FILAS
   // =========================
 
   const [filas, setFilas] = useState([]);
+  const [filasSinLote, setFilasSinLote] = useState([]);
   const [editingId, setEditingId] = useState(null);
-  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setFilas(data.rows.map((item) => ({ ...item, tipo: item.tipo === "Vacunas" ? "Vacuna" : item.tipo }))); } catch (error) { alert(error.message); } };
+  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); setFilasSinLote([]); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setFilas(data.rows.map((item) => ({ ...item, tipo: item.tipo === "Vacunas" ? "Vacuna" : item.tipo }))); } catch (error) { alert(error.message); } };
 
   const crearFila = (tipo) => ({
     id: Date.now() + Math.random(),
     tipo,
     item: "",
     cantidad: "",
-    galeras: [] // ahora será lista de {galera, cantidad}
+    lotes: []
   });
 
   const agregarFila = (tipo) => {
@@ -48,6 +49,7 @@ function EgresoInsumos() {
 
   const eliminarFila = (id) => {
     setFilas(prev => prev.filter(f => f.id !== id));
+    setFilasSinLote((current) => current.filter((filaId) => filaId !== id));
   };
 
   // =========================
@@ -63,18 +65,18 @@ function EgresoInsumos() {
   };
 
   // =========================
-  // GALERAS DINÁMICAS (AGREGAR FILA GALERA + CANTIDAD)
+  // LOTES DINÁMICOS
   // =========================
 
-  const agregarGalera = (filaId) => {
+  const agregarLote = (filaId) => {
     setFilas(prev =>
       prev.map(f =>
         f.id === filaId
           ? {
               ...f,
-              galeras: [
-                ...f.galeras,
-                { galera: "", cantidad: "" }
+              lotes: [
+                ...f.lotes,
+                { lote: "", cantidad: "" }
               ]
             }
           : f
@@ -82,12 +84,13 @@ function EgresoInsumos() {
     );
   };
 
-  const handleGaleraChange = (filaId, index, campo, value) => {
+  const handleLoteChange = (filaId, index, campo, value) => {
+    setFilasSinLote((current) => current.filter((id) => id !== filaId));
     setFilas(prev =>
       prev.map(f => {
         if (f.id !== filaId) return f;
 
-        const nuevas = [...f.galeras];
+        const nuevas = [...f.lotes];
         nuevas[index] = {
           ...nuevas[index],
           [campo]: value
@@ -95,7 +98,7 @@ function EgresoInsumos() {
 
         return {
           ...f,
-          galeras: nuevas
+          lotes: nuevas
         };
       })
     );
@@ -131,8 +134,18 @@ function EgresoInsumos() {
 
   const guardar = async (e) => {
     e.preventDefault();
+    const invalidas = filas.filter((fila) => !fila.lotes.length
+      || fila.lotes.some((item) => !item.lote || !/^\d+(?:\.\d{1,2})?$/.test(String(item.cantidad)) || Number(item.cantidad) <= 0)
+      || Math.abs(fila.lotes.reduce((total, item) => total + Number(item.cantidad || 0), 0) - Number(fila.cantidad)) > 0.0001);
+    if (invalidas.length) {
+      setFilasSinLote(invalidas.map((fila) => fila.id));
+      const numeros = invalidas.map((fila) => filas.indexOf(fila) + 1).join(", ");
+      alert(`Selecciona un lote y distribuye la cantidad completa en las filas: ${numeros}.`);
+      return;
+    }
+    setFilasSinLote([]);
     try { await saveInventory({ id: editingId, fecha, rows: filas, movementType: "OUTPUT", module: "SUPPLIES", allocate: true });
-      alert(editingId ? "Otro egreso actualizado correctamente" : "Otro egreso registrado correctamente"); setFilas([]); setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
+      alert(editingId ? "Otro egreso actualizado correctamente" : "Otro egreso registrado correctamente"); setFilas([]); setFilasSinLote([]); setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
     } catch (error) { alert(error.message); }
   };
 
@@ -167,7 +180,7 @@ function EgresoInsumos() {
     marginBottom: "5px"
   };
 
-  const galeraRow = {
+  const loteRow = {
     display: "flex",
     gap: "8px",
     marginBottom: "5px"
@@ -237,7 +250,7 @@ function EgresoInsumos() {
               <th>Tipo</th>
               <th>Nombre</th>
               <th>Cantidad</th>
-              <th>Galeras</th>
+              <th>Lotes</th>
               <th>Acción</th>
             </tr>
           </thead>
@@ -282,34 +295,34 @@ function EgresoInsumos() {
                   />
                 </td>
 
-                {/* GALERAS DINÁMICAS */}
-                <td>
+                {/* LOTES DINÁMICOS */}
+                <td className={filasSinLote.includes(fila.id) ? "allocation-validation-error" : ""}>
 
                   <button
                     type="button"
-                    onClick={() => agregarGalera(fila.id)}
+                    onClick={() => agregarLote(fila.id)}
                     style={btnSmall}
                   >
                     Agregar
                   </button>
 
-                  {fila.galeras.map((g, index) => (
-                    <div key={index} style={galeraRow}>
+                  {fila.lotes.map((g, index) => (
+                    <div key={index} style={loteRow}>
 
                       <select
-                        value={g.galera}
+                        value={g.lote}
                         onChange={(e) =>
-                          handleGaleraChange(
+                          handleLoteChange(
                             fila.id,
                             index,
-                            "galera",
+                            "lote",
                             e.target.value
                           )
                         }
                         style={inputStyle}
                       >
                         <option value="">Seleccione</option>
-                        {galeras.map(opt => (
+                        {lotes.map(opt => (
                           <option key={opt.value} value={opt.value}>
                             {opt.label}
                           </option>
@@ -321,7 +334,7 @@ function EgresoInsumos() {
                         {...quantityInput()}
                         value={g.cantidad}
                         onChange={(e) =>
-                          handleGaleraChange(
+                          handleLoteChange(
                             fila.id,
                             index,
                             "cantidad",
@@ -333,6 +346,8 @@ function EgresoInsumos() {
 
                     </div>
                   ))}
+
+                  {filasSinLote.includes(fila.id) && <small className="field-error-message">Selecciona un lote y distribuye la cantidad completa de esta fila.</small>}
 
                 </td>
 
@@ -376,7 +391,7 @@ function EgresoInsumos() {
             }}
           >
             Guardar
-          </button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setFilas([]); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
+          </button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setFilas([]); setFilasSinLote([]); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
         </div>
 
       </form>

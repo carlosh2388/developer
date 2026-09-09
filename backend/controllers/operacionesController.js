@@ -111,7 +111,7 @@ function positiveQuantity(value, name, allowTwoDecimals = false) {
 }
 
 function validateOutputAllocations(body, details) {
-  if (body.tipoMovimiento !== "OUTPUT" || !["FOOD", "OTHER"].includes(body.modulo)) return;
+  if (body.tipoMovimiento !== "OUTPUT" || !["FOOD", "OTHER", "SUPPLIES"].includes(body.modulo)) return;
   const primaryDetails = details.filter((detail) => !Number.isInteger(detail.detallePadreIndice));
   const invalid = primaryDetails.some((detail) =>
     !Array.isArray(detail.distribuciones) || (body.modulo === "FOOD" ? detail.distribuciones.length !== 1 : !detail.distribuciones.length)
@@ -267,7 +267,7 @@ async function actualizarInventario(req, res, next) {
           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,[orgId,req.params.id,parent,productId,detail.rol || "PRIMARY",detail._quantity,detail._unitCost,detail.justificacion || null,index+1]);
         inserted.push(line.rows[0]);
         let distributed=0;
-        for (const allocation of detail.distribuciones || []) { distributed += await insertInventoryAllocation(client, orgId, line.rows[0].id, { ...allocation, _allowsDecimals: detail._allowsDecimals }, movementType === "OUTPUT" && ["FOOD", "OTHER"].includes(body.modulo) ? "flock" : "house"); }
+        for (const allocation of detail.distribuciones || []) { distributed += await insertInventoryAllocation(client, orgId, line.rows[0].id, { ...allocation, _allowsDecimals: detail._allowsDecimals }, movementType === "OUTPUT" && ["FOOD", "OTHER", "SUPPLIES"].includes(body.modulo) ? "flock" : "house"); }
         if ((detail.distribuciones || []).length && Math.abs(distributed-Number(detail.cantidad))>0.0001) throw new HttpError(400,`La distribución de la línea ${index+1} no coincide con su cantidad.`,"ALLOCATION_MISMATCH");
       }
       return { ...header.rows[0], detalles: inserted };
@@ -313,7 +313,7 @@ async function crearInventario(req, res, next) {
         inserted.push(line.rows[0]);
         let distributed = 0;
         for (const allocation of detail.distribuciones || []) {
-          distributed += await insertInventoryAllocation(client, orgId, line.rows[0].id, { ...allocation, _allowsDecimals: detail._allowsDecimals }, movementType === "OUTPUT" && ["FOOD", "OTHER"].includes(body.modulo) ? "flock" : "house");
+          distributed += await insertInventoryAllocation(client, orgId, line.rows[0].id, { ...allocation, _allowsDecimals: detail._allowsDecimals }, movementType === "OUTPUT" && ["FOOD", "OTHER", "SUPPLIES"].includes(body.modulo) ? "flock" : "house");
         }
         if ((detail.distribuciones || []).length && Math.abs(distributed - Number(detail.cantidad)) > 0.0001) {
           throw new HttpError(400, `La distribución de la línea ${index + 1} no coincide con su cantidad.`, "ALLOCATION_MISMATCH");

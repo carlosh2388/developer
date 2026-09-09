@@ -22,3 +22,9 @@ test('otros egresos exige lotes y permite distribuir entre varios', () => {
   assert.throws(() => sandbox.validateOutputAllocations(body, [{ distribuciones: [] }]), /lote/);
   sandbox.validateOutputAllocations(body, [{ distribuciones: [{ lote: 'L1' }, { lote: 'L2' }] }]);
 });
+
+test('egresos de insumos exige lotes', () => {
+  const body = { tipoMovimiento: 'OUTPUT', modulo: 'SUPPLIES' };
+  assert.throws(() => sandbox.validateOutputAllocations(body, [{ distribuciones: [] }]), /lote/);
+  sandbox.validateOutputAllocations(body, [{ distribuciones: [{ lote: 'L1' }] }]);
+});
