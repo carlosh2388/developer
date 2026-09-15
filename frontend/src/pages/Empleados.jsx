@@ -28,7 +28,7 @@ export default function Empleados() {
 
   return <div className="page-shell"><div className="page-heading"><div><p className="eyebrow">CONFIGURACIÓN</p><h1>Empleados</h1><p>Administra empleados y sus puestos operativos.</p></div></div>
     <div className="admin-grid"><form className="panel" onSubmit={guardar}><h2>{editingId ? "Modificar empleado" : "Nuevo empleado"}</h2>
-      <label>Código<input value={codigo} readOnly /></label>
+      <label>Código<input value={codigo} readOnly aria-readonly="true" /></label>
       <label>Nombre completo<input value={nombre} onChange={(e) => setNombre(e.target.value)} required /></label>
       <fieldset className="employee-roles"><legend>Puestos</legend>{puestos.map(([value, label]) => <label key={value}><input type="checkbox" checked={roles.includes(value)} onChange={() => toggleRole(value)} /> {label}</label>)}</fieldset>
       {editingId && <label>Estado<select value={estado} onChange={(e) => setEstado(e.target.value)}><option value="ACTIVE">Activo</option><option value="INACTIVE">Inactivo</option></select></label>}

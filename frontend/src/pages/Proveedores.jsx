@@ -140,6 +140,7 @@ function Proveedores() {
           <input
             value={codigoProveedor}
             readOnly
+            aria-readonly="true"
             placeholder="PR01 Automático"
             style={inputStyle}
           />
@@ -196,7 +197,7 @@ function Proveedores() {
 
       <div style={doubleRowStyle}>
         <div>
-          <label>NIT</label>
+          <label>NIT/ID</label>
 
           <input
             value={nit}
@@ -275,11 +276,15 @@ function Proveedores() {
         {editingId ? "Guardar cambios" : "Guardar"}
       </button><CancelEditButton editing={editingId} onCancel={cancelarEdicion}/></div>
       <ConfigRecordsTable title="Proveedores registrados" rows={list.rows} loading={list.loading} error={list.error} columns={[
-        { key: "code", label: "Código" }, { key: "name", label: "Proveedor" }, { key: "taxId", label: "NIT" },
+        { key: "code", label: "Código" }, { key: "name", label: "Proveedor" }, { key: "taxId", label: "NIT/ID" },
         { key: "contactName", label: "Contacto" }, { key: "countryCode", label: "Código país" }, { key: "phone", label: "Teléfono" }, { key: "email", label: "Correo" }, { key: "status", label: "Estado" },
       ]} onEdit={(row) => { setEditingId(row.id); setCodigoProveedor(row.code); setNombreProveedor(row.name); setNit(row.taxId || ""); setDireccion(row.address || ""); setContacto(row.contactName || ""); setCodigoPais(row.countryCode || "+502"); setTelefono(row.phone || ""); setCorreo(row.email || ""); }} onDeactivate={async (row) => {
         if (!(await confirmAction(`¿Deseas dar de baja al proveedor ${row.name}?`, { title: "Dar de baja proveedor", confirmLabel: "Sí, dar de baja" }))) return;
         try { await api(`/proveedores/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); alert("Proveedor dado de baja correctamente."); }
+        catch (error) { alert(error.message); }
+      }} onActivate={async (row) => {
+        if (!(await confirmAction(`¿Deseas activar al proveedor ${row.name}?`, { title: "Activar proveedor", confirmLabel: "Sí, activar" }))) return;
+        try { await api(`/proveedores/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "ACTIVE" }) }); await list.reload(); alert("Proveedor activado correctamente."); }
         catch (error) { alert(error.message); }
       }}/>
     </form>

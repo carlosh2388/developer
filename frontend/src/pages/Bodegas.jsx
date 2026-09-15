@@ -168,6 +168,7 @@ function Bodegas() {
             <div style={{ flex: 1 }}>
               <select
                 value={localidad}
+                disabled={Boolean(editingId)}
                 onChange={(e) => {
                   const value = e.target.value;
                   setLocalidad(value);
@@ -194,8 +195,9 @@ function Bodegas() {
 
             <button
               type="button"
+              disabled={Boolean(editingId)}
               onClick={() => setMostrarNuevaLocalidad(true)}
-              style={addButtonStyle}
+              style={{ ...addButtonStyle, opacity: editingId ? 0.55 : 1, cursor: editingId ? "not-allowed" : "pointer" }}
             >
               +
             </button>

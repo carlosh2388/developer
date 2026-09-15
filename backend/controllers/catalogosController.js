@@ -66,7 +66,7 @@ const catalogos = {
     hasUpdatedAt: true,
     required: ["code", "received_on", "poultry_line_id"],
     fields: {
-      codigo: "code", fechaRecepcion: "received_on", lineaAvicolaId: "poultry_line_id", galeraId: "house_id",
+      codigo: "code", fechaRecepcion: "received_on", fechaIngreso: "production_entry_on", lineaAvicolaId: "poultry_line_id", galeraId: "house_id",
       proveedorId: "supplier_id", paisOrigen: "origin_country", cantidadHembras: "female_count",
       cantidadMachos: "male_count", costoUnitario: "unit_cost", moneda: "currency_code", estado: "status",
     },
@@ -330,6 +330,7 @@ async function actualizarLote(req, res, next) {
   try {
     const orgId = organizationId(req);
     const values = valuesFromBody(catalogos.lotes, req.body || {});
+    delete values.code;
     if (!Object.keys(values).length) throw new HttpError(400, "No se enviaron campos para actualizar.", "VALIDATION_ERROR");
 
     const currentResult = await db.query(
@@ -410,7 +411,7 @@ function catalogController(name) {
     async actualizar(req, res, next) {
       try {
         const values = valuesFromBody(config, req.body || {});
-        if (["warehouses", "suppliers", "products", "houses"].includes(config.table)) delete values.code;
+        if (["locations", "warehouses", "suppliers", "poultry_lines", "products", "houses"].includes(config.table)) delete values.code;
         if (config.table === "products") { delete values.product_type; delete values.opening_stock; }
         if (!Object.keys(values).length) throw new HttpError(400, "No se enviaron campos para actualizar.", "VALIDATION_ERROR");
         const params = Object.values(values);
@@ -622,7 +623,7 @@ async function actualizarPersonal(req, res, next) {
     const row = current.rows[0];
     const updated = await client.query(
       `UPDATE personnel SET code=$1,full_name=$2,status=$3,updated_at=NOW() WHERE id=$4 AND organization_id=$5 RETURNING *`,
-      [body.codigo ?? row.code, body.nombreCompleto ?? row.full_name, body.estado ?? row.status, req.params.id, orgId]
+      [row.code, body.nombreCompleto ?? row.full_name, body.estado ?? row.status, req.params.id, orgId]
     );
     if (Array.isArray(body.roles)) {
       await client.query("DELETE FROM personnel_roles WHERE personnel_id=$1", [req.params.id]);

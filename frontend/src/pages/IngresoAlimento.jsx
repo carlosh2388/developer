@@ -217,6 +217,9 @@ const agregarMedicamentoFila = (
       if (!filas.length) throw new Error("Agrega al menos un producto.");
       if (filas.some((fila) => !(fila.item || fila.alimento || fila.material || fila.aditivo || fila.medicamento) || Number(fila.cantidad) <= 0)) throw new Error("Selecciona el producto e ingresa una cantidad mayor que cero en cada fila.");
       if (filas.some((fila) => fila.precio === "" || Number(fila.precio) < 0)) throw new Error("Ingresa un precio válido en cada fila.");
+      if (filas.some((fila) => [...(fila.aditivos || []), ...(fila.medicamentos || [])].some((item) => !item.producto && String(item.observacion || "").trim()))) {
+        throw new Error("Selecciona el aditivo o medicamento en las filas que tengan observaciones.");
+      }
       await saveInventory({ id: editingId, fecha, proveedor, rows: filas, movementType: "INPUT", module: "FOOD" });
       alert(editingId ? "Ingreso actualizado correctamente" : "Ingreso registrado correctamente"); setFilas([]); setProveedor(""); setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
     } catch (error) { alert(error.message); }
@@ -245,6 +248,49 @@ const agregarMedicamentoFila = (
     border: "none",
     borderRadius: "5px",
     cursor: "pointer"
+  };
+
+  const supplementStack = {
+    display: "grid",
+    gap: 12,
+    minWidth: 300
+  };
+
+  const supplementRow = {
+    display: "grid",
+    gap: 6
+  };
+
+  const supplementTop = {
+    display: "grid",
+    gridTemplateColumns: "minmax(220px, 1fr) 42px",
+    gap: 8,
+    alignItems: "center"
+  };
+
+  const supplementSelect = {
+    ...inputStyle,
+    minWidth: 220,
+    height: 38
+  };
+
+  const supplementNote = {
+    ...inputStyle,
+    minWidth: 220,
+    height: 36
+  };
+
+  const supplementAddButton = {
+    width: 42,
+    height: 38,
+    padding: 0,
+    border: 0,
+    borderRadius: 6,
+    background: "#1976d2",
+    color: "#fff",
+    cursor: "pointer",
+    fontWeight: 700,
+    fontSize: 18
   };
 
   return (<OperationPanel maxWidth={1700}>{records}
@@ -362,9 +408,9 @@ const agregarMedicamentoFila = (
           }}
         >
           <colgroup>
-            <col style={{ width: 190 }} /><col style={{ width: 105 }} /><col style={{ width: 95 }} />
-            <col style={{ width: 85 }} /><col style={{ width: 110 }} /><col style={{ width: 235 }} />
-            <col style={{ width: 235 }} /><col style={{ width: 65 }} />
+            <col style={{ width: 250 }} /><col style={{ width: 135 }} /><col style={{ width: 165 }} />
+            <col style={{ width: 105 }} /><col style={{ width: 155 }} /><col style={{ width: 330 }} />
+            <col style={{ width: 330 }} /><col style={{ width: 80 }} />
           </colgroup>
           <thead>
             <tr
@@ -381,7 +427,7 @@ const agregarMedicamentoFila = (
                 Cantidad
               </th>
 
-              <th>Precio Unitario (Q)</th>
+              <th>Precio (Q)</th>
               <th>Modo</th>
               <th>Total (Q)</th>
 
@@ -533,7 +579,7 @@ const agregarMedicamentoFila = (
                   </td>
 
                   <td>
-                    <input type="number" min="0" step="0.01" value={fila.precio} onChange={(e) => handleChange(fila.id, "precio", e.target.value)} placeholder="0.00" style={inputStyle}/>
+                    <input type="number" min="0" step="0.01" value={fila.precio} onChange={(e) => handleChange(fila.id, "precio", e.target.value)} placeholder="0.00" style={{ ...inputStyle, minWidth: 120 }}/>
                   </td>
 
                   <td>
@@ -543,7 +589,7 @@ const agregarMedicamentoFila = (
                   </td>
 
                   <td>
-                    <input readOnly value={calcularCostoUnitario(fila)} style={{ ...inputStyle, background: "#f5f5f5" }}/>
+                    <input readOnly value={calcularCostoUnitario(fila)} style={{ ...inputStyle, minWidth: 120, background: "#f5f5f5" }}/>
                   </td>
                                         <td>
 
@@ -556,7 +602,7 @@ const agregarMedicamentoFila = (
 
                     ) : (
 
-                      <div>
+                      <div style={supplementStack}>
 
                        {(fila.aditivos || []).map(
                           (
@@ -566,65 +612,74 @@ const agregarMedicamentoFila = (
 
                             <div
                               key={index}
-                              style={{
-                                display:
-                                  "flex",
-                                gap:
-                                  "5px",
-                                marginBottom:
-                                  "5px"
-                              }}
+                              style={supplementRow}
                             >
 
-                              <select
-                                value={
-                                  aditivo.producto
-                                }
-                                onChange={(
-                                  e
-                                ) =>
-                                  cambiarAditivo(
-                                    fila.id,
-                                    index,
-                                    "producto",
-                                    e.target
-                                      .value
-                                  )
-                                }
-                                style={{ ...inputStyle, minWidth: "135px" }}
-                              >
-                                <option value="">
-                                  Seleccione
-                                </option>
+                              <div style={supplementTop}>
+                                <select
+                                  value={
+                                    aditivo.producto
+                                  }
+                                  onChange={(
+                                    e
+                                  ) =>
+                                    cambiarAditivo(
+                                      fila.id,
+                                      index,
+                                      "producto",
+                                      e.target
+                                        .value
+                                    )
+                                  }
+                                  style={supplementSelect}
+                                >
+                                  <option value="">
+                                    Seleccione
+                                  </option>
 
-                                {aditivosDisponibles.map(
-                                  (a) => (
-                                    <option
-                                      key={a.value}
-                                      value={a.value}
-                                    >
-                                      {productName(a)}
-                                    </option>
-                                  )
-                                )}
-                              </select>
-                              <input type="text" value={aditivo.observacion} onChange={(e) => cambiarAditivo(fila.id, index, "observacion", e.target.value)} placeholder="Observaciones" style={{ ...inputStyle, minWidth: "130px" }}/>
+                                  {aditivosDisponibles.map(
+                                    (a) => (
+                                      <option
+                                        key={a.value}
+                                        value={a.value}
+                                      >
+                                        {productName(a)}
+                                      </option>
+                                    )
+                                  )}
+                                </select>
+                                {index === (fila.aditivos || []).length - 1 && <button
+                                  type="button"
+                                  onClick={() =>
+                                    agregarAditivoFila(
+                                      fila.id
+                                    )
+                                  }
+                                  style={supplementAddButton}
+                                  title="Agregar aditivo"
+                                >
+                                  +
+                                </button>}
+                              </div>
+                              <input type="text" value={aditivo.observacion} onChange={(e) => cambiarAditivo(fila.id, index, "observacion", e.target.value)} placeholder="Observaciones" style={supplementNote}/>
 
                             </div>
 
                           )
                         )}
 
-                        <button
+                        {!(fila.aditivos || []).length && <button
                           type="button"
                           onClick={() =>
                             agregarAditivoFila(
                               fila.id
                             )
                           }
+                          style={supplementAddButton}
+                          title="Agregar aditivo"
                         >
                           +
-                        </button>
+                        </button>}
 
                       </div>
 
@@ -643,7 +698,7 @@ const agregarMedicamentoFila = (
 
                     ) : (
 
-                      <div>
+                      <div style={supplementStack}>
 
                         {(fila.medicamentos || []).map(
                           (
@@ -653,65 +708,74 @@ const agregarMedicamentoFila = (
 
                             <div
                               key={index}
-                              style={{
-                                display:
-                                  "flex",
-                                gap:
-                                  "5px",
-                                marginBottom:
-                                  "5px"
-                              }}
+                              style={supplementRow}
                             >
 
-                              <select
-                                value={
-                                  medicamento.producto
-                                }
-                                onChange={(
-                                  e
-                                ) =>
-                                  cambiarMedicamento(
-                                    fila.id,
-                                    index,
-                                    "producto",
-                                    e.target
-                                      .value
-                                  )
-                                }
-                                style={{ ...inputStyle, minWidth: "135px" }}
-                              >
-                                <option value="">
-                                  Seleccione
-                                </option>
+                              <div style={supplementTop}>
+                                <select
+                                  value={
+                                    medicamento.producto
+                                  }
+                                  onChange={(
+                                    e
+                                  ) =>
+                                    cambiarMedicamento(
+                                      fila.id,
+                                      index,
+                                      "producto",
+                                      e.target
+                                        .value
+                                    )
+                                  }
+                                  style={supplementSelect}
+                                >
+                                  <option value="">
+                                    Seleccione
+                                  </option>
 
-                                {medicamentosDisponibles.map(
-                                  (m) => (
-                                    <option
-                                      key={m.value}
-                                      value={m.value}
-                                    >
-                                      {productName(m)}
-                                    </option>
-                                  )
-                                )}
-                              </select>
-                              <input type="text" value={medicamento.observacion} onChange={(e) => cambiarMedicamento(fila.id, index, "observacion", e.target.value)} placeholder="Observaciones" style={{ ...inputStyle, minWidth: "130px" }}/>
+                                  {medicamentosDisponibles.map(
+                                    (m) => (
+                                      <option
+                                        key={m.value}
+                                        value={m.value}
+                                      >
+                                        {productName(m)}
+                                      </option>
+                                    )
+                                  )}
+                                </select>
+                                {index === (fila.medicamentos || []).length - 1 && <button
+                                  type="button"
+                                  onClick={() =>
+                                    agregarMedicamentoFila(
+                                      fila.id
+                                    )
+                                  }
+                                  style={supplementAddButton}
+                                  title="Agregar medicamento"
+                                >
+                                  +
+                                </button>}
+                              </div>
+                              <input type="text" value={medicamento.observacion} onChange={(e) => cambiarMedicamento(fila.id, index, "observacion", e.target.value)} placeholder="Observaciones" style={supplementNote}/>
 
                             </div>
 
                           )
                         )}
 
-                        <button
+                        {!(fila.medicamentos || []).length && <button
                           type="button"
                           onClick={() =>
                             agregarMedicamentoFila(
                               fila.id
                             )
                           }
+                          style={supplementAddButton}
+                          title="Agregar medicamento"
                         >
                           +
-                        </button>
+                        </button>}
 
                       </div>
 

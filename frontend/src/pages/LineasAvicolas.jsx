@@ -35,7 +35,7 @@ export default function LineasAvicolas() {
     <h2>Registro de Líneas Avícolas</h2>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 1fr", gap: 12, marginBottom: 18 }}>
       <label>Código
-        <input required maxLength="30" value={codigo} onChange={(event) => setCodigo(event.target.value.toUpperCase())} placeholder="Ej. SN" style={input}/>
+        <input required maxLength="30" value={codigo} readOnly={Boolean(editingId)} aria-readonly={Boolean(editingId)} onChange={(event) => setCodigo(event.target.value.toUpperCase())} placeholder="Ej. SN" style={input}/>
       </label>
       <label>Nombre de la línea
         <input required maxLength="120" value={nombre} onChange={(event) => setNombre(event.target.value)} placeholder="Ej. Super Nick +" style={input}/>

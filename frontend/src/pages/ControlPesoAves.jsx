@@ -10,6 +10,12 @@ import InlineAddActions from "../components/InlineAddActions";
 
 function ControlPesoAves() {
   const { opciones, errors, lotes } = useOperationalCatalogs(["lotes", "etapas"]);
+  const etiquetaEtapa = (value) => String(value || "").replace(/^Inicio\s+0\(-3\)$/i, "Inicio(0-3)");
+  const decimalValue = (value) => /^\d*(?:\.\d{0,2})?$/.test(value);
+  const etapaRange = (label) => {
+    const match = etiquetaEtapa(label).match(/\((\d+)\s*-\s*(\d+)\)/);
+    return match ? { from: Number(match[1]), to: Number(match[2]) } : null;
+  };
   // =========================
   // STATES
   // =========================
@@ -32,8 +38,8 @@ function ControlPesoAves() {
     const samplesPerSex = Math.max(femaleSamples.length, maleSamples.length, Math.ceil(Number(data.sample_size || 0) / 2));
     setTamanoMuestra(samplesPerSex * 2);
     const female = {}, male = {};
-    femaleSamples.forEach((item, index) => { female[`m${index + 1}`] = String(item.weight_grams); });
-    maleSamples.forEach((item, index) => { male[`m${index + 1}`] = String(item.weight_grams); });
+    femaleSamples.forEach((item, index) => { female[`m${index + 1}`] = Number(item.weight_grams || 0).toFixed(2); });
+    maleSamples.forEach((item, index) => { male[`m${index + 1}`] = Number(item.weight_grams || 0).toFixed(2); });
     setHembras(female); setMachos(male);
   } catch (error) { alert(error.message); } };
 
@@ -63,6 +69,15 @@ const [promHembras, setPromHembras] = useState(0);
     const registroLote = lotes.find((item) => item.code === lote);
     setSemana(calculateFlockWeek(registroLote?.receivedOn));
   }, [lote, lotes]);
+
+  useEffect(() => {
+    if (!Number.isFinite(Number(semana))) return;
+    const selected = etapas.find((item) => {
+      const range = etapaRange(item.label);
+      return range && Number(semana) >= range.from && Number(semana) <= range.to;
+    });
+    if (selected) setEtapa(selected.value);
+  }, [semana, etapas]);
 
 // NUEVO
 const [uniformidadHembras, setUniformidadHembras] =
@@ -228,11 +243,13 @@ useEffect(() => {
   // HANDLERS
   // =========================
 
-  const handleH = (e) =>
-    setHembras({ ...hembras, [e.target.name]: e.target.value });
+  const handleH = (e) => {
+    if (decimalValue(e.target.value)) setHembras({ ...hembras, [e.target.name]: e.target.value });
+  };
 
-  const handleM = (e) =>
-    setMachos({ ...machos, [e.target.name]: e.target.value });
+  const handleM = (e) => {
+    if (decimalValue(e.target.value)) setMachos({ ...machos, [e.target.name]: e.target.value });
+  };
 
   // =========================
   // ETAPA
@@ -271,13 +288,15 @@ useEffect(() => {
             key={k}
             name={k}
             type="number"
-            min="0.001"
-            step="0.001"
+            min="0.01"
+            step="0.01"
             required
             aria-label={`Muestra ${Number(k.slice(1))}`}
             placeholder={`Muestra ${Number(k.slice(1))}`}
             value={data[k]}
+            onKeyDown={(e) => { if (["-", "+", "e", "E"].includes(e.key)) e.preventDefault(); }}
             onChange={handler}
+            onBlur={(e) => { if (e.target.value !== "") handler({ target: { name: k, value: Number(e.target.value).toFixed(2) } }); }}
             style={{ flex: 1, padding: 8 }}
           />
         ))}
@@ -296,11 +315,15 @@ useEffect(() => {
         alert("El tamaño de la muestra debe ser un número par mayor que cero.");
         return;
       }
+      if (!etapa) {
+        alert("Selecciona la etapa correspondiente antes de guardar.");
+        return;
+      }
       const expectedPerSex = total / 2;
       const femaleWeights = Object.values(hembras);
       const maleWeights = Object.values(machos);
       const incomplete = femaleWeights.length !== expectedPerSex || maleWeights.length !== expectedPerSex
-        || [...femaleWeights, ...maleWeights].some((value) => String(value).trim() === "" || !Number.isFinite(Number(value)) || Number(value) <= 0);
+        || [...femaleWeights, ...maleWeights].some((value) => String(value).trim() === "" || !Number.isFinite(Number(value)) || Number(value) <= 0 || !/^\d+(?:\.\d{1,2})?$/.test(String(value)));
       if (incomplete) {
         alert("Debes ingresar el peso de todas las muestras de hembras y machos antes de guardar.");
         return;
@@ -333,9 +356,10 @@ useEffect(() => {
   // =========================
 
   return (<OperationPanel maxWidth={1000}><OperationRecordsModal title="Controles de peso de aves" path="/controles/peso-aves" annulPath={(row) => `/operaciones/peso-aves/${row.id}/anular`} dateField="control_date" columns={[
+    { key: "record_number", label: "#" },
     { key: "control_date", label: "Fecha", render: (value) => String(value || "").slice(0, 10) },
     { key: "flock_code", label: "Lote", render: (value, row) => value || row.flockCode || "Sin lote" },
-    { key: "stage_name", label: "Etapa", render: (value) => value || "Sin etapa" },
+    { key: "stage_name", label: "Etapa", render: (value) => etiquetaEtapa(value) || "Sin etapa" },
     { key: "week_number", label: "Semana" }, { key: "sample_size", label: "Muestras" }, { key: "overall_average_grams", label: "Promedio" }, { key: "overall_uniformity", label: "Uniformidad" }, { key: "status", label: "Estado" },
   ]} onEdit={cargarEdicion}/>
     <div style={{ maxWidth: 950, margin: "auto", fontFamily: "Arial" }}>
@@ -372,7 +396,7 @@ useEffect(() => {
             <select value={etapa} onChange={(e) => setEtapa(e.target.value)}>
               <option value="">Seleccione</option>
               {etapas.map((item) => (
-                <option key={item.value} value={item.value}>{item.label}</option>
+                <option key={item.value} value={item.value}>{etiquetaEtapa(item.label)}</option>
               ))}
             </select>
 
@@ -394,6 +418,8 @@ useEffect(() => {
             min="2"
             step="2"
             inputMode="numeric"
+            disabled={Boolean(editingId)}
+            onKeyDown={(e) => { if (["-", "+", ".", ",", "e", "E"].includes(e.key)) e.preventDefault(); }}
             onChange={(e) => setTamanoMuestra(e.target.value.replace(/[^0-9]/g, ""))}
             onBlur={() => {
               const value = Number(tamanoMuestra);
@@ -476,7 +502,7 @@ useEffect(() => {
       {expandM && renderInputs(machos, handleM)}
 
       {/* ================= GUARDAR ================= */}
-      <div className="edit-actions"><button onClick={guardar}>{editingId ? "Guardar cambios" : "Guardar Registro"}</button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setLote(""); setEtapa(""); setTamanoMuestra(""); setHembras({}); setMachos({}); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
+      <div className="edit-actions"><button type="button" onClick={guardar}>{editingId ? "Guardar cambios" : "Guardar Registro"}</button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setLote(""); setEtapa(""); setTamanoMuestra(""); setHembras({}); setMachos({}); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
     </div>
   </OperationPanel>);
 }

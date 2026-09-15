@@ -110,6 +110,39 @@ function positiveQuantity(value, name, allowTwoDecimals = false) {
   return number;
 }
 
+function positiveTwoDecimal(value, name) {
+  const number = positive(value, name);
+  if (Math.abs(number * 100 - Math.round(number * 100)) > 0.000001) {
+    throw new HttpError(400, `${name} debe tener como máximo dos decimales.`, "VALIDATION_ERROR");
+  }
+  return number;
+}
+
+function birdWeightStats(samples) {
+  const valuesBySex = (sex) => samples.filter((sample) => sample.sexo === sex).map((sample) => Number(sample.pesoGramos));
+  const average = (values) => values.length ? values.reduce((total, value) => total + value, 0) / values.length : 0;
+  const uniformity = (values, avg) => {
+    if (!values.length || !avg) return 0;
+    const min = avg * 0.9;
+    const max = avg * 1.1;
+    return (values.filter((value) => value >= min && value <= max).length * 100) / values.length;
+  };
+  const female = valuesBySex("F");
+  const male = valuesBySex("M");
+  const all = [...female, ...male];
+  const femaleAverage = average(female);
+  const maleAverage = average(male);
+  const overallAverage = average(all);
+  return {
+    femaleAverage,
+    maleAverage,
+    overallAverage,
+    femaleUniformity: uniformity(female, femaleAverage),
+    maleUniformity: uniformity(male, maleAverage),
+    overallUniformity: uniformity(all, overallAverage),
+  };
+}
+
 function validateOutputAllocations(body, details) {
   if (body.tipoMovimiento !== "OUTPUT" || !["FOOD", "OTHER", "SUPPLIES"].includes(body.modulo)) return;
   const primaryDetails = details.filter((detail) => !Number.isInteger(detail.detallePadreIndice));
@@ -144,7 +177,8 @@ async function prepareInventoryDetails(client, orgId, details) {
     const observationComponent = Number.isInteger(detail.detallePadreIndice)
       && ["ADDITIVE", "MEDICINE"].includes(detail.rol) && detail.observacion !== undefined;
     prepared.push({ ...detail, _productId: productId, _allowsDecimals: allowTwoDecimals,
-      _quantity: observationComponent ? null : positiveQuantity(detail.cantidad, "cantidad", allowTwoDecimals),
+      _skipLine: observationComponent,
+      _quantity: observationComponent ? 0 : positiveQuantity(detail.cantidad, "cantidad", allowTwoDecimals),
       _unitCost: money(detail.costoUnitario, "precio") });
   }
   return prepared;
@@ -155,7 +189,7 @@ async function validateProjectedInventory(client, orgId, details, movementType, 
     "SELECT DISTINCT product_id FROM inventory_document_lines WHERE document_id=$1 AND organization_id=$2",
     [excludedDocumentId, orgId]
   ) : { rows: [] };
-  const productIds = [...new Set([...details.map((detail) => detail._productId), ...currentProducts.rows.map((row) => row.product_id)])].sort();
+  const productIds = [...new Set([...details.filter((detail) => !detail._skipLine).map((detail) => detail._productId), ...currentProducts.rows.map((row) => row.product_id)])].sort();
   if (!productIds.length) return;
   for (const productId of productIds) await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:INVENTORY:${productId}`]);
 
@@ -171,7 +205,7 @@ async function validateProjectedInventory(client, orgId, details, movementType, 
   );
   const requested = new Map();
   const sign = incomingInventoryTypes.has(movementType) ? 1 : -1;
-  details.forEach((detail) => requested.set(detail._productId, (requested.get(detail._productId) || 0) + sign * detail._quantity));
+  details.filter((detail) => !detail._skipLine).forEach((detail) => requested.set(detail._productId, (requested.get(detail._productId) || 0) + sign * detail._quantity));
   for (const product of rows) {
     const projected = Number(product.available || 0) + (requested.get(product.id) || 0);
     if (projected < -0.0001 && !(!excludedDocumentId && incomingInventoryTypes.has(movementType))) throw new HttpError(409,
@@ -251,16 +285,25 @@ async function actualizarInventario(req, res, next) {
       const supplierId = await resolveTenantId(client, "suppliers", orgId, body.proveedorId || body.proveedor, "proveedor", true);
       const sourceWarehouseId = await resolveTenantId(client, "warehouses", orgId, body.bodegaOrigenId || body.bodegaOrigen, "bodega de origen", true);
       const destinationWarehouseId = await resolveTenantId(client, "warehouses", orgId, body.bodegaDestinoId || body.bodegaDestino, "bodega de destino", true);
-      const header = await client.query(
+      const hasUpdatedBy = await tableHasColumn(client, "inventory_documents", "updated_by");
+      const hasUpdatedAt = await tableHasColumn(client, "inventory_documents", "updated_at");
+      const baseValues = [movementType, required(body.modulo, "modulo"), required(body.fecha, "fecha"), supplierId,
+        sourceWarehouseId, destinationWarehouseId, body.observaciones || null];
+      const auditSet = [hasUpdatedBy ? "updated_by=$8" : null, hasUpdatedAt ? "updated_at=NOW()" : null].filter(Boolean);
+      const header = auditSet.length ? await client.query(
         `UPDATE inventory_documents SET movement_type=$1,module_code=$2,movement_date=$3,supplier_id=$4,source_warehouse_id=$5,
-         destination_warehouse_id=$6,notes=$7,updated_by=$8,updated_at=NOW() WHERE id=$9 AND organization_id=$10 RETURNING *`,
-        [movementType,required(body.modulo,"modulo"),required(body.fecha,"fecha"),supplierId,
-          sourceWarehouseId,destinationWarehouseId,body.observaciones || null,req.user.id,req.params.id,orgId]
+         destination_warehouse_id=$6,notes=$7,${auditSet.join(",")} WHERE id=$9 AND organization_id=$10 RETURNING *`,
+        [...baseValues, req.user.id, req.params.id, orgId]
+      ) : await client.query(
+        `UPDATE inventory_documents SET movement_type=$1,module_code=$2,movement_date=$3,supplier_id=$4,source_warehouse_id=$5,
+         destination_warehouse_id=$6,notes=$7 WHERE id=$8 AND organization_id=$9 RETURNING *`,
+        [...baseValues, req.params.id, orgId]
       );
       await client.query("DELETE FROM inventory_document_lines WHERE document_id=$1 AND organization_id=$2", [req.params.id, orgId]);
       const inserted = [];
       for (let index=0; index<preparedDetails.length; index+=1) {
         const detail=preparedDetails[index];
+        if (detail._skipLine) { inserted.push(null); continue; }
         const productId=detail._productId;
         const parent=Number.isInteger(detail.detallePadreIndice) ? inserted[detail.detallePadreIndice]?.id : null;
         const line=await client.query(`INSERT INTO inventory_document_lines(organization_id,document_id,parent_line_id,product_id,line_role,quantity,unit_cost,justification,line_number)
@@ -302,6 +345,7 @@ async function crearInventario(req, res, next) {
       const inserted = [];
       for (let index = 0; index < preparedDetails.length; index += 1) {
         const detail = preparedDetails[index];
+        if (detail._skipLine) { inserted.push(null); continue; }
         const productId = detail._productId;
         const parent = Number.isInteger(detail.detallePadreIndice) ? inserted[detail.detallePadreIndice]?.id : null;
         const line = await client.query(
@@ -643,7 +687,9 @@ async function crearEgresoAves(req, res, next) {
 
 async function listarPesoAves(req, res, next) {
   try {
-    const { rows } = await db.query(`SELECT c.*,f.code AS flock_code,s.name AS stage_name
+    const { rows } = await db.query(`SELECT c.*,
+        ROW_NUMBER() OVER (PARTITION BY c.organization_id ORDER BY c.created_at ASC,c.id ASC)::int AS record_number,
+        f.code AS flock_code,s.name AS stage_name
       FROM bird_weight_controls c
       JOIN flocks f ON f.id=c.flock_id AND f.organization_id=c.organization_id
       LEFT JOIN production_stages s ON s.id=c.stage_id AND s.organization_id=c.organization_id
@@ -678,36 +724,50 @@ async function crearPesoAves(req, res, next) {
     if (femaleSamples.length !== sampleSize / 2 || maleSamples.length !== sampleSize / 2) {
       throw new HttpError(400, "Debe registrar la misma cantidad de muestras para hembras y machos.", "VALIDATION_ERROR");
     }
-    if (muestras.some((sample) => !Number.isFinite(Number(sample.pesoGramos)) || Number(sample.pesoGramos) <= 0)) {
+    if (muestras.some((sample) => !Number.isFinite(Number(sample.pesoGramos)) || Number(sample.pesoGramos) <= 0 || Math.abs(Number(sample.pesoGramos) * 100 - Math.round(Number(sample.pesoGramos) * 100)) > 0.000001)) {
       throw new HttpError(400, "Todas las muestras deben tener un peso mayor que cero.", "VALIDATION_ERROR");
     }
     const result = await transaction(async (client) => {
       const flockId = await resolveTenantId(client, "flocks", orgId, body.loteId || body.lote, "lote");
       const stageId = await resolveTenantId(client, "production_stages", orgId, body.etapaId || body.etapa, "etapa", true);
+      const weekNumber = positive(body.semana, "semana");
+      const incomingSamples = muestras.map((sample) => ({
+        sexo: required(sample.sexo, "sexo"),
+        pesoGramos: positiveTwoDecimal(sample.pesoGramos, "pesoGramos"),
+      }));
       let header;
+      let samplesToSave = incomingSamples;
       if (req.params.id) {
-        const current = await client.query("SELECT status FROM bird_weight_controls WHERE id=$1 AND organization_id=$2 FOR UPDATE", [req.params.id, orgId]);
+        const current = await client.query("SELECT status,sample_size FROM bird_weight_controls WHERE id=$1 AND organization_id=$2 FOR UPDATE", [req.params.id, orgId]);
         if (!current.rows[0]) throw new HttpError(404, "El control no existe.", "NOT_FOUND");
         if (current.rows[0].status === "VOID") throw new HttpError(409, "Un control anulado no puede editarse.", "VOID_DOCUMENT");
-        header = await client.query(`UPDATE bird_weight_controls SET flock_id=$1,stage_id=$2,control_date=$3,week_number=$4,sample_size=$5,
+        if (Number(current.rows[0].sample_size) !== sampleSize) {
+          throw new HttpError(400, "Al editar no se puede modificar el tamaÃ±o de la muestra.", "VALIDATION_ERROR");
+      }
+      const stats = birdWeightStats(samplesToSave);
+      header = await client.query(`UPDATE bird_weight_controls SET flock_id=$1,stage_id=$2,control_date=$3,week_number=$4,sample_size=$5,
           female_average_grams=$6,male_average_grams=$7,overall_average_grams=$8,female_uniformity=$9,male_uniformity=$10,overall_uniformity=$11,
           updated_by=$12,updated_at=NOW() WHERE id=$13 AND organization_id=$14 RETURNING *`,
-        [flockId, stageId, required(body.fecha, "fecha"), positive(body.semana, "semana"), sampleSize,
-          body.promedioHembras || null, body.promedioMachos || null, body.promedioGeneral || null,
-          body.uniformidadHembras || null, body.uniformidadMachos || null, body.uniformidadGeneral || null,
+        [flockId, stageId, required(body.fecha, "fecha"), weekNumber, sampleSize,
+          stats.femaleAverage || null, stats.maleAverage || null, stats.overallAverage || null,
+          stats.femaleUniformity || null, stats.maleUniformity || null, stats.overallUniformity || null,
           req.user.id, req.params.id, orgId]);
         await client.query("DELETE FROM bird_weight_samples WHERE control_id=$1 AND organization_id=$2", [req.params.id, orgId]);
-      } else header = await client.query(
-        `INSERT INTO bird_weight_controls(organization_id,flock_id,stage_id,control_date,week_number,sample_size,female_average_grams,male_average_grams,overall_average_grams,female_uniformity,male_uniformity,overall_uniformity,created_by)
-         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
-        [orgId, flockId, stageId, required(body.fecha, "fecha"), positive(body.semana, "semana"),
-          sampleSize, body.promedioHembras || null, body.promedioMachos || null, body.promedioGeneral || null,
-          body.uniformidadHembras || null, body.uniformidadMachos || null, body.uniformidadGeneral || null, req.user.id]
-      );
-      for (let index = 0; index < muestras.length; index += 1) {
+      } else {
+        const stats = birdWeightStats(samplesToSave);
+        header = await client.query(
+          `INSERT INTO bird_weight_controls(organization_id,flock_id,stage_id,control_date,week_number,sample_size,female_average_grams,male_average_grams,overall_average_grams,female_uniformity,male_uniformity,overall_uniformity,created_by)
+           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
+          [orgId, flockId, stageId, required(body.fecha, "fecha"), weekNumber,
+            sampleSize, stats.femaleAverage || null, stats.maleAverage || null, stats.overallAverage || null,
+            stats.femaleUniformity || null, stats.maleUniformity || null, stats.overallUniformity || null, req.user.id]
+        );
+      }
+      for (let index = 0; index < samplesToSave.length; index += 1) {
+        const sample = samplesToSave[index];
         await client.query(
           "INSERT INTO bird_weight_samples(organization_id,control_id,sex,sample_number,weight_grams) VALUES($1,$2,$3,$4,$5)",
-          [orgId, header.rows[0].id, required(sample.sexo, "sexo"), index + 1, positive(sample.pesoGramos, "pesoGramos")]
+          [orgId, header.rows[0].id, sample.sexo, index + 1, sample.pesoGramos]
         );
       }
       return header.rows[0];
@@ -718,7 +778,9 @@ async function crearPesoAves(req, res, next) {
 
 async function listarPesoHuevos(req, res, next) {
   try {
-    const { rows } = await db.query(`SELECT c.*,f.code AS flock_code,o.name AS farm_name,
+    const { rows } = await db.query(`SELECT c.*,
+        ROW_NUMBER() OVER (PARTITION BY c.organization_id ORDER BY c.created_at ASC,c.id ASC)::int AS record_number,
+        f.code AS flock_code,o.name AS farm_name,
       COALESCE(uu.full_name,cu.full_name) AS operator_name,COALESCE(c.updated_at,c.created_at) AS operated_at
       FROM egg_weight_controls c
       JOIN flocks f ON f.id=c.flock_id AND f.organization_id=c.organization_id
@@ -747,7 +809,7 @@ async function crearPesoHuevos(req, res, next) {
   try {
     const orgId = organizationId(req); const body = req.body || {}; const muestras = body.muestras || [];
     if (!muestras.length) throw new HttpError(400, "Agrega las muestras de peso.", "VALIDATION_ERROR");
-    const eggWeights = muestras.map((sample) => positive(sample.pesoHuevoGramos, "pesoHuevoGramos"));
+    const eggWeights = muestras.map((sample) => positiveTwoDecimal(sample.pesoHuevoGramos, "pesoHuevoGramos"));
     const averageWeight = eggWeights.reduce((sum, weight) => sum + weight, 0) / eggWeights.length;
     const lowerLimit = averageWeight * 0.9;
     const upperLimit = averageWeight * 1.1;
@@ -756,9 +818,12 @@ async function crearPesoHuevos(req, res, next) {
       const flockId = await resolveTenantId(client, "flocks", orgId, body.loteId || body.lote, "lote");
       let header;
       if (req.params.id) {
-        const current = await client.query("SELECT status FROM egg_weight_controls WHERE id=$1 AND organization_id=$2 FOR UPDATE", [req.params.id, orgId]);
+        const current = await client.query("SELECT status,sample_size FROM egg_weight_controls WHERE id=$1 AND organization_id=$2 FOR UPDATE", [req.params.id, orgId]);
         if (!current.rows[0]) throw new HttpError(404, "El control no existe.", "NOT_FOUND");
         if (current.rows[0].status === "VOID") throw new HttpError(409, "Un control anulado no puede editarse.", "VOID_DOCUMENT");
+        if (Number(current.rows[0].sample_size) !== muestras.length) {
+          throw new HttpError(400, "Al editar no se puede modificar el tamaÃ±o de la muestra.", "VALIDATION_ERROR");
+        }
         header = await client.query(`UPDATE egg_weight_controls SET flock_id=$1,control_date=$2,week_number=$3,sample_size=$4,
           average_weight_grams=$5,uniformity_percentage=$6,updated_by=$7,updated_at=NOW()
           WHERE id=$8 AND organization_id=$9 RETURNING *`,
@@ -774,9 +839,9 @@ async function crearPesoHuevos(req, res, next) {
       for (let index = 0; index < muestras.length; index += 1) {
         const sample = muestras[index];
         await client.query(
-          `INSERT INTO egg_weight_samples(organization_id,control_id,sample_number,egg_weight_grams)
-           VALUES($1,$2,$3,$4)`,
-          [orgId, header.rows[0].id, index + 1, eggWeights[index]]
+          `INSERT INTO egg_weight_samples(organization_id,control_id,sample_number,gross_box_weight_grams,packaging_type,packaging_weight_grams,unit_weight_grams)
+           VALUES($1,$2,$3,$4,$5,$6,$7)`,
+          [orgId, header.rows[0].id, index + 1, eggWeights[index], "CARTONS_360", 0, eggWeights[index]]
         );
       }
       return header.rows[0];

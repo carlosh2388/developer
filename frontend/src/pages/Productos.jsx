@@ -48,6 +48,7 @@ function Productos() {
   const [mostrarGuardar, setMostrarGuardar] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const cancelarEdicion = () => { setEditingId(null); setTipoInventario(""); setIdProducto(""); setNombre(""); setUnidad(""); setEstado("Activo"); setPrecio(""); setCosto(""); setPresentacion(""); setEnfermedad(""); setDosis(""); setTipo(""); setDiluyente(""); setCepa(""); setModoAplicacion(""); setMostrarNuevaCepa(false); setMostrarNuevoModo(false); setNuevaCepa(""); setNuevoModo(""); setMostrarGenerales(false); setMostrarInsumos(false); setHelpId(""); setMostrarGuardar(false); setMostrarNuevaUnidad(false); setCodigoNuevaUnidad(""); setNombreNuevaUnidad(""); setAbreviaturaNuevaUnidad(""); };
+  const twoDecimals = (value) => value === "" || value == null ? "" : Number(value || 0).toFixed(2);
 
   useEffect(() => { setUnidades(referencias.UNIT || []); }, [referencias.UNIT]);
   useEffect(() => { setCepas(referencias.VACCINE_STRAIN || []); }, [referencias.VACCINE_STRAIN]);
@@ -232,6 +233,7 @@ function Productos() {
                 type="text"
                 value={idProducto}
                 readOnly
+                aria-readonly="true"
                 placeholder={helpId}
                 style={inputStyle}
               />
@@ -287,7 +289,7 @@ function Productos() {
           }}>
             <div style={{ flex: "0 0 110px" }}>
               <label>Código</label>
-              <input value={codigoNuevaUnidad} readOnly aria-label="Código de unidad" style={inputStyle} />
+              <input value={codigoNuevaUnidad} readOnly aria-readonly="true" aria-label="Código de unidad" style={inputStyle} />
             </div>
             <div style={{ flex: "2 1 260px" }}>
               <label>Nombre de la unidad</label>
@@ -338,6 +340,7 @@ function Productos() {
                     e.target.value
                   )
                 }
+                onBlur={() => setPrecio(twoDecimals(precio))}
                 placeholder="0.00"
                 style={inputStyle}
               />
@@ -539,10 +542,10 @@ function Productos() {
           (referencias.PRODUCT_TYPE || []).find((item) => item.valueCode === value)?.label || ({ AD: "Aditivo", AL: "Alimento", HC: "Huevo comercial", HI: "Huevo incubable", IN: "Insumo", ME: "Material de Empaque", MD: "Medicamento", VA: "Vacuna" }[value] || value)
         }, { key: "name", label: "Producto" },
         { key: "unitCode", label: "Unidad" }, { key: "currentStock", label: "Existencia actual", render: (value) => Number(value || 0).toLocaleString("es-GT", { maximumFractionDigits: 0 }) },
-        { key: "standardCost", label: "Costo" }, { key: "salePrice", label: "Precio" }, { key: "status", label: "Estado" },
+        { key: "standardCost", label: "Costo" }, { key: "salePrice", label: "Precio", render: (value) => Number(value || 0).toFixed(2) }, { key: "status", label: "Estado" },
       ]} onEdit={(row) => {
         setEditingId(row.id); setTipoInventario(row.productType); setIdProducto(row.code); setNombre(row.name);
-        setUnidad(row.unitCode); setEstado(row.status === "INACTIVE" ? "Inactivo" : "Activo"); setPrecio(row.salePrice || "");
+        setUnidad(row.unitCode); setEstado(row.status === "INACTIVE" ? "Inactivo" : "Activo"); setPrecio(twoDecimals(row.salePrice));
         setCosto(row.standardCost || ""); setPresentacion(row.presentation || "");
         setEnfermedad(row.targetDisease || ""); setDosis(row.dosage || ""); setTipo(row.vaccineKind || "");
         setDiluyente(row.hasDiluent === true ? "SI" : row.hasDiluent === false ? "NO" : "");

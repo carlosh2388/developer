@@ -221,6 +221,7 @@ function Clientes() {
           <input
             value={codigoCliente}
             readOnly
+            aria-readonly="true"
             style={inputStyle}
           />
         </div>
@@ -282,7 +283,7 @@ function Clientes() {
             <button type="button" onClick={abrirNuevaRegion} style={addButtonStyle} title="Agregar región">+</button>
           </div>
           {mostrarNuevaRegion && <div className="inline-add-row">
-            <input value={codigoNuevaRegion} readOnly aria-label="Código de la nueva región" style={inputStyle} />
+            <input value={codigoNuevaRegion} readOnly aria-readonly="true" aria-label="Código de la nueva región" style={inputStyle} />
             <input value={nombreNuevaRegion} onChange={(e) => setNombreNuevaRegion(e.target.value)} placeholder="Nombre de la región" style={inputStyle} />
             <InlineAddActions onSave={agregarRegion} onCancel={() => { setMostrarNuevaRegion(false); setCodigoNuevaRegion(""); setNombreNuevaRegion(""); }} />
           </div>}
@@ -429,6 +430,10 @@ function Clientes() {
       }} onDeactivate={async (row) => {
         if (!(await confirmAction(`¿Deseas dar de baja al cliente ${row.commercialName}?`, { title: "Dar de baja cliente", confirmLabel: "Sí, dar de baja" }))) return;
         try { await api(`/clientes/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); alert("Cliente dado de baja correctamente."); }
+        catch (error) { alert(error.message); }
+      }} onActivate={async (row) => {
+        if (!(await confirmAction(`¿Deseas activar al cliente ${row.commercialName}?`, { title: "Activar cliente", confirmLabel: "Sí, activar" }))) return;
+        try { await api(`/clientes/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "ACTIVE" }) }); await list.reload(); alert("Cliente activado correctamente."); }
         catch (error) { alert(error.message); }
       }}/>
     </form>

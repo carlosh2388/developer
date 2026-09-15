@@ -5,8 +5,27 @@ const statusLabels = { ACTIVE: "Activo", INACTIVE: "Inactivo", POSTED: "Registra
 const displayText = (column, row) => column.key === "status"
   ? (statusLabels[row[column.key]] || text(row[column.key]))
   : text(row[column.key]);
+const loteValue = (row) => text(row.code || row.flock_code || row.flockCode || row.flock_codes || row.flockCodes || row.lote);
+const loteParts = (value) => {
+  const match = text(value).trim().toUpperCase().match(/^([A-Z]+)[-\s]*0*([0-9]+)/);
+  return match ? { prefix: match[1], number: Number(match[2]) } : { prefix: text(value).toUpperCase(), number: -1 };
+};
+const compareLoteDesc = (left, right) => {
+  const leftValue = loteValue(left);
+  const rightValue = loteValue(right);
+  if (!leftValue && !rightValue) return 0;
+  if (!leftValue) return 1;
+  if (!rightValue) return -1;
+  const leftParts = loteParts(leftValue);
+  const rightParts = loteParts(rightValue);
+  if (leftParts.prefix !== rightParts.prefix) return rightParts.prefix.localeCompare(leftParts.prefix, "es", { numeric: true });
+  if (leftParts.number !== rightParts.number) return rightParts.number - leftParts.number;
+  return rightValue.localeCompare(leftValue, "es", { numeric: true, sensitivity: "base" });
+};
+const isBrownNickRow = (row) => /^BL/i.test(loteValue(row).trim());
+const brownNickRowStyle = { background: "#fdecec", boxShadow: "inset 4px 0 0 #e57373" };
 
-export default function ConfigRecordsTable({ title, rows, columns, loading, error, dateField, onEdit, onDeactivate, deactivateLabel = "Dar de baja", inactiveStatuses = ["INACTIVE"], nonEditableStatuses = [], buttonStyle }) {
+export default function ConfigRecordsTable({ title, rows, columns, loading, error, dateField, onEdit, onDeactivate, onActivate, deactivateLabel = "Dar de baja", activateLabel = "Activar", inactiveStatuses = ["INACTIVE"], nonEditableStatuses = [], buttonStyle }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
@@ -22,7 +41,7 @@ export default function ConfigRecordsTable({ title, rows, columns, loading, erro
     if (from && date && date < from) return false;
     if (to && date && date > to) return false;
     return columns.every((column) => !filters[column.key] || displayText(column, row).toLowerCase().includes(filters[column.key].toLowerCase()));
-  }), [rows, columns, search, status, from, to, filters, dateField]);
+  }).sort(compareLoteDesc), [rows, columns, search, status, from, to, filters, dateField]);
   useEffect(() => {
     if (!open) return undefined;
     const previous = document.body.style.overflow;
@@ -48,8 +67,8 @@ export default function ConfigRecordsTable({ title, rows, columns, loading, erro
       <button type="button" onClick={() => { setSearch(""); setStatus(""); setFrom(""); setTo(""); setFilters({}); }}>Limpiar filtros</button>
     </div>
     {error && <p style={{ color: "#b42318" }}>{error}</p>}{loading ? <p>Cargando registros…</p> : <div style={{ overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr>{columns.map((column) => <th key={column.key} style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #ccc" }}>{column.label}</th>)}{(onEdit || onDeactivate) && <th>Acciones</th>}</tr><tr>{columns.map((column) => <th key={column.key} style={{ padding: 4 }}><input value={filters[column.key] || ""} onChange={(e) => setFilters((current) => ({ ...current, [column.key]: e.target.value }))} placeholder={`Filtrar ${column.label}`} style={{ ...control, width: "100%", minWidth: 110, boxSizing: "border-box" }}/></th>)}{(onEdit || onDeactivate) && <th/>}</tr></thead>
-      <tbody>{filtered.map((row) => { const inactive = inactiveStatuses.includes(row.status); const locked = nonEditableStatuses.includes(row.status); return <tr key={row.id}>{columns.map((column) => <td key={column.key} style={{ padding: 8, borderBottom: "1px solid #eee" }}>{column.render ? column.render(row[column.key], row) : displayText(column, row)}</td>)}{(onEdit || onDeactivate) && <td style={{ whiteSpace: "nowrap" }}>{onEdit && !locked && <button type="button" onClick={() => { onEdit(row); setOpen(false); }} style={{ padding: "6px 10px", border: 0, borderRadius: 5, background: "#1976d2", color: "#fff", cursor: "pointer", fontWeight: 600 }}>Editar</button>} {onDeactivate && !inactive && <button type="button" onClick={() => onDeactivate(row)} style={{ padding: "6px 10px", border: 0, borderRadius: 5, background: "#c62828", color: "#fff", cursor: "pointer", fontWeight: 700 }}>{deactivateLabel}</button>}{locked && <span className="record-locked-status" title="El registro se conserva para auditoría y no puede modificarse">🔒 Sin acciones</span>}</td>}</tr>; })}</tbody></table>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr>{columns.map((column) => <th key={column.key} style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #ccc" }}>{column.label}</th>)}{(onEdit || onDeactivate || onActivate) && <th>Acciones</th>}</tr><tr>{columns.map((column) => <th key={column.key} style={{ padding: 4 }}><input value={filters[column.key] || ""} onChange={(e) => setFilters((current) => ({ ...current, [column.key]: e.target.value }))} placeholder={`Filtrar ${column.label}`} style={{ ...control, width: "100%", minWidth: 110, boxSizing: "border-box" }}/></th>)}{(onEdit || onDeactivate || onActivate) && <th/>}</tr></thead>
+      <tbody>{filtered.map((row, rowIndex) => { const inactive = inactiveStatuses.includes(row.status); const locked = nonEditableStatuses.includes(row.status); return <tr key={row.id} style={isBrownNickRow(row) ? brownNickRowStyle : undefined}>{columns.map((column) => <td key={column.key} style={{ padding: 8, borderBottom: "1px solid #eee" }}>{column.render ? column.render(row[column.key], row, rowIndex) : displayText(column, row)}</td>)}{(onEdit || onDeactivate || onActivate) && <td style={{ whiteSpace: "nowrap" }}>{onEdit && !locked && <button type="button" onClick={() => { onEdit(row); setOpen(false); }} style={{ padding: "6px 10px", border: 0, borderRadius: 5, background: "#1976d2", color: "#fff", cursor: "pointer", fontWeight: 600 }}>Editar</button>} {onDeactivate && !inactive && <button type="button" onClick={() => onDeactivate(row)} style={{ padding: "6px 10px", border: 0, borderRadius: 5, background: "#c62828", color: "#fff", cursor: "pointer", fontWeight: 700 }}>{deactivateLabel}</button>}{onActivate && inactive && !locked && <button type="button" onClick={() => onActivate(row)} style={{ padding: "6px 10px", border: 0, borderRadius: 5, background: "#1b8f4d", color: "#fff", cursor: "pointer", fontWeight: 700 }}>{activateLabel}</button>}{locked && <span className="record-locked-status" title="El registro se conserva para auditoría y no puede modificarse">🔒 Sin acciones</span>}</td>}</tr>; })}</tbody></table>
       {!filtered.length && <p>No hay registros que coincidan con los filtros.</p>}
     </div>}
     </section></div>}

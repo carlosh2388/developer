@@ -40,17 +40,13 @@ export function inventoryDetails(rows, { allocate = false } = {}) {
         : undefined,
     });
     if (row.tipo === "Alimento") {
-      (row.aditivos || []).filter((item) => item.producto).forEach((item) => details.push({
+      (row.aditivos || []).filter((item) => item.producto && !Object.prototype.hasOwnProperty.call(item, "observacion")).forEach((item) => details.push({
         producto: item.producto, rol: "ADDITIVE", detallePadreIndice: parentIndex,
-        ...(Object.prototype.hasOwnProperty.call(item, "observacion")
-          ? { cantidad: null, observacion: item.observacion || "", justificacion: item.observacion || "" }
-          : { cantidad: Number(item.cantidad) }),
+        cantidad: Number(item.cantidad),
       }));
-      (row.medicamentos || []).filter((item) => item.producto).forEach((item) => details.push({
+      (row.medicamentos || []).filter((item) => item.producto && !Object.prototype.hasOwnProperty.call(item, "observacion")).forEach((item) => details.push({
         producto: item.producto, rol: "MEDICINE", detallePadreIndice: parentIndex,
-        ...(Object.prototype.hasOwnProperty.call(item, "observacion")
-          ? { cantidad: null, observacion: item.observacion || "", justificacion: item.observacion || "" }
-          : { cantidad: Number(item.cantidad) }),
+        cantidad: Number(item.cantidad),
       }));
     }
   });

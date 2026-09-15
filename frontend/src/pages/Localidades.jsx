@@ -127,6 +127,8 @@ function Localidades() {
           <input
             type="text"
             value={idLocalidad}
+            readOnly={Boolean(editingId)}
+            aria-readonly={Boolean(editingId)}
             onChange={handleIdLocalidad}
             placeholder={placeholder}
             style={inputStyle}

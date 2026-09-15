@@ -18,6 +18,7 @@ function Lotes() {
   const [fecha, setFecha] = useState("");
   const [fechaIngreso, setFechaIngreso] = useState("");
   const [trasladando, setTrasladando] = useState(false);
+  const [trasladoRegistrado, setTrasladoRegistrado] = useState(false);
 
   const [lineas, setLineas] = useState([]);
   const [lotesDisponibles, setLotesDisponibles] = useState([]);
@@ -46,7 +47,7 @@ function Lotes() {
 
   const [estado, setEstado] = useState("Activo");
   const [editingId, setEditingId] = useState(null);
-  const cancelarEdicion = () => { setEditingId(null); setLote(""); setLinea(""); setGalera(""); setProveedor(""); setOrigen(""); setHembras(0); setMachos(0); setCostoUnitario(0); setMoneda("GTQ"); setEstado("Activo"); setNuevaGalera(""); setMostrarNuevaGalera(false); setFechaActual(); };
+  const cancelarEdicion = () => { setEditingId(null); setLote(""); setLinea(""); setGalera(""); setProveedor(""); setOrigen(""); setHembras(0); setMachos(0); setCostoUnitario(0); setMoneda("GTQ"); setEstado("Activo"); setNuevaGalera(""); setMostrarNuevaGalera(false); setTrasladoRegistrado(false); setFechaActual(); };
 
   // =========================
   // FECHA ACTUAL
@@ -64,6 +65,7 @@ function Lotes() {
   const loteExistente = Boolean(editingId) && list.rows.some(
     (item) => String(item.code || "").toUpperCase() === lote.trim().toUpperCase()
   );
+  const puedeTrasladar = loteExistente && !trasladoRegistrado && !trasladando;
 
   const trasladarAProduccion = async () => {
     try {
@@ -75,6 +77,7 @@ function Lotes() {
         body: JSON.stringify({ numeroLote: lote, fechaIngreso }),
       });
       setFechaIngreso(actualizado.productionEntryOn?.slice(0, 10) || fechaIngreso);
+      setTrasladoRegistrado(true);
       await list.reload();
       alert(`Lote ${actualizado.code} trasladado a producción correctamente`);
     } catch (error) { alert(error.message); }
@@ -158,6 +161,7 @@ function Lotes() {
       setEstado("Activo");
       setNuevaGalera("");
       setMostrarNuevaGalera(false);
+      setTrasladoRegistrado(false);
       setFechaActual();
       setEditingId(null);
       const [, nextFlocks] = await Promise.all([list.reload(), api("/lotes/siguientes")]);
@@ -267,8 +271,9 @@ function Lotes() {
           <label># Lote</label>
           <input
             value={lote}
-            readOnly={!editingId}
-            onChange={(e) => setLote(e.target.value.toUpperCase())}
+            readOnly
+            disabled={Boolean(editingId)}
+            aria-readonly="true"
             placeholder="Seleccione primero la línea"
             style={styles.input}
           />
@@ -279,6 +284,7 @@ function Lotes() {
           <input
             type="date"
             value={fecha}
+            disabled={Boolean(editingId)}
             onChange={(e) => setFecha(e.target.value)}
             style={styles.input}
           />
@@ -300,7 +306,7 @@ function Lotes() {
       {/* GALERA DE CRIANZA, FECHA DE INGRESO Y TRASLADO */}
       <div style={styles.row}>
         <div style={{ ...styles.field, flex: 2 }}>
-          <label>Galera Crianza</label>
+          <label>Galera</label>
 
           <div style={styles.row}>
             <select
@@ -338,6 +344,7 @@ function Lotes() {
           <input
             type="date"
             value={fechaIngreso}
+            disabled={trasladoRegistrado}
             onChange={(e) => setFechaIngreso(e.target.value)}
             style={styles.input}
           />
@@ -345,13 +352,13 @@ function Lotes() {
         <button
           type="button"
           onClick={trasladarAProduccion}
-          disabled={!loteExistente || trasladando}
-          title={!loteExistente ? "Guarda o selecciona un lote existente para trasladarlo" : ""}
+          disabled={!puedeTrasladar}
+          title={!loteExistente ? "Guarda o selecciona un lote existente para trasladarlo" : trasladoRegistrado ? "Este lote ya fue trasladado a producción" : ""}
           style={{
             ...styles.button,
             minWidth: "240px",
-            opacity: !loteExistente || trasladando ? 0.55 : 1,
-            cursor: !loteExistente || trasladando ? "not-allowed" : "pointer",
+            opacity: !puedeTrasladar ? 0.55 : 1,
+            cursor: !puedeTrasladar ? "not-allowed" : "pointer",
           }}
         >
           {trasladando ? "Trasladando..." : "Trasladar a Producción"}
@@ -483,14 +490,15 @@ function Lotes() {
         {editingId ? "Guardar cambios" : "Guardar"}
       </button><CancelEditButton editing={editingId} onCancel={cancelarEdicion}/></div>
       <ConfigRecordsTable title="Lotes registrados" rows={list.rows} loading={list.loading} error={list.error} dateField="receivedOn" columns={[
-        { key: "code", label: "Lote" }, { key: "receivedOn", label: "Recepción" }, { key: "productionEntryOn", label: "Ingreso a producción" }, { key: "originCountry", label: "Origen" },
-        { key: "femaleCount", label: "Hembras" }, { key: "maleCount", label: "Machos" }, { key: "unitCost", label: "Costo unitario" },
+        { key: "code", label: "Lote" }, { key: "receivedOn", label: "Fecha creación" }, { key: "productionEntryOn", label: "Ingreso a producción" }, { key: "originCountry", label: "Origen" },
+        { key: "femaleCount", label: "Hembras" }, { key: "maleCount", label: "Machos" }, { key: "unitCost", label: "Costo unitario", render: (value) => Number(value || 0).toFixed(2) },
         { key: "currencyCode", label: "Moneda" }, { key: "status", label: "Estado" },
       ]} onEdit={(row) => {
         setEditingId(row.id); setLote(row.code); setFecha(row.receivedOn?.slice(0, 10) || ""); setLinea(row.poultryLineId || "");
-        setFechaIngreso(row.productionEntryOn?.slice(0, 10) || new Date().toISOString().split("T")[0]);
+        setFechaIngreso(row.productionEntryOn?.slice(0, 10) || row.receivedOn?.slice(0, 10) || "");
+        setTrasladoRegistrado(Boolean(row.productionEntryOn));
         setGalera(row.houseId || ""); setProveedor(row.supplierId || ""); setOrigen(row.originCountry || "");
-        setHembras(row.femaleCount || 0); setMachos(row.maleCount || 0); setCostoUnitario(row.unitCost || 0);
+        setHembras(row.femaleCount || 0); setMachos(row.maleCount || 0); setCostoUnitario(Number(row.unitCost || 0).toFixed(2));
         setMoneda(row.currencyCode || "GTQ"); setEstado(row.status === "INACTIVE" ? "Inactivo" : "Activo");
       }} onDeactivate={async (row) => {
         if (!(await confirmAction(`¿Deseas dar de baja el lote ${row.code}?`, { title: "Dar de baja lote", confirmLabel: "Sí, dar de baja" }))) return;

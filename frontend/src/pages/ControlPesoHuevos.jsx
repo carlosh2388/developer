@@ -39,15 +39,16 @@ const formatDateTime = (value) => value ? new Intl.DateTimeFormat("es-GT", {
 
 const weightReportHtml = ({ fecha, lote, semana, weights, uniformidad, operatorName, operatedAt, printedBy, printedAt }) => {
   const stats = weightStatistics(weights);
+  const weightText = (value) => Number.isFinite(Number(value)) ? Number(value).toFixed(2) : "";
   const sampleRows = Array.from({ length: Math.ceil(weights.length / 5) }, (_, row) =>
-    `<tr><td>${row + 1}</td>${Array.from({ length: 5 }, (_, column) => `<td>${weights[row * 5 + column] ?? ""}</td>`).join("")}</tr>`
+    `<tr><td>${row + 1}</td>${Array.from({ length: 5 }, (_, column) => `<td>${weightText(weights[row * 5 + column])}</td>`).join("")}</tr>`
   ).join("");
   const maxFrequency = Math.max(1, ...stats.classes.map((item) => item.count));
   const classRows = stats.classes.map((item, index) => `<tr><td>${index + 1}</td><td>${item.from.toFixed(2)} – ${item.to.toFixed(2)}</td><td>${item.count}</td></tr>`).join("");
   const chartWidth = 620; const chartHeight = 190; const baseline = 155; const slot = chartWidth / stats.classes.length;
   const bars = stats.classes.map((item, index) => {
     const height = Math.max(3, item.count / maxFrequency * 120); const x = index * slot + slot * 0.25;
-    return `<g><rect x="${x}" y="${baseline - height}" width="${slot * 0.5}" height="${height}" fill="#14779c"/><text x="${x + slot * 0.25}" y="${baseline - height - 6}" text-anchor="middle">${item.count}</text><text x="${x + slot * 0.25}" y="176" text-anchor="middle">${item.from.toFixed(1)}</text></g>`;
+    return `<g><rect x="${x}" y="${baseline - height}" width="${slot * 0.5}" height="${height}" fill="#14779c"/><text x="${x + slot * 0.25}" y="${baseline - height - 6}" text-anchor="middle">${item.count}</text><text x="${x + slot * 0.25}" y="176" text-anchor="middle">${item.from.toFixed(2)}</text></g>`;
   }).join("");
   const chart = `<svg class="chart" viewBox="0 0 ${chartWidth} ${chartHeight}" xmlns="http://www.w3.org/2000/svg"><line x1="0" y1="${baseline}" x2="${chartWidth}" y2="${baseline}" stroke="#555"/>${bars}</svg>`;
   return `<!doctype html><html><head><meta charset="utf-8"><title>Boleta peso huevos ${escapeHtml(lote)}</title><style>
@@ -76,7 +77,7 @@ function ControlPesoHuevos({ user }) {
   const [filas, setFilas] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [auditData, setAuditData] = useState({});
-  const cargarEdicion = async (row) => { try { const data = await api(`/controles/peso-huevos/${row.id}`); const editRows = data.muestras.map((item, index) => ({ id: index, pesoHuevo: String(item.egg_weight_grams ?? item.unit_weight_grams ?? "") })); setEditingId(row.id); setFecha(String(data.control_date).slice(0, 10)); setLote(data.flock_code); setSemana(data.week_number); setNumMuestras(editRows.length); setFilas(editRows); setAuditData({ farmName: data.farm_name, operatorName: data.operator_name, operatedAt: data.operated_at }); } catch (error) { alert(error.message); } };
+  const cargarEdicion = async (row) => { try { const data = await api(`/controles/peso-huevos/${row.id}`); const editRows = data.muestras.map((item, index) => ({ id: index, pesoHuevo: Number(item.egg_weight_grams ?? item.unit_weight_grams ?? 0).toFixed(2) })); setEditingId(row.id); setFecha(String(data.control_date).slice(0, 10)); setLote(data.flock_code); setSemana(data.week_number); setNumMuestras(editRows.length); setFilas(editRows); setAuditData({ farmName: data.farm_name, operatorName: data.operator_name, operatedAt: data.operated_at }); } catch (error) { alert(error.message); } };
 
   // =========================
   // FECHA AUTOMÁTICA
@@ -108,6 +109,7 @@ function ControlPesoHuevos({ user }) {
   // =========================
 
   const handleChange = (index, value) => {
+    if (!/^\d*(?:\.\d{0,2})?$/.test(value)) return;
     setFilas((actuales) => actuales.map((fila, currentIndex) =>
       currentIndex === index ? { ...fila, pesoHuevo: value } : fila
     ));
@@ -248,6 +250,7 @@ useEffect(() => {
   // =========================
 
   return (<OperationPanel maxWidth={950}><OperationRecordsModal title="Controles de peso de huevos" path="/controles/peso-huevos" annulPath={(row) => `/operaciones/peso-huevos/${row.id}/anular`} dateField="control_date" columns={[
+    { key: "record_number", label: "#" },
     { key: "control_date", label: "Fecha", render: (value) => String(value || "").slice(0, 10) },
     { key: "flock_code", label: "Lote", render: (value, row) => value || row.flockCode || "Sin lote" },
     { key: "week_number", label: "Semana" }, { key: "sample_size", label: "Muestras" }, { key: "average_weight_grams", label: "Promedio" }, { key: "uniformity_percentage", label: "Uniformidad" }, { key: "status", label: "Estado" },
@@ -315,6 +318,7 @@ useEffect(() => {
       min="1"
       step="1"
       value={numMuestras}
+      disabled={Boolean(editingId)}
       onKeyDown={(e) => { if (["-", "+", ".", ",", "e", "E"].includes(e.key)) e.preventDefault(); }}
       onChange={(e) => { if (/^\d*$/.test(e.target.value)) setNumMuestras(Math.max(0, Number(e.target.value || 0))); }}
       style={inputStyle}
@@ -356,7 +360,8 @@ useEffect(() => {
               placeholder={`Muestra ${i + 1}`}
               value={fila.pesoHuevo}
               onKeyDown={(e) => { if (["-", "+", "e", "E"].includes(e.key)) e.preventDefault(); }}
-              onChange={(e) => { if (/^\d*(?:\.\d*)?$/.test(e.target.value)) handleChange(i, e.target.value); }}
+              onChange={(e) => handleChange(i, e.target.value)}
+              onBlur={(e) => { if (e.target.value !== "") handleChange(i, Number(e.target.value).toFixed(2)); }}
               style={inputStyle}
               aria-label={`Peso en gramos de muestra ${i + 1}`}
             />
@@ -369,6 +374,7 @@ useEffect(() => {
       ========================= */}
 
       <div className="edit-actions"><button
+        type="button"
         onClick={guardar}
         style={{
           padding: "10px 20px",
