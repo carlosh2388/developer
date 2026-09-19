@@ -29,7 +29,11 @@ export function useOperationalCatalogs(names = Object.keys(endpoints)) {
     ...Object.fromEntries(names.map((name) => [name, data[name] || []])), errors,
     productosPorTipo: (types) => (data.productos || [])
       .filter((item) => item.status !== "INACTIVE" && types.includes(item.productType))
-      .map((item) => ({ value: item.code, label: item.name || item.code, unitCode: item.unitCode || "", unitLabel: item.unitLabel || "" }))
+      .map((item) => {
+        const unit = item.unitLabel || item.unitCode || "";
+        const name = item.name || item.code;
+        return { value: item.code, label: unit ? `${name} (${unit})` : name, unitCode: item.unitCode || "", unitLabel: item.unitLabel || "" };
+      })
       .sort(byVisibleName),
     opciones: (name, value = "code", label = "name") => (data[name] || [])
       .filter((item) => item.status !== "INACTIVE")

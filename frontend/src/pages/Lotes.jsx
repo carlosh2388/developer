@@ -16,6 +16,7 @@ function Lotes() {
 
   const [lote, setLote] = useState("");
   const [fecha, setFecha] = useState("");
+  const [fechaIngresoCrianza, setFechaIngresoCrianza] = useState("");
   const [fechaIngreso, setFechaIngreso] = useState("");
   const [trasladando, setTrasladando] = useState(false);
   const [trasladoRegistrado, setTrasladoRegistrado] = useState(false);
@@ -59,6 +60,7 @@ function Lotes() {
       .split("T")[0];
 
     setFecha(today);
+    setFechaIngresoCrianza(today);
     setFechaIngreso(today);
   };
 
@@ -145,7 +147,7 @@ function Lotes() {
       if (!linea) throw new Error("Selecciona primero una línea avícola.");
       if (!lote) throw new Error("No se pudo obtener el siguiente correlativo para la línea seleccionada.");
       const saved = await api(editingId ? `/lotes/${editingId}` : "/lotes", { method: editingId ? "PUT" : "POST", body: JSON.stringify({ ...(editingId ? { codigo: lote } : {}), fechaRecepcion: fecha,
-        lineaAvicolaId: linea, galeraId: galera || undefined, proveedorId: proveedor || undefined, paisOrigen: origen,
+        fechaIngresoCrianza: fechaIngresoCrianza || undefined, lineaAvicolaId: linea, galeraId: galera || undefined, proveedorId: proveedor || undefined, paisOrigen: origen,
         cantidadHembras: Number(hembras), cantidadMachos: Number(machos), costoUnitario: Number(costoUnitario),
         moneda, estado: estado === "Activo" ? "ACTIVE" : "INACTIVE" }) });
       alert(`Lote ${saved.code} guardado correctamente`);
@@ -311,6 +313,7 @@ function Lotes() {
           <div style={styles.row}>
             <select
               value={galera}
+              disabled={trasladoRegistrado}
               onChange={(e) => setGalera(e.target.value)}
               style={styles.input}
             >
@@ -325,13 +328,19 @@ function Lotes() {
 
             <button
               type="button"
+              disabled={trasladoRegistrado}
               onClick={() => setMostrarNuevaGalera(true)}
-              style={styles.addButton}
+              title={trasladoRegistrado ? "La galera no se puede editar después de trasladar a producción" : ""}
+              style={{
+                ...styles.addButton,
+                opacity: trasladoRegistrado ? 0.55 : 1,
+                cursor: trasladoRegistrado ? "not-allowed" : "pointer",
+              }}
             >
               +
             </button>
           </div>
-          {mostrarNuevaGalera && (
+          {mostrarNuevaGalera && !trasladoRegistrado && (
             <div className="inline-add-row">
               <input value={nuevaGalera} onChange={(e) => setNuevaGalera(e.target.value)}
                 style={styles.input} placeholder="Nueva galera" />
@@ -340,7 +349,16 @@ function Lotes() {
           )}
         </div>
         <div style={styles.field}>
-          <label>Fecha Ingreso</label>
+          <label>Fecha ingreso Crianza</label>
+          <input
+            type="date"
+            value={fechaIngresoCrianza}
+            onChange={(e) => setFechaIngresoCrianza(e.target.value)}
+            style={styles.input}
+          />
+        </div>
+        <div style={styles.field}>
+          <label>Fecha producción</label>
           <input
             type="date"
             value={fechaIngreso}
@@ -490,11 +508,12 @@ function Lotes() {
         {editingId ? "Guardar cambios" : "Guardar"}
       </button><CancelEditButton editing={editingId} onCancel={cancelarEdicion}/></div>
       <ConfigRecordsTable title="Lotes registrados" rows={list.rows} loading={list.loading} error={list.error} dateField="receivedOn" columns={[
-        { key: "code", label: "Lote" }, { key: "receivedOn", label: "Fecha creación" }, { key: "productionEntryOn", label: "Ingreso a producción" }, { key: "originCountry", label: "Origen" },
+        { key: "code", label: "Lote" }, { key: "receivedOn", label: "Fecha creación" }, { key: "rearingEntryOn", label: "Fecha ingreso Crianza" }, { key: "productionEntryOn", label: "Ingreso a producción" }, { key: "originCountry", label: "Origen" },
         { key: "femaleCount", label: "Hembras" }, { key: "maleCount", label: "Machos" }, { key: "unitCost", label: "Costo unitario", render: (value) => Number(value || 0).toFixed(2) },
         { key: "currencyCode", label: "Moneda" }, { key: "status", label: "Estado" },
       ]} onEdit={(row) => {
         setEditingId(row.id); setLote(row.code); setFecha(row.receivedOn?.slice(0, 10) || ""); setLinea(row.poultryLineId || "");
+        setFechaIngresoCrianza(row.rearingEntryOn?.slice(0, 10) || row.receivedOn?.slice(0, 10) || "");
         setFechaIngreso(row.productionEntryOn?.slice(0, 10) || row.receivedOn?.slice(0, 10) || "");
         setTrasladoRegistrado(Boolean(row.productionEntryOn));
         setGalera(row.houseId || ""); setProveedor(row.supplierId || ""); setOrigen(row.originCountry || "");

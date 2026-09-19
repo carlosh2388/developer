@@ -1,10 +1,67 @@
 import { useState } from "react";
 import { loadInventoryDocument, quantityInput, saveInventory } from "../services/operations";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
-import OperationRecordsModal, { inventoryColumns } from "../components/OperationRecordsModal";
+import { useCatalogList } from "../hooks/useCatalogList";
+import ConfigRecordsTable from "../components/ConfigRecordsTable";
 import OperationPanel from "../components/OperationPanel";
 import CancelEditButton from "../components/CancelEditButton";
 import EggAdjustmentForm from "../components/EggAdjustmentForm";
+import { api } from "../services/api";
+
+function AjustesEntradaRecords({ onEditInventory, onEditEgg }) {
+  const inventory = useCatalogList("/inventario/documentos");
+  const eggs = useCatalogList("/huevos/movimientos");
+  const inventoryRows = inventory.rows
+    .filter((row) => row.movement_type === "ADJUSTMENT_IN")
+    .map((row) => ({
+      ...row,
+      source: "inventory",
+      sourceLabel: "Inventario",
+      displayNumber: row.document_number,
+      description: row.products || "Sin detalles",
+      total: row.total_quantity,
+    }));
+  const eggRows = eggs.rows
+    .filter((row) => row.movement_type === "INPUT" && row.destination_warehouse_id && !row.collector_names && !row.classifier_names)
+    .map((row) => ({
+      ...row,
+      source: "egg",
+      sourceLabel: "Huevo",
+      displayNumber: row.movement_number || row.id,
+      description: row.grade_labels || "Sin clasificaciones",
+      total: row.total_units,
+    }));
+  const rows = [...inventoryRows, ...eggRows];
+  const columns = [
+    { key: "displayNumber", label: "Documento" },
+    { key: "sourceLabel", label: "Tipo" },
+    { key: "movement_date", label: "Fecha", render: (value) => String(value || "").slice(0, 10) },
+    { key: "flock_codes", label: "Lote", render: (value) => value || "Sin lote" },
+    { key: "description", label: "Detalle" },
+    { key: "total", label: "Total", render: (value) => Number(value || 0).toLocaleString("es-GT", { maximumFractionDigits: 2 }) },
+    { key: "status", label: "Estado", render: (value) => ({ POSTED: "Registrado", VOID: "Anulado", DRAFT: "Borrador" }[value] || value) },
+  ];
+  const reload = async () => { await Promise.all([inventory.reload(), eggs.reload()]); };
+
+  return <ConfigRecordsTable
+    title="Ajustes de entrada"
+    rows={rows}
+    loading={inventory.loading || eggs.loading}
+    error={inventory.error || eggs.error}
+    columns={columns}
+    dateField="movement_date"
+    inactiveStatuses={["VOID"]}
+    nonEditableStatuses={["VOID"]}
+    deactivateLabel="Anular"
+    onEdit={(row) => row.source === "egg" ? onEditEgg(row) : onEditInventory(row)}
+    onDeactivate={async (row) => {
+      if (!window.confirm("Deseas anular este registro?")) return;
+      await api(row.source === "egg" ? `/operaciones/huevos/${row.id}/anular` : `/inventario/documentos/${row.id}/anular`, { method: "PATCH" });
+      await reload();
+      alert("Registro anulado correctamente.");
+    }}
+  />;
+}
 
 function AjustesEntrada() {
   const { productosPorTipo } = useOperationalCatalogs(["productos"]);
@@ -35,7 +92,14 @@ function AjustesEntrada() {
   const [filas, setFilas] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [eggMode, setEggMode] = useState(false);
-  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setFilas(data.rows.map((item) => ({ ...item, tipo: item.tipo === "Materiales" ? "Material de Empaque" : item.tipo }))); } catch (error) { alert(error.message); } };
+  const [eggEditingId, setEggEditingId] = useState(null);
+  const [eggInitialData, setEggInitialData] = useState(null);
+  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); setEggMode(false); setEggEditingId(null); setEggInitialData(null); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setFilas(data.rows.map((item) => ({ ...item, tipo: item.tipo === "Materiales" ? "Material de Empaque" : item.tipo }))); } catch (error) { alert(error.message); } };
+  const cargarEdicionHuevo = async (row) => { try {
+    const data = await api(`/huevos/movimientos/${row.id}`);
+    setEggMode(true); setFilas([]); setEditingId(null); setEggEditingId(row.id); setEggInitialData(data);
+    setFecha(String(data.movement_date).slice(0, 10));
+  } catch (error) { alert(error.message); } };
 
   // =========================
   // CREAR FILA
@@ -151,8 +215,7 @@ function AjustesEntrada() {
         return [];
     }
   };
-
-  return (<OperationPanel maxWidth={1000}><OperationRecordsModal title="Ajustes de entrada" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={inventoryColumns} rowFilter={(row) => row.movement_type === "ADJUSTMENT_IN"} onEdit={cargarEdicion}/>
+  return (<OperationPanel maxWidth={1000}><AjustesEntradaRecords onEditInventory={cargarEdicion} onEditEgg={cargarEdicionHuevo}/>
     <div
       style={{
         maxWidth: "1000px",
@@ -209,7 +272,7 @@ function AjustesEntrada() {
           Alimento
         </button>
 
-        <button type="button" style={{ ...btn, background: eggMode ? "#0d6efd" : "#1976d2" }} onClick={() => { setEggMode(true); setFilas([]); setEditingId(null); }}>
+        <button type="button" style={{ ...btn, background: eggMode ? "#0d6efd" : "#1976d2" }} onClick={() => { setEggMode(true); setFilas([]); setEditingId(null); setEggEditingId(null); setEggInitialData(null); }}>
           Huevo
         </button>
 
@@ -261,8 +324,8 @@ function AjustesEntrada() {
 
       {/* TABLA */}
       {eggMode ? <>
-        <EggAdjustmentForm date={fecha} movementType="ADJUSTMENT_IN" />
-        <button type="button" onClick={() => setEggMode(false)} style={{ marginTop: "10px" }}>Cancelar ajuste de huevo</button>
+        <EggAdjustmentForm date={fecha} movementType="ADJUSTMENT_IN" editingId={eggEditingId} initialData={eggInitialData} onSaved={() => { setEggEditingId(null); setEggInitialData(null); }} />
+        <button type="button" onClick={() => { setEggMode(false); setEggEditingId(null); setEggInitialData(null); }} style={{ marginTop: "10px", padding: "10px 18px", background: "#d9534f", color: "#fff", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: 700 }}>Cancelar ajuste de huevo</button>
       </> : <form onSubmit={guardar}>
 
         <table
@@ -407,3 +470,4 @@ function AjustesEntrada() {
 }
 
 export default AjustesEntrada;
+

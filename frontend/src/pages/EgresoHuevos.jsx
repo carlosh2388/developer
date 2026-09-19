@@ -303,9 +303,11 @@ const crearFilaComercial = () => ({
   const cargarExistencias = async (id, codigoLote, clasificacion) => {
     if (!clasificacion || (clasificacion !== "Comercial" && !codigoLote)) return;
     try {
-      const query = clasificacion === "Comercial"
-        ? "clasificacion=Comercial"
-        : `lote=${encodeURIComponent(codigoLote)}`;
+      const params = new URLSearchParams();
+      if (clasificacion === "Comercial") params.set("clasificacion", "Comercial");
+      else params.set("lote", codigoLote);
+      if (bodegaSalida) params.set("bodega", bodegaSalida);
+      const query = params.toString();
       const saldos = await api(`/huevos/existencias?${query}`);
       setLotes((actuales) => actuales.map((item) => {
         if (item.id !== id) return item;
@@ -381,6 +383,14 @@ const crearFilaComercial = () => ({
       clasificacionForzada
     ));
   }, [clasificacionForzada]);
+
+  useEffect(() => {
+    lotes.forEach((item) => cargarExistencias(
+      item.id,
+      item.clasificacion === "Comercial" ? "" : item.lote,
+      item.clasificacion
+    ));
+  }, [bodegaSalida]);
 
   // =====================================================
   // TOGGLE LOTE
@@ -710,6 +720,7 @@ const calcularSubTotal = (
         alert("Inventario insuficiente para operar egresos.");
         return;
       }
+      if (!bodegaSalida) throw new Error("Selecciona la bodega de salida para validar las existencias.");
       if (lotes.some((item) => !item.clasificacion)) throw new Error("Selecciona la clasificación.");
       if (lotes.some((item) => item.clasificacion === "Incubable" && !item.lote)) throw new Error("Selecciona el lote para la clasificación Incubable.");
       const detalles = lotes.flatMap((item) => {

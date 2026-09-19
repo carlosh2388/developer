@@ -28,6 +28,7 @@ const entityLookup = {
   suppliers: ["code", "name"], warehouses: ["code", "name"], products: ["code", "name"],
   houses: ["code", "name"], flocks: ["code"], customers: ["code", "commercial_name"],
   vehicles: ["plate"], personnel: ["code", "full_name"], production_stages: ["code", "name"],
+  locations: ["code", "name"],
 };
 
 async function resolveTenantId(client, table, orgId, value, fieldName, optional = false) {
@@ -255,7 +256,7 @@ async function obtenerInventario(req, res, next) {
     );
     if (!header.rows[0]) throw new HttpError(404, "El documento no existe.", "NOT_FOUND");
     const details = await db.query(
-      `SELECT l.*,p.code product_code,p.name product_name,p.unit_code product_unit_code,COALESCE(json_agg(json_build_object(
+      `SELECT l.*,p.code product_code,p.name product_name,p.unit_code product_unit_code,p.product_type,COALESCE(json_agg(json_build_object(
          'id',a.id,'house_id',a.house_id,'house_code',h.code,'flock_id',a.flock_id,'flock_code',f.code,'quantity',a.quantity) ORDER BY a.id) FILTER (WHERE a.id IS NOT NULL),'[]') allocations
        FROM inventory_document_lines l
        JOIN products p ON p.id=l.product_id AND p.organization_id=l.organization_id
@@ -465,12 +466,19 @@ async function crearMovimientoHuevos(req, res, next) {
     const body = req.body || {};
     const detalles = Array.isArray(body.detalles) ? body.detalles : [];
     if (!detalles.length) throw new HttpError(400, "Agrega al menos un detalle de huevos.", "VALIDATION_ERROR");
+    const requestedMovementType = required(body.tipoMovimiento, "tipoMovimiento");
+    const movementType = requestedMovementType === "ADJUSTMENT_IN" ? "INPUT"
+      : requestedMovementType === "ADJUSTMENT_OUT" ? "OUTPUT"
+        : requestedMovementType;
+    const isAdjustmentIn = requestedMovementType === "ADJUSTMENT_IN";
+    const isAdjustmentOut = requestedMovementType === "ADJUSTMENT_OUT";
+    const isOutputMovement = movementType === "OUTPUT";
     const result = await transaction(async (client) => {
       const supportsShipmentNumbers = await tableHasColumn(client, "egg_movements", "shipment_number");
       const sourceWarehouseId = await resolveTenantId(client, "warehouses", orgId, body.bodegaOrigenId || body.bodegaOrigen, "bodega de origen", true);
       const destinationWarehouseId = await resolveTenantId(client, "warehouses", orgId, body.bodegaDestinoId || body.bodegaDestino, "bodega de destino", true);
-      const adjustmentMovement = ["ADJUSTMENT_IN", "ADJUSTMENT_OUT"].includes(body.tipoMovimiento);
-      const adjustmentWarehouseId = body.tipoMovimiento === "ADJUSTMENT_OUT" ? sourceWarehouseId : destinationWarehouseId;
+      const adjustmentMovement = isAdjustmentIn || isAdjustmentOut;
+      const adjustmentWarehouseId = isAdjustmentOut ? sourceWarehouseId : destinationWarehouseId;
       let adjustmentWarehouseClass = "";
       if (adjustmentMovement) {
         if (!adjustmentWarehouseId) throw new HttpError(400, "Selecciona la bodega para el ajuste de huevo.", "VALIDATION_ERROR");
@@ -494,11 +502,11 @@ async function crearMovimientoHuevos(req, res, next) {
         const current=await client.query("SELECT status FROM egg_movements WHERE id=$1 AND organization_id=$2 FOR UPDATE",[req.params.id,orgId]);
         if(!current.rows[0]) throw new HttpError(404,"El movimiento no existe.","NOT_FOUND"); if(current.rows[0].status==="VOID") throw new HttpError(409,"Un movimiento anulado no puede editarse.","VOID_DOCUMENT");
         header=await client.query(`UPDATE egg_movements SET movement_type=$1,movement_date=$2,movement_time=$3,production_date=$4,source_warehouse_id=$5,destination_warehouse_id=$6,destination_type=$7,destination_name=$8,customer_id=$9,vehicle_id=$10,driver_id=$11,notes=$12,updated_by=$13,updated_at=NOW() WHERE id=$14 AND organization_id=$15 RETURNING *`,
-          [required(body.tipoMovimiento,"tipoMovimiento"),required(body.fecha,"fecha"),body.hora||null,body.fechaProduccion||null,sourceWarehouseId,destinationWarehouseId,body.tipoDestino||null,body.nombreDestino||null,customerId,vehicleId,driverId,body.observaciones||null,req.user.id,req.params.id,orgId]);
+          [movementType,required(body.fecha,"fecha"),body.hora||null,body.fechaProduccion||null,sourceWarehouseId,destinationWarehouseId,body.tipoDestino||null,body.nombreDestino||null,customerId,vehicleId,driverId,body.observaciones||null,req.user.id,req.params.id,orgId]);
         await client.query("DELETE FROM egg_movement_lines WHERE movement_id=$1 AND organization_id=$2",[req.params.id,orgId]);
       } else {
         let shipmentNumber = null;
-        if (body.tipoMovimiento === "OUTPUT" && supportsShipmentNumbers) {
+        if (requestedMovementType === "OUTPUT" && supportsShipmentNumbers) {
           await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:EGG-SHIPMENT`]);
           const sequence = await client.query(
             `SELECT COALESCE(MAX(substring(shipment_number FROM 3)::integer),0) + 1 next_number
@@ -508,7 +516,7 @@ async function crearMovimientoHuevos(req, res, next) {
           if (nextNumber > 999) throw new HttpError(409, "Se alcanzó el límite de números de envío EN999.", "SHIPMENT_LIMIT_REACHED");
           shipmentNumber = `EN${String(nextNumber).padStart(3, "0")}`;
         }
-        const commonValues = [orgId, required(body.tipoMovimiento, "tipoMovimiento"), required(body.fecha, "fecha"), body.hora || null,
+        const commonValues = [orgId, movementType, required(body.fecha, "fecha"), body.hora || null,
           body.fechaProduccion || null, sourceWarehouseId, destinationWarehouseId, body.tipoDestino || null,
           body.nombreDestino || null, customerId, vehicleId, driverId, body.observaciones || null];
         header = supportsShipmentNumbers
@@ -535,7 +543,7 @@ async function crearMovimientoHuevos(req, res, next) {
         const flockId = commercialMovement
           ? null
           : await resolveTenantId(client, "flocks", orgId, d.loteId || d.lote, "lote");
-        const requiresPersonnel = body.tipoMovimiento === "INPUT";
+        const requiresPersonnel = requestedMovementType === "INPUT";
         const collectorId = await resolveTenantId(client, "personnel", orgId, d.recolectorId || d.recolector, "recolector", !requiresPersonnel);
         const classifierId = await resolveTenantId(client, "personnel", orgId, d.clasificadorId || d.clasificador, "clasificador", !requiresPersonnel);
         const values = [d.cajasBandejas336, d.cajasCartones360, d.bandejas84, d.cartones30, d.unidades].map((v) => Number(v || 0));
@@ -544,18 +552,18 @@ async function crearMovimientoHuevos(req, res, next) {
         }
         const totalWeight = d.pesoTotalGramos === undefined || d.pesoTotalGramos === null || d.pesoTotalGramos === ""
           ? null : Number(d.pesoTotalGramos);
-        if (totalWeight !== null && (!Number.isInteger(totalWeight) || totalWeight < 0)) {
+        if (totalWeight !== null && (!Number.isFinite(totalWeight) || totalWeight < 0 || Math.abs(totalWeight * 100 - Math.round(totalWeight * 100)) > 0.000001)) {
           throw new HttpError(400, `El peso del detalle ${index + 1} debe ser un número entero no negativo.`, "VALIDATION_ERROR");
         }
         const requestedUnits = values[0] * 336 + values[1] * 360 + values[2] * 84 + values[3] * 30 + values[4];
         let existingUnits = Number(d.existencia || 0);
-        if (["OUTPUT", "ADJUSTMENT_OUT"].includes(body.tipoMovimiento)) {
+        if (isOutputMovement) {
           await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:${flockId}:${gradeId}`]);
           const balance = await client.query(`SELECT COALESCE(SUM(CASE WHEN m.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.total_units ELSE -l.total_units END)
             FILTER (WHERE m.status='POSTED' AND ($4::uuid IS NULL OR m.id<>$4::uuid)),0)::BIGINT AS available_units
             FROM egg_movement_lines l JOIN egg_movements m ON m.id=l.movement_id AND m.organization_id=l.organization_id
             WHERE l.organization_id=$1 AND ($2::uuid IS NULL OR l.flock_id=$2) AND l.quality_grade_id=$3
-              AND COALESCE(m.source_warehouse_id,m.destination_warehouse_id)=$5`,
+              AND (COALESCE(m.source_warehouse_id,m.destination_warehouse_id)=$5 OR (m.source_warehouse_id IS NULL AND m.destination_warehouse_id IS NULL))`,
             [orgId, flockId, gradeId, req.params.id || null, sourceWarehouseId]);
           existingUnits = Number(balance.rows[0].available_units || 0);
           if (requestedUnits > existingUnits) throw new HttpError(409, "Inventario insuficiente para operar egresos.", "INSUFFICIENT_EGG_STOCK");
@@ -615,7 +623,7 @@ async function listarExistenciasHuevos(req, res, next) {
       FROM egg_quality_grades g
       LEFT JOIN egg_movement_lines l ON l.quality_grade_id=g.id AND l.organization_id=$1 AND ($2::uuid IS NULL OR l.flock_id=$2)
       LEFT JOIN egg_movements m ON m.id=l.movement_id AND m.organization_id=l.organization_id
-        AND ($4::uuid IS NULL OR COALESCE(m.source_warehouse_id,m.destination_warehouse_id)=$4)
+        AND ($4::uuid IS NULL OR COALESCE(m.source_warehouse_id,m.destination_warehouse_id)=$4 OR (m.source_warehouse_id IS NULL AND m.destination_warehouse_id IS NULL))
       WHERE g.is_active=TRUE AND ($3::boolean=FALSE OR g.egg_class='COMMERCIAL')
       GROUP BY g.id ORDER BY g.egg_class,g.sort_order`, [orgId, flockId, comercial, warehouseId]);
     res.json(rows);
@@ -641,7 +649,7 @@ async function listarEgresosAves(req, res, next) {
 
 async function resumenExistenciasHuevos(req, res, next) {
   try {
-    const { rows } = await db.query(`SELECT COALESCE(SUM(CASE WHEN m.movement_type='INPUT' THEN l.total_units ELSE -l.total_units END)
+    const { rows } = await db.query(`SELECT COALESCE(SUM(CASE WHEN m.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.total_units ELSE -l.total_units END)
       FILTER (WHERE m.status='POSTED'),0)::BIGINT AS available_units
       FROM egg_movement_lines l
       JOIN egg_movements m ON m.id=l.movement_id AND m.organization_id=l.organization_id

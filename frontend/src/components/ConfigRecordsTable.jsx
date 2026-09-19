@@ -25,7 +25,7 @@ const compareLoteDesc = (left, right) => {
 const isBrownNickRow = (row) => /^BL/i.test(loteValue(row).trim());
 const brownNickRowStyle = { background: "#fdecec", boxShadow: "inset 4px 0 0 #e57373" };
 
-export default function ConfigRecordsTable({ title, rows, columns, loading, error, dateField, onEdit, onDeactivate, onActivate, deactivateLabel = "Dar de baja", activateLabel = "Activar", inactiveStatuses = ["INACTIVE"], nonEditableStatuses = [], buttonStyle }) {
+export default function ConfigRecordsTable({ title, rows, columns, loading, error, dateField, onEdit, onDeactivate, onActivate, deactivateLabel = "Dar de baja", activateLabel = "Activar", inactiveStatuses = ["INACTIVE"], nonEditableStatuses = [], buttonStyle, sortRows = compareLoteDesc }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
@@ -41,7 +41,7 @@ export default function ConfigRecordsTable({ title, rows, columns, loading, erro
     if (from && date && date < from) return false;
     if (to && date && date > to) return false;
     return columns.every((column) => !filters[column.key] || displayText(column, row).toLowerCase().includes(filters[column.key].toLowerCase()));
-  }).sort(compareLoteDesc), [rows, columns, search, status, from, to, filters, dateField]);
+  }).sort(sortRows), [rows, columns, search, status, from, to, filters, dateField, sortRows]);
   useEffect(() => {
     if (!open) return undefined;
     const previous = document.body.style.overflow;

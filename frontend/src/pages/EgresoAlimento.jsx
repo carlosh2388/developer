@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { clientId, loadInventoryDocument, quantityInput, saveInventory } from "../services/operations";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
-import OperationRecordsModal, { inventoryColumns } from "../components/OperationRecordsModal";
+import OperationRecordsModal, { compareDocumentDesc, inventoryColumns } from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
 import CancelEditButton from "../components/CancelEditButton";
 
@@ -15,6 +15,33 @@ const foodOutputColumns = inventoryColumns
   .flatMap((column) => column.key === "movement_date"
     ? [column, { key: "flock_codes", label: "Lotes", render: (value) => value || "Sin lote" }]
     : [column]);
+
+const foodOutputMetaPrefix = "AVINEXT_FOOD_OUTPUT_META:";
+
+const cleanSupplements = (items = []) => items
+  .filter((item) => item.producto || String(item.observacion || "").trim())
+  .map((item) => ({ producto: item.producto || "", observacion: item.observacion || "" }));
+
+const encodeFoodOutputMeta = (fila) => {
+  const aditivos = cleanSupplements(fila.aditivos);
+  const medicamentos = cleanSupplements(fila.medicamentos);
+  if (!aditivos.length && !medicamentos.length) return "";
+  return `${foodOutputMetaPrefix}${JSON.stringify({ aditivos, medicamentos })}`;
+};
+
+const decodeFoodOutputMeta = (value) => {
+  const text = String(value || "");
+  if (!text.startsWith(foodOutputMetaPrefix)) return null;
+  try {
+    const data = JSON.parse(text.slice(foodOutputMetaPrefix.length));
+    return {
+      aditivos: Array.isArray(data.aditivos) ? data.aditivos : [],
+      medicamentos: Array.isArray(data.medicamentos) ? data.medicamentos : [],
+    };
+  } catch {
+    return null;
+  }
+};
 
 function EgresoAlimento() {
   const { productosPorTipo, opciones } = useOperationalCatalogs(["productos", "lotes"]);
@@ -41,16 +68,17 @@ function EgresoAlimento() {
 
     alimento: "",
     vacuna: "",
+    aditivo: "",
     cantidad: "",
 
     aditivos:
       tipo === "Alimento"
-        ? [{ producto: "", cantidad: "" }]
+        ? [{ producto: "", observacion: "" }]
         : [],
 
     medicamentos:
       tipo === "Alimento"
-        ? [{ producto: "", cantidad: "" }]
+        ? [{ producto: "", observacion: "" }]
         : []
   });
 
@@ -62,7 +90,42 @@ function EgresoAlimento() {
 
   const [grupos, setGrupos] = useState([]);
   const [editingId, setEditingId] = useState(null);
-  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); const grouped = new Map(); data.rows.forEach((item) => { const lote = item.lotes[0]?.lote || ""; if (!lote) throw new Error("Este registro no tiene un lote asociado."); if (!grouped.has(lote)) grouped.set(lote, { id: clientId(), lote, filas: [] }); grouped.get(lote).filas.push({ id: clientId(), tipo: item.tipo === "Vacunas" ? "Vacuna" : "Alimento", alimento: item.tipo === "Vacunas" ? "" : item.item, vacuna: item.tipo === "Vacunas" ? item.item : "", cantidad: item.cantidad, aditivos: item.aditivos.map((x) => ({ producto: x.producto, cantidad: x.cantidad })), medicamentos: item.medicamentos.map((x) => ({ producto: x.producto, cantidad: x.cantidad })) }); }); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setGrupos([...grouped.values()]); } catch (error) { alert(error.message); } };
+  const cargarEdicion = async (row) => { try {
+    const data = await loadInventoryDocument(row.id);
+    const grouped = new Map();
+    data.rows.forEach((item) => {
+      const lote = item.lotes[0]?.lote || "";
+      if (!lote) throw new Error("Este registro no tiene un lote asociado.");
+      if (!grouped.has(lote)) grouped.set(lote, { id: clientId(), lote, filas: [] });
+      const grupo = grouped.get(lote);
+      const meta = decodeFoodOutputMeta(item.justificacion);
+      if (item.tipo === "Medicamentos") {
+        let food = grupo.filas.find((fila) => fila.tipo === "Alimento");
+        if (!food) {
+          food = crearFila("Alimento");
+          food.id = clientId();
+          grupo.filas.push(food);
+        }
+        const target = item.tipo === "Aditivos" ? "aditivos" : "medicamentos";
+        const firstEmpty = food[target].find((entry) => !entry.producto && !entry.observacion);
+        const value = { producto: item.item, observacion: item.justificacion || "" };
+        if (firstEmpty) Object.assign(firstEmpty, value);
+        else food[target].push(value);
+        return;
+      }
+      grupo.filas.push({
+        id: clientId(),
+        tipo: item.tipo === "Vacunas" ? "Vacuna" : item.tipo === "Aditivos" ? "Aditivo" : "Alimento",
+        alimento: item.tipo === "Vacunas" || item.tipo === "Aditivos" ? "" : item.item,
+        vacuna: item.tipo === "Vacunas" ? item.item : "",
+        aditivo: item.tipo === "Aditivos" ? item.item : "",
+        cantidad: item.cantidad,
+        aditivos: meta?.aditivos || (item.aditivos.length ? item.aditivos.map((x) => ({ producto: x.producto, observacion: x.observacion || "" })) : [{ producto: "", observacion: "" }]),
+        medicamentos: meta?.medicamentos || (item.medicamentos.length ? item.medicamentos.map((x) => ({ producto: x.producto, observacion: x.observacion || "" })) : [{ producto: "", observacion: "" }]),
+      });
+    });
+    setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setGrupos([...grouped.values()]);
+  } catch (error) { alert(error.message); } };
 
   const agregarGrupoLote = () => {
 
@@ -165,7 +228,7 @@ function EgresoAlimento() {
                   ...f,
                   aditivos: [
                     ...(f.aditivos || []),
-                    { producto: "", cantidad: "" }
+                    { producto: "", observacion: "" }
                   ]
                 }
               : f
@@ -193,7 +256,7 @@ function EgresoAlimento() {
                   ...f,
                   medicamentos: [
                     ...(f.medicamentos || []),
-                    { producto: "", cantidad: "" }
+                    { producto: "", observacion: "" }
                   ]
                 }
               : f
@@ -278,8 +341,17 @@ function EgresoAlimento() {
   const guardar = async (e) => {
     e.preventDefault();
     try {
-      const rows = grupos.flatMap((grupo) => grupo.filas.filter((fila) => fila.alimento || fila.vacuna).map((fila) => ({ ...fila, item: fila.alimento || fila.vacuna, lotes: [{ lote: grupo.lote, cantidad: fila.cantidad }] })));
-      const quantities = rows.flatMap((fila) => [fila.cantidad, ...(fila.aditivos || []).filter((item) => item.producto).map((item) => item.cantidad), ...(fila.medicamentos || []).filter((item) => item.producto).map((item) => item.cantidad)]);
+      const rows = grupos.flatMap((grupo) => grupo.filas.filter((fila) => fila.alimento || fila.vacuna || fila.aditivo).map((fila) => ({
+        ...fila,
+        item: fila.alimento || fila.vacuna || fila.aditivo,
+        justificacion: fila.tipo === "Alimento" ? encodeFoodOutputMeta(fila) : fila.justificacion,
+        lotes: [{ lote: grupo.lote, cantidad: fila.cantidad }]
+      })));
+      if (!rows.length) throw new Error("Agrega al menos un alimento, vacuna o aditivo para guardar el egreso.");
+      if (rows.some((fila) => [...(fila.aditivos || []), ...(fila.medicamentos || [])].some((item) => !item.producto && String(item.observacion || "").trim()))) {
+        throw new Error("Selecciona el aditivo o medicamento en las filas que tengan observaciones.");
+      }
+      const quantities = rows.map((fila) => fila.cantidad);
       if (quantities.some((value) => !/^\d+(?:\.\d{1,2})?$/.test(String(value)) || Number(value) <= 0)) throw new Error("Las cantidades deben ser mayores que cero y tener como máximo dos decimales.");
       await saveInventory({ id: editingId, fecha, rows, movementType: "OUTPUT", module: "FOOD", allocate: true });
       alert(editingId ? "Registro actualizado correctamente" : "Registro guardado correctamente"); setGrupos([]); setLoteSeleccionado(""); setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
@@ -311,14 +383,87 @@ function EgresoAlimento() {
     cursor: "pointer"
   };
 
-  return (<OperationPanel maxWidth={1600}><OperationRecordsModal title="Egresos de alimento" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={foodOutputColumns} rowFilter={(row) => row.movement_type === "OUTPUT" && row.module_code === "FOOD"} onEdit={cargarEdicion}/>
+  const supplementStack = {
+    display: "grid",
+    gap: 10,
+    minWidth: 0,
+    width: "100%"
+  };
+
+  const supplementRow = {
+    display: "grid",
+    gap: 6
+  };
+
+  const supplementTop = {
+    display: "grid",
+    gridTemplateColumns: "minmax(240px, 1fr) 42px",
+    gap: 8,
+    alignItems: "center"
+  };
+
+  const supplementSelect = {
+    ...inputStyle,
+    minWidth: 0,
+    width: "100%",
+    height: 38
+  };
+
+  const supplementNote = {
+    ...inputStyle,
+    minWidth: 0,
+    width: "100%",
+    height: 36
+  };
+
+  const supplementAddButton = {
+    width: 42,
+    height: 38,
+    padding: 0,
+    border: 0,
+    borderRadius: 6,
+    background: "#1976d2",
+    color: "#fff",
+    cursor: "pointer",
+    fontWeight: 700,
+    fontSize: 18
+  };
+
+  const tableWrapStyle = {
+    overflowX: "auto",
+    width: "100%",
+    maxWidth: "100%",
+    paddingBottom: 10
+  };
+
+  const tableStyle = {
+    width: "100%",
+    minWidth: "1320px",
+    borderCollapse: "collapse",
+    tableLayout: "fixed"
+  };
+
+  const headerCellStyle = {
+    padding: "12px 10px",
+    textAlign: "left",
+    whiteSpace: "nowrap"
+  };
+
+  const bodyCellStyle = {
+    padding: "12px 10px",
+    borderBottom: "1px solid #e5e7eb",
+    verticalAlign: "top"
+  };
+
+  return (<OperationPanel maxWidth="calc(100vw - 240px)"><OperationRecordsModal title="Egresos de alimento" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={foodOutputColumns} rowFilter={(row) => row.movement_type === "OUTPUT" && row.module_code === "FOOD"} onEdit={cargarEdicion} sortRows={compareDocumentDesc}/>
     <div
       style={{
         width: "100%",
-        maxWidth: "1560px",
+        maxWidth: "100%",
         margin: "0 auto",
-        padding: "20px",
-        fontFamily: "Arial"
+        padding: "20px 8px",
+        fontFamily: "Arial",
+        boxSizing: "border-box"
       }}
     >
       <h2>Salida de Alimento</h2>
@@ -328,7 +473,8 @@ function EgresoAlimento() {
           display: "flex",
           gap: "10px",
           alignItems: "end",
-          marginBottom: "20px"
+          marginBottom: "20px",
+          flexWrap: "wrap"
         }}
       >
         <div style={{ minWidth: "280px" }}>
@@ -386,7 +532,10 @@ function EgresoAlimento() {
               border: "1px solid #ccc",
               borderRadius: "8px",
               padding: "15px",
-              marginBottom: "20px"
+              marginBottom: "20px",
+              maxWidth: "100%",
+              overflow: "hidden",
+              boxSizing: "border-box"
             }}
           >
             <h3>{catalogName(lotes.find((item) => item.value === grupo.lote) || { value: grupo.lote, label: grupo.lote })}</h3>
@@ -424,36 +573,48 @@ function EgresoAlimento() {
               >
                 Vacuna
               </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  agregarFila(
+                    grupo.id,
+                    "Aditivo"
+                  )
+                }
+                style={{
+                  ...btnAdd,
+                  marginLeft: "10px"
+                }}
+              >
+                Aditivo
+              </button>
             </div>
 
+            <div style={tableWrapStyle}>
             <table
-              style={{
-                width: "100%",
-                minWidth: "1180px",
-                borderCollapse:
-                  "collapse"
-              }}
+              style={tableStyle}
             >
-              <colgroup><col style={{ width: "26%" }}/><col style={{ width: "15%" }}/><col style={{ width: "25%" }}/><col style={{ width: "25%" }}/><col style={{ width: "9%" }}/></colgroup>
+              <colgroup><col style={{ width: "27%" }}/><col style={{ width: "13%" }}/><col style={{ width: "27%" }}/><col style={{ width: "27%" }}/><col style={{ width: "6%" }}/></colgroup>
               <thead>
                 <tr
                   style={{
                     background: "#f5f5f5"
                   }}
                 >
-                  <th>
-                    Alimento / Vacuna
+                  <th style={headerCellStyle}>
+                    Alimento / Vacuna / Aditivo
                   </th>
 
-                  <th>
+                  <th style={headerCellStyle}>
                     Cantidad
                   </th>
 
-                  <th>
+                  <th style={headerCellStyle}>
                     Aditivo
                   </th>
 
-                  <th>
+                  <th style={headerCellStyle}>
                     Medicamento
                   </th>
 
@@ -468,7 +629,7 @@ function EgresoAlimento() {
                 {grupo.filas.map(fila => (
                   <tr key={fila.id}>
 
-                    <td>
+                    <td style={bodyCellStyle}>
 
                       {fila.tipo ===
                       "Vacuna" ? (
@@ -485,7 +646,7 @@ function EgresoAlimento() {
                               e.target.value
                             )
                           }
-                          style={{ ...inputStyle, minWidth: "220px" }}
+                          style={{ ...inputStyle, minWidth: 0, width: "100%" }}
                         >
                           <option value="">
                             Seleccione
@@ -497,6 +658,36 @@ function EgresoAlimento() {
                               value={v.value}
                             >
                               {catalogName(v)}
+                            </option>
+                          ))}
+                        </select>
+
+                      ) : fila.tipo === "Aditivo" ? (
+
+                        <select
+                          value={
+                            fila.aditivo
+                          }
+                          onChange={(e) =>
+                            handleChange(
+                              grupo.id,
+                              fila.id,
+                              "aditivo",
+                              e.target.value
+                            )
+                          }
+                          style={{ ...inputStyle, minWidth: 0, width: "100%" }}
+                        >
+                          <option value="">
+                            Seleccione
+                          </option>
+
+                          {aditivosDisponibles.map(a => (
+                            <option
+                              key={a.value}
+                              value={a.value}
+                            >
+                              {catalogName(a)}
                             </option>
                           ))}
                         </select>
@@ -515,7 +706,7 @@ function EgresoAlimento() {
                               e.target.value
                             )
                           }
-                          style={{ ...inputStyle, minWidth: "220px" }}
+                          style={{ ...inputStyle, minWidth: 0, width: "100%" }}
                         >
                           <option value="">
                             Seleccione
@@ -535,10 +726,10 @@ function EgresoAlimento() {
 
                     </td>
 
-                    <td>
+                    <td style={bodyCellStyle}>
                       <input
                         type="number"
-                        {...quantityInput((fila.tipo === "Vacuna" ? vacunasDisponibles : alimentosOptions).find((item) => item.value === (fila.vacuna || fila.alimento))?.unitCode)}
+                        {...quantityInput((fila.tipo === "Vacuna" ? vacunasDisponibles : fila.tipo === "Aditivo" ? aditivosDisponibles : alimentosOptions).find((item) => item.value === (fila.vacuna || fila.aditivo || fila.alimento))?.unitCode)}
                         value={
                           fila.cantidad
                         }
@@ -550,16 +741,16 @@ function EgresoAlimento() {
                             e.target.value
                           )
                         }
-                        style={{ ...inputStyle, minWidth: "150px" }}
+                        style={{ ...inputStyle, minWidth: 0, width: "100%" }}
                       />
                     </td>
 
-                    <td>
+                    <td style={bodyCellStyle}>
                       {fila.tipo !==
                       "Alimento" ? (
                         "No aplica"
                       ) : (
-                        <div>
+                        <div style={supplementStack}>
                           {(fila.aditivos || []).map(
                             (
                               aditivo,
@@ -567,57 +758,66 @@ function EgresoAlimento() {
                             ) => (
                               <div
                                 key={index}
-                                style={{
-                                  display: "flex",
-                                  gap: "6px",
-                                  marginBottom:
-                                    "5px"
-                                }}
+                                style={supplementRow}
                               >
-                                <select
-                                  value={
-                                    aditivo.producto
-                                  }
-                                  onChange={(e) =>
-                                    cambiarAditivo(
-                                      grupo.id,
-                                      fila.id,
-                                      index,
-                                      "producto",
-                                      e.target
-                                        .value
-                                    )
-                                  }
-                                  style={{ ...inputStyle, minWidth: "210px" }}
-                                >
-                                  <option value="">
-                                    Seleccione
-                                  </option>
+                                <div style={supplementTop}>
+                                  <select
+                                    value={
+                                      aditivo.producto
+                                    }
+                                    onChange={(e) =>
+                                      cambiarAditivo(
+                                        grupo.id,
+                                        fila.id,
+                                        index,
+                                        "producto",
+                                        e.target
+                                          .value
+                                      )
+                                    }
+                                    style={supplementSelect}
+                                  >
+                                    <option value="">
+                                      Seleccione
+                                    </option>
 
-                                  {aditivosDisponibles.map(
-                                    a => (
-                                      <option
-                                        key={a.value}
-                                        value={a.value}
-                                      >
-                                        {catalogName(a)}
-                                      </option>
-                                    )
-                                  )}
-                                </select>
+                                    {aditivosDisponibles.map(
+                                      a => (
+                                        <option
+                                          key={a.value}
+                                          value={a.value}
+                                        >
+                                          {catalogName(a)}
+                                        </option>
+                                      )
+                                    )}
+                                  </select>
+                                  {index === (fila.aditivos || []).length - 1 && <button
+                                    type="button"
+                                    onClick={() =>
+                                      agregarAditivoFila(
+                                        grupo.id,
+                                        fila.id
+                                      )
+                                    }
+                                    style={supplementAddButton}
+                                    title="Agregar aditivo"
+                                  >
+                                    +
+                                  </button>}
+                                </div>
                                 <input
-                                  type="number"
-                                  {...quantityInput(aditivosDisponibles.find((item) => item.value === aditivo.producto)?.unitCode)}
-                                  value={aditivo.cantidad}
-                                  onChange={(e) => cambiarAditivo(grupo.id, fila.id, index, "cantidad", e.target.value)}
-                                  placeholder="Cantidad"
-                                  style={{ ...inputStyle, minWidth: "105px" }}
+                                  type="text"
+                                  value={aditivo.observacion || ""}
+                                  onChange={(e) => cambiarAditivo(grupo.id, fila.id, index, "observacion", e.target.value)}
+                                  placeholder="Observaciones"
+                                  style={supplementNote}
                                 />
                               </div>
                             )
                           )}
 
-                          <button
+                          {!(fila.aditivos || []).length && <button
                             type="button"
                             onClick={() =>
                               agregarAditivoFila(
@@ -625,20 +825,22 @@ function EgresoAlimento() {
                                 fila.id
                               )
                             }
+                            style={supplementAddButton}
+                            title="Agregar aditivo"
                           >
                             +
-                          </button>
+                          </button>}
 
                         </div>
                       )}
                     </td>
 
-                    <td>
+                    <td style={bodyCellStyle}>
                       {fila.tipo !==
                       "Alimento" ? (
                         "No aplica"
                       ) : (
-                        <div>
+                        <div style={supplementStack}>
                           {(fila.medicamentos || []).map(
                             (
                               med,
@@ -646,55 +848,64 @@ function EgresoAlimento() {
                             ) => (
                               <div
                                 key={index}
-                                style={{
-                                  display: "flex",
-                                  gap: "6px",
-                                  marginBottom:
-                                    "5px"
-                                }}
+                                style={supplementRow}
                               >
-                                <select
-                                value={med.producto}
-                                  onChange={(e) =>
-                                    cambiarMedicamento(
-                                      grupo.id,
-                                    fila.id,
-                                    index,
-                                    "producto",
-                                    e.target
-                                      .value
-                                    )
-                                  }
-                                  style={{ ...inputStyle, minWidth: "210px" }}
-                                >
-                                  <option value="">
-                                    Seleccione
-                                  </option>
+                                <div style={supplementTop}>
+                                  <select
+                                  value={med.producto}
+                                    onChange={(e) =>
+                                      cambiarMedicamento(
+                                        grupo.id,
+                                      fila.id,
+                                      index,
+                                      "producto",
+                                      e.target
+                                        .value
+                                      )
+                                    }
+                                    style={supplementSelect}
+                                  >
+                                    <option value="">
+                                      Seleccione
+                                    </option>
 
-                                  {medicamentosDisponibles.map(
-                                    m => (
-                                      <option
-                                        key={m.value}
-                                        value={m.value}
-                                      >
-                                        {catalogName(m)}
-                                      </option>
-                                    )
-                                  )}
-                                </select>
+                                    {medicamentosDisponibles.map(
+                                      m => (
+                                        <option
+                                          key={m.value}
+                                          value={m.value}
+                                        >
+                                          {catalogName(m)}
+                                        </option>
+                                      )
+                                    )}
+                                  </select>
+                                  {index === (fila.medicamentos || []).length - 1 && <button
+                                    type="button"
+                                    onClick={() =>
+                                      agregarMedicamentoFila(
+                                        grupo.id,
+                                        fila.id
+                                      )
+                                    }
+                                    style={supplementAddButton}
+                                    title="Agregar medicamento"
+                                  >
+                                    +
+                                  </button>}
+                                </div>
                                 <input
-                                  type="number"
-                                  {...quantityInput(medicamentosDisponibles.find((item) => item.value === med.producto)?.unitCode)}
-                                  value={med.cantidad}
-                                  onChange={(e) => cambiarMedicamento(grupo.id, fila.id, index, "cantidad", e.target.value)}
-                                  placeholder="Cantidad"
-                                  style={{ ...inputStyle, minWidth: "105px" }}
+                                  type="text"
+                                  value={med.observacion || ""}
+                                  onChange={(e) => cambiarMedicamento(grupo.id, fila.id, index, "observacion", e.target.value)}
+                                  placeholder="Observaciones"
+                                  style={supplementNote}
                                 />
                               </div>
                             )
                           )}
 
-                          <button
+                          {!(fila.medicamentos || []).length && <button
                             type="button"
                             onClick={() =>
                               agregarMedicamentoFila(
@@ -702,15 +913,17 @@ function EgresoAlimento() {
                                 fila.id
                               )
                             }
+                            style={supplementAddButton}
+                            title="Agregar medicamento"
                           >
                             +
-                          </button>
+                          </button>}
 
                         </div>
                       )}
                     </td>
 
-                    <td>
+                    <td style={{ ...bodyCellStyle, textAlign: "center" }}>
                       <button
                         type="button"
                         onClick={() =>
@@ -730,6 +943,7 @@ function EgresoAlimento() {
 
               </tbody>
             </table>
+            </div>
           </div>
         ))}
 

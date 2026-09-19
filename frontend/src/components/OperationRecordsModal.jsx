@@ -8,7 +8,7 @@ const productNames = (value) => String(value || "").split(", ")
   .filter(Boolean)
   .join(", ");
 
-export default function OperationRecordsModal({ title, path, annulPath, columns, dateField, rowFilter, onEdit }) {
+export default function OperationRecordsModal({ title, path, annulPath, columns, dateField, rowFilter, onEdit, sortRows, buttonStyle }) {
   const list = useCatalogList(path);
   const rows = rowFilter ? list.rows.filter(rowFilter) : list.rows;
   return <ConfigRecordsTable title={title} rows={rows} loading={list.loading} error={list.error} columns={columns} dateField={dateField} onEdit={onEdit}
@@ -16,8 +16,16 @@ export default function OperationRecordsModal({ title, path, annulPath, columns,
       if (!(await confirmAction("¿Deseas anular este registro? Permanecerá visible para auditoría, pero ya no podrá editarse.", { title: "Anular registro", confirmLabel: "Sí, anular" }))) return;
       try { await api(annulPath(row), { method: "PATCH" }); await list.reload(); alert("Registro anulado correctamente."); }
       catch (error) { alert(error.message); }
-    } : undefined}/>
+    } : undefined} sortRows={sortRows} buttonStyle={buttonStyle}/>
 }
+
+export const compareDocumentDesc = (left, right) => {
+  const leftDoc = String(left.document_number || "");
+  const rightDoc = String(right.document_number || "");
+  const byDocument = rightDoc.localeCompare(leftDoc, "es", { numeric: true, sensitivity: "base" });
+  if (byDocument) return byDocument;
+  return String(right.created_at || right.id || "").localeCompare(String(left.created_at || left.id || ""), "es", { numeric: true, sensitivity: "base" });
+};
 
 export const inventoryColumns = [
   { key: "document_number", label: "Documento" },

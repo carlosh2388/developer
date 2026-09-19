@@ -66,7 +66,7 @@ const catalogos = {
     hasUpdatedAt: true,
     required: ["code", "received_on", "poultry_line_id"],
     fields: {
-      codigo: "code", fechaRecepcion: "received_on", fechaIngreso: "production_entry_on", lineaAvicolaId: "poultry_line_id", galeraId: "house_id",
+      codigo: "code", fechaRecepcion: "received_on", fechaIngresoCrianza: "rearing_entry_on", fechaIngreso: "production_entry_on", lineaAvicolaId: "poultry_line_id", galeraId: "house_id",
       proveedorId: "supplier_id", paisOrigen: "origin_country", cantidadHembras: "female_count",
       cantidadMachos: "male_count", costoUnitario: "unit_cost", moneda: "currency_code", estado: "status",
     },

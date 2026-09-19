@@ -2,6 +2,7 @@ import { api } from "./api";
 
 const roleByType = {
   Alimento: "BASE_FOOD", Alimentos: "BASE_FOOD", Material: "MATERIAL", Materiales: "MATERIAL",
+  "Material de Empaque": "MATERIAL",
   Aditivo: "ADDITIVE", Aditivos: "ADDITIVE", Medicamento: "MEDICINE", Medicamentos: "MEDICINE",
   Vacuna: "VACCINE", Vacunas: "VACCINE", Insumo: "PRIMARY", Insumos: "PRIMARY",
 };
@@ -78,6 +79,7 @@ export function eggGradeCode(label, type = "") {
 }
 
 const labelByEggGrade = Object.fromEntries(Object.entries(eggGradeCodes).map(([label, code]) => [code, label]));
+labelByEggGrade.INC_SMALL_NEST = "Pequeño (Nido)";
 labelByEggGrade.COM_SMALL_NEST = "Pequeño (Nido)";
 export function eggGradeLabel(code) { return labelByEggGrade[code] || code; }
 
@@ -98,12 +100,16 @@ export async function saveOperation(path, body, id) {
 }
 
 const typeByRole = { BASE_FOOD: "Alimento", MATERIAL: "Materiales", ADDITIVE: "Aditivos", MEDICINE: "Medicamentos", VACCINE: "Vacunas", PRIMARY: "Insumos" };
+const typeByProductType = { AL: "Alimento", ME: "Materiales", AD: "Aditivos", MD: "Medicamentos", VA: "Vacunas", IN: "Insumos" };
+const inventoryLineType = (line) => typeByRole[line.line_role] === "Insumos"
+  ? (typeByProductType[line.product_type] || "Insumos")
+  : (typeByRole[line.line_role] || typeByProductType[line.product_type] || "Insumos");
 
 export async function loadInventoryDocument(id) {
   const document = await api(`/inventario/documentos/${id}`);
   const roots = document.detalles.filter((line) => !line.parent_line_id);
   const rows = roots.map((line) => ({
-    id: clientId(), tipo: typeByRole[line.line_role] || "Insumos",
+    id: clientId(), tipo: inventoryLineType(line),
     item: line.product_code, alimento: line.product_code, unitCode: line.product_unit_code,
     cantidad: (allowsDecimalQuantity(line.product_unit_code) ? quantityText : integerText)(line.quantity),
     precio: priceText(line.unit_cost), modoPrecio: "UNITARIO",

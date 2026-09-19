@@ -25,6 +25,7 @@ function OtrosEgresos() {
   const aditivos = productosPorTipo(["AD"]);
   const insumos = productosPorTipo(["IN"]);
   const materiales = productosPorTipo(["ME"]);
+  const alimentos = productosPorTipo(["AL"]);
   const lotes = opciones("lotes");
 
   // =========================
@@ -126,6 +127,9 @@ function OtrosEgresos() {
       case "Aditivos":
         return aditivos;
 
+      case "Alimento":
+        return alimentos;
+
       case "Insumos":
         return insumos;
 
@@ -136,6 +140,7 @@ function OtrosEgresos() {
         return medicamentos;
 
       case "Vacuna":
+      case "Vacunas":
         return vacunas;
 
       default:
@@ -252,6 +257,16 @@ function OtrosEgresos() {
           }
         >
           Aditivos
+        </button>
+
+        <button
+          type="button"
+          style={btn}
+          onClick={() =>
+            agregarFila("Alimento")
+          }
+        >
+          Alimento
         </button>
 
         <button

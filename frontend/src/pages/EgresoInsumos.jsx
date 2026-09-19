@@ -23,7 +23,9 @@ function EgresoInsumos() {
   const vacunas = productosPorTipo(["VA"]);
   const medicamentos = productosPorTipo(["MD"]);
   const aditivos = productosPorTipo(["AD"]);
-  const materiales = productosPorTipo(["ME", "IN"]);
+  const alimentos = productosPorTipo(["AL"]);
+  const insumos = productosPorTipo(["IN"]);
+  const materiales = productosPorTipo(["ME"]);
   const lotes = opciones("lotes");
 
   // =========================
@@ -33,7 +35,7 @@ function EgresoInsumos() {
   const [filas, setFilas] = useState([]);
   const [filasSinLote, setFilasSinLote] = useState([]);
   const [editingId, setEditingId] = useState(null);
-  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); setFilasSinLote([]); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setFilas(data.rows.map((item) => ({ ...item, tipo: item.tipo === "Vacunas" ? "Vacuna" : item.tipo }))); } catch (error) { alert(error.message); } };
+  const cargarEdicion = async (row) => { try { const data = await loadInventoryDocument(row.id); setFilasSinLote([]); setEditingId(row.id); setFecha(String(data.document.movement_date).slice(0, 10)); setFilas(data.rows.map((item) => ({ ...item, tipo: item.tipo === "Materiales" ? "Material de Empaque" : item.tipo === "Vacunas" ? "Vacunas" : item.tipo }))); } catch (error) { alert(error.message); } };
 
   const crearFila = (tipo) => ({
     id: Date.now() + Math.random(),
@@ -114,13 +116,20 @@ function EgresoInsumos() {
       case "Aditivos":
         return aditivos;
 
-      case "Materiales":
+      case "Alimento":
+        return alimentos;
+
+      case "Insumos":
+        return insumos;
+
+      case "Material de Empaque":
         return materiales;
 
       case "Medicamentos":
         return medicamentos;
 
       case "Vacuna":
+      case "Vacunas":
         return vacunas;
 
       default:
@@ -214,22 +223,30 @@ function EgresoInsumos() {
         />
       </div>
 
-      {/* BOTONES (REORDENADOS) */}
-      <div style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
+      {/* BOTONES */}
+      <div style={{ display: "flex", gap: "10px", marginBottom: "20px", flexWrap: "wrap" }}>
 
         <button type="button" style={btn} onClick={() => agregarFila("Aditivos")}>
           Aditivos
         </button>
 
-        <button type="button" style={btn} onClick={() => agregarFila("Materiales")}>
-          Materiales
+        <button type="button" style={btn} onClick={() => agregarFila("Alimento")}>
+          Alimento
+        </button>
+
+        <button type="button" style={btn} onClick={() => agregarFila("Insumos")}>
+          Insumos
+        </button>
+
+        <button type="button" style={btn} onClick={() => agregarFila("Material de Empaque")}>
+          Material de Empaque
         </button>
 
         <button type="button" style={btn} onClick={() => agregarFila("Medicamentos")}>
           Medicamentos
         </button>
 
-        <button type="button" style={btn} onClick={() => agregarFila("Vacuna")}>
+        <button type="button" style={btn} onClick={() => agregarFila("Vacunas")}>
           Vacunas
         </button>
 

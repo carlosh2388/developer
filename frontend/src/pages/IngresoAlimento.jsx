@@ -2,7 +2,7 @@ import { useState } from "react";
 import { quantityInput, saveInventory } from "../services/operations";
 import { api } from "../services/api";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
-import OperationRecordsModal, { inventoryColumns } from "../components/OperationRecordsModal";
+import OperationRecordsModal, { compareDocumentDesc, inventoryColumns } from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
 import CancelEditButton from "../components/CancelEditButton";
 
@@ -19,6 +19,33 @@ const foodInventoryColumns = inventoryColumns.flatMap((column) => {
 const productName = (item) => {
   const prefix = `${item.value} - `;
   return item.label?.startsWith(prefix) ? item.label.slice(prefix.length) : item.label;
+};
+
+const foodMetaPrefix = "AVINEXT_FOOD_META:";
+
+const cleanSupplements = (items = []) => items
+  .filter((item) => item.producto || String(item.observacion || "").trim())
+  .map((item) => ({ producto: item.producto || "", observacion: item.observacion || "" }));
+
+const encodeFoodMeta = (fila) => {
+  const aditivos = cleanSupplements(fila.aditivos);
+  const medicamentos = cleanSupplements(fila.medicamentos);
+  if (!aditivos.length && !medicamentos.length) return "";
+  return `${foodMetaPrefix}${JSON.stringify({ aditivos, medicamentos })}`;
+};
+
+const decodeFoodMeta = (value) => {
+  const text = String(value || "");
+  if (!text.startsWith(foodMetaPrefix)) return null;
+  try {
+    const data = JSON.parse(text.slice(foodMetaPrefix.length));
+    return {
+      aditivos: Array.isArray(data.aditivos) ? data.aditivos : [],
+      medicamentos: Array.isArray(data.medicamentos) ? data.medicamentos : [],
+    };
+  } catch {
+    return null;
+  }
 };
 
 function IngresoAlimento() {
@@ -43,17 +70,30 @@ function IngresoAlimento() {
       const children = new Map();
       document.detalles.forEach((detail) => { if (detail.parent_line_id) children.set(detail.parent_line_id, [...(children.get(detail.parent_line_id) || []), detail]); });
       const rows = document.detalles.filter((detail) => !detail.parent_line_id).map((detail) => {
-        const tipo = detail.line_role === "MATERIAL" ? "Material" : detail.line_role === "ADDITIVE" ? "Aditivo" : "Alimento";
+        const tipo = detail.line_role === "MATERIAL" ? "Material" : detail.line_role === "ADDITIVE" ? "Aditivo" : detail.line_role === "MEDICINE" ? "Medicamento" : "Alimento";
         const related = children.get(detail.id) || [];
+        const meta = decodeFoodMeta(detail.justification);
         return { ...crearFila(tipo), alimento: tipo === "Alimento" ? detail.product_code : "", material: tipo === "Material" ? detail.product_code : "",
-          aditivo: tipo === "Aditivo" ? detail.product_code : "", cantidad: String(Math.round(Number(detail.quantity || 0))), precio: Number(detail.unit_cost || 0).toFixed(2), modoPrecio: "UNITARIO",
-          aditivos: related.filter((item) => item.line_role === "ADDITIVE").map((item) => ({ producto: item.product_code, observacion: item.justification || "" })),
-          medicamentos: related.filter((item) => item.line_role === "MEDICINE").map((item) => ({ producto: item.product_code, observacion: item.justification || "" })) };
+          aditivo: tipo === "Aditivo" ? detail.product_code : "", medicamento: tipo === "Medicamento" ? detail.product_code : "",
+          cantidad: String(Math.round(Number(detail.quantity || 0))), precio: Number(detail.unit_cost || 0).toFixed(2), modoPrecio: "UNITARIO",
+          aditivos: meta?.aditivos || related.filter((item) => item.line_role === "ADDITIVE").map((item) => ({ producto: item.product_code, observacion: item.justification || "" })),
+          medicamentos: meta?.medicamentos || related.filter((item) => item.line_role === "MEDICINE").map((item) => ({ producto: item.product_code, observacion: item.justification || "" })) };
       });
+      const firstFood = rows.find((item) => item.tipo === "Alimento");
+      if (firstFood && !firstFood.aditivos.some((item) => item.producto)) {
+        const standaloneAditivos = rows.filter((item) => item.tipo === "Aditivo" && item.aditivo)
+          .map((item) => ({ producto: item.aditivo, observacion: item.justificacion || "" }));
+        if (standaloneAditivos.length) firstFood.aditivos = standaloneAditivos;
+      }
+      if (firstFood && !firstFood.medicamentos.some((item) => item.producto)) {
+        const standaloneMedicamentos = document.detalles.filter((item) => !item.parent_line_id && item.line_role === "MEDICINE")
+          .map((item) => ({ producto: item.product_code, observacion: item.justification || "" }));
+        if (standaloneMedicamentos.length) firstFood.medicamentos = standaloneMedicamentos;
+      }
       setEditingId(document.id); setFecha(String(document.movement_date).slice(0, 10)); setProveedor(document.supplier_code || ""); setFilas(rows);
     } catch (error) { alert(error.message); }
   };
-  const records = <OperationRecordsModal title="Ingresos de alimento" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={foodInventoryColumns} rowFilter={(row) => row.movement_type === "INPUT" && row.module_code === "FOOD"} onEdit={cargarEdicion}/>;
+  const records = <OperationRecordsModal title="Ingresos de alimento" path="/inventario/documentos" annulPath={(row) => `/inventario/documentos/${row.id}/anular`} dateField="movement_date" columns={foodInventoryColumns} rowFilter={(row) => row.movement_type === "INPUT" && row.module_code === "FOOD"} onEdit={cargarEdicion} sortRows={compareDocumentDesc}/>;
 
 const crearFila = (
   tipo = "Alimento"
@@ -66,7 +106,7 @@ const crearFila = (
   material: "",
   cantidad: "",
   precio: "",
-  modoPrecio: "TOTAL",
+  modoPrecio: "UNITARIO",
 
   aditivo: "",
   medicamento: "",
@@ -127,7 +167,6 @@ const calcularCostoUnitario = (fila) => {
   const cantidad = Number(fila.cantidad || 0);
   const precio = Number(fila.precio || 0);
   if (precio < 0) return "0.00";
-  if (fila.modoPrecio === "TOTAL") return precio.toFixed(2);
   if (cantidad <= 0) return "0.00";
   return (cantidad * precio).toFixed(2);
 };
@@ -220,7 +259,10 @@ const agregarMedicamentoFila = (
       if (filas.some((fila) => [...(fila.aditivos || []), ...(fila.medicamentos || [])].some((item) => !item.producto && String(item.observacion || "").trim()))) {
         throw new Error("Selecciona el aditivo o medicamento en las filas que tengan observaciones.");
       }
-      await saveInventory({ id: editingId, fecha, proveedor, rows: filas, movementType: "INPUT", module: "FOOD" });
+      const rowsToSave = filas.map((fila) => fila.tipo === "Alimento"
+        ? { ...fila, justificacion: encodeFoodMeta(fila) }
+        : fila);
+      await saveInventory({ id: editingId, fecha, proveedor, rows: rowsToSave, movementType: "INPUT", module: "FOOD" });
       alert(editingId ? "Ingreso actualizado correctamente" : "Ingreso registrado correctamente"); setFilas([]); setProveedor(""); setFecha(new Date().toISOString().split("T")[0]); setEditingId(null);
     } catch (error) { alert(error.message); }
   };
@@ -402,14 +444,14 @@ const agregarMedicamentoFila = (
         <table
           style={{
             width: "100%",
-            minWidth: "1080px",
+            minWidth: "980px",
             borderCollapse:
               "collapse"
           }}
         >
           <colgroup>
             <col style={{ width: 250 }} /><col style={{ width: 135 }} /><col style={{ width: 165 }} />
-            <col style={{ width: 105 }} /><col style={{ width: 155 }} /><col style={{ width: 330 }} />
+            <col style={{ width: 155 }} /><col style={{ width: 330 }} />
             <col style={{ width: 330 }} /><col style={{ width: 80 }} />
           </colgroup>
           <thead>
@@ -428,7 +470,6 @@ const agregarMedicamentoFila = (
               </th>
 
               <th>Precio (Q)</th>
-              <th>Modo</th>
               <th>Total (Q)</th>
 
               <th>
@@ -517,6 +558,33 @@ const agregarMedicamentoFila = (
 
                       </select>
 
+                    ) : fila.tipo ===
+                      "Medicamento" ? (
+
+                      <select
+                        value={
+                          fila.medicamento
+                        }
+                        onChange={(
+                          e
+                        ) =>
+                          handleChange(
+                            fila.id,
+                            "medicamento",
+                            e.target
+                              .value
+                          )
+                        }
+                        style={{ ...inputStyle, minWidth: "170px" }}
+                      >
+                        <option value="">
+                          Seleccione
+                        </option>
+
+                        {medicamentosDisponibles.map((item) => <option key={item.value} value={item.value}>{productName(item)}</option>)}
+
+                      </select>
+
                     ) : (
 
                       <select
@@ -580,12 +648,6 @@ const agregarMedicamentoFila = (
 
                   <td>
                     <input type="number" min="0" step="0.01" value={fila.precio} onChange={(e) => handleChange(fila.id, "precio", e.target.value)} placeholder="0.00" style={{ ...inputStyle, minWidth: 120 }}/>
-                  </td>
-
-                  <td>
-                    <button type="button" onClick={() => cambiarModoPrecio(fila.id)} style={{ padding: "6px", border: 0, borderRadius: 4, cursor: "pointer", background: fila.modoPrecio === "TOTAL" ? "#28a745" : "#6c757d", color: "#fff" }}>
-                      {fila.modoPrecio}
-                    </button>
                   </td>
 
                   <td>

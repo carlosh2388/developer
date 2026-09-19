@@ -34,6 +34,7 @@
     "db:migrate:customer-egg-prices": "node scripts/runMigration.js 017_customer_egg_prices.sql",
     "db:migrate:egg-weight-samples": "node scripts/runMigration.js 018_egg_weight_samples.sql",
     "db:migrate:food-component-observations": "node scripts/runMigration.js 019_food_component_observations.sql",
+    "db:migrate:flock-rearing-entry": "node scripts/runMigration.js 006_flock_rearing_entry.sql",
     "test": "node --test"
   },
   "keywords": [],

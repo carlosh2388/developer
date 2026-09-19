@@ -5,4 +5,5 @@ router.use(authenticate);
 router.get("/alertas-inventario", requirePermission("operations.read"), controller.inventoryAlerts);
 router.get("/dashboard", requirePermission("operations.read"), controller.dashboard);
 router.get("/produccion", requirePermission("operations.read"), controller.produccion);
+router.get("/kardex-productos", requirePermission("operations.read"), controller.kardexProductos);
 module.exports = router;

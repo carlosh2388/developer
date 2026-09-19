@@ -95,6 +95,66 @@ function filtros(req) {
   return { fechaInicio, fechaFin, lotes };
 }
 
+function productTypeLabel(code) {
+  return {
+    AD: "Aditivos", AL: "Alimentos", HC: "Huevos comerciales", HI: "Huevos incubables",
+    IN: "Insumos", ME: "Material de empaque", MD: "Medicamentos", VA: "Vacunas",
+  }[code] || code;
+}
+
+async function kardexProductos(req, res, next) {
+  try {
+    const { fechaInicio, fechaFin } = filtros(req);
+    const esAdministrador = req.user.role === "ADMINISTRATOR";
+    if (req.query.formato === "excel" && !esAdministrador) {
+      throw new HttpError(403, "Solo el administrador puede exportar reportes en Excel.", "EXCEL_ADMIN_REQUIRED");
+    }
+    const orgId = req.user.organizationId;
+    const tipo = String(req.query.tipo || "").trim().toUpperCase();
+    const productos = String(req.query.productos || "").split(",").map((v) => v.trim()).filter(Boolean);
+    const params = [orgId, fechaInicio, fechaFin, tipo || null, productos];
+    const { rows } = await db.query(`
+      WITH selected_products AS (
+        SELECT p.id,p.code,p.name,p.product_type,p.unit_code,p.opening_stock
+        FROM products p
+        WHERE p.organization_id=$1 AND p.status='ACTIVE'
+          AND ($4::text IS NULL OR p.product_type=$4)
+          AND (cardinality($5::text[])=0 OR p.code=ANY($5::text[]))
+      ), previous AS (
+        SELECT l.product_id,
+          COALESCE(SUM(CASE WHEN d.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.quantity ELSE -l.quantity END),0)::numeric previous_balance
+        FROM inventory_document_lines l
+        JOIN inventory_documents d ON d.id=l.document_id AND d.organization_id=l.organization_id
+        JOIN selected_products p ON p.id=l.product_id
+        WHERE d.organization_id=$1 AND d.status='POSTED' AND d.movement_date < $2::date
+        GROUP BY l.product_id
+      ), movements AS (
+        SELECT p.product_type,p.code product_code,p.name product_name,p.unit_code,d.movement_date,d.document_number,
+          d.movement_type,d.module_code,l.line_number,l.quantity,l.unit_cost,l.justification,
+          CASE WHEN d.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.quantity ELSE 0 END::numeric entrada,
+          CASE WHEN d.movement_type IN ('OUTPUT','ADJUSTMENT_OUT') THEN l.quantity ELSE 0 END::numeric salida,
+          COALESCE(p.opening_stock,0) + COALESCE(prev.previous_balance,0) opening_balance
+        FROM selected_products p
+        JOIN inventory_document_lines l ON l.product_id=p.id AND l.organization_id=$1
+        JOIN inventory_documents d ON d.id=l.document_id AND d.organization_id=l.organization_id
+        LEFT JOIN previous prev ON prev.product_id=p.id
+        WHERE d.organization_id=$1 AND d.status='POSTED' AND d.movement_date BETWEEN $2::date AND $3::date
+      )
+      SELECT product_type,product_code,product_name,unit_code,movement_date fecha,document_number documento,
+        movement_type tipo_movimiento,module_code modulo,line_number linea,quantity cantidad,unit_cost costo_unitario,
+        entrada,salida,
+        opening_balance + SUM(entrada-salida) OVER (PARTITION BY product_code ORDER BY movement_date,document_number,line_number ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) saldo,
+        justification justificacion
+      FROM movements
+      ORDER BY product_type,product_name,movement_date,document_number,line_number`, params);
+    res.json({
+      filtros: { fechaInicio, fechaFin, tipo, productos },
+      tipos: [...new Set(rows.map((row) => row.product_type))].map((code) => ({ code, label: productTypeLabel(code) })),
+      registros: rows.map((row) => ({ ...row, tipo_producto: productTypeLabel(row.product_type) })),
+    });
+  } catch (error) { next(error); }
+}
+
 async function produccion(req, res, next) {
   try {
     const { fechaInicio, fechaFin, lotes } = filtros(req);
@@ -166,4 +226,4 @@ async function produccion(req, res, next) {
   } catch (error) { next(error); }
 }
 
-module.exports = { produccion, dashboard, inventoryAlerts };
+module.exports = { produccion, kardexProductos, dashboard, inventoryAlerts };

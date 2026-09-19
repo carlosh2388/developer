@@ -12,6 +12,17 @@ const nonNegativeInteger = (value) => {
   return text === "" ? "" : Number(text);
 };
 
+const nonNegativeTwoDecimal = (value) => {
+  const text = String(value ?? "");
+  if (!/^\d*(?:\.\d{0,2})?$/.test(text)) return null;
+  return text;
+};
+
+const twoDecimalText = (value) => {
+  if (value === undefined || value === null || value === "") return "";
+  return Number(value || 0).toFixed(2);
+};
+
 function IngresoHuevos() {
   const { opciones, personal = [] } = useOperationalCatalogs(["lotes", "personal"]);
   // =========================
@@ -80,7 +91,7 @@ function IngresoHuevos() {
       if (!grouped.has(key)) grouped.set(key, {
         id: clientId(), abierto: true, tipo, lote: item.flock_code, recolector: item.collector_id || "",
         recolectorNombre: item.collector_name || "", clasificador: item.classifier_id || "",
-        clasificadorNombre: item.classifier_name || "", peso: item.total_weight_grams || 0, datos: {},
+        clasificadorNombre: item.classifier_name || "", peso: twoDecimalText(item.total_weight_grams), datos: {},
       });
       grouped.get(key).datos[eggGradeLabel(item.grade_code)] = {
         cajaB336: item.boxes_trays_336, cajaC360: item.boxes_cartons_360, bandeja84: item.trays_84,
@@ -249,18 +260,20 @@ const calcularSubTotal = (grupo, filtro) => {
             </div>
 
             {/* LOTE */}
-            <div>
-              <label>Lote</label>
-              <select
-                value={grupo.lote}
-                onChange={(e) => actualizarGrupo(grupo.id, "lote", e.target.value)}
-              >
-                <option value="">Seleccione</option>
-                {lotes.map(l => (
-                  <option key={l} value={l}>{l}</option>
-                ))}
-              </select>
-            </div>
+            {grupo.tipo && (
+              <div>
+                <label>Lote</label>
+                <select
+                  value={grupo.lote}
+                  onChange={(e) => actualizarGrupo(grupo.id, "lote", e.target.value)}
+                >
+                  <option value="">Seleccione</option>
+                  {lotes.map(l => (
+                    <option key={l} value={l}>{l}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* TOTAL */}
             <div>
@@ -368,10 +381,11 @@ const calcularSubTotal = (grupo, filtro) => {
                   <label>Peso (gramos)</label>
                   <input
                     type="number"
-                    step="1"
+                    step="0.01"
+                    min="0"
                     value={grupo.peso}
                     onChange={(e) => {
-                      const weight = nonNegativeInteger(e.target.value);
+                      const weight = nonNegativeTwoDecimal(e.target.value);
                       if (weight !== null) actualizarGrupo(grupo.id, "peso", weight);
                     }}
                   />
