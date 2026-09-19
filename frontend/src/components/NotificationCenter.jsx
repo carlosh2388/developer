@@ -55,6 +55,7 @@ function validateBeforeSave(container) {
     const sibling = label.nextElementSibling?.matches?.("input:not([type=hidden]),select,textarea") ? label.nextElementSibling : null;
     const field = nested || sibling;
     if (!field || field.disabled || field.readOnly || field.offsetParent === null || field.closest(".records-dialog")) return;
+    if (!field.required && /\bopcional\b/i.test(label.textContent || "")) return;
     if (!String(field.value || "").trim()) missing.set(field, "Completa este campo antes de guardar.");
   });
 

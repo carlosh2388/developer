@@ -163,8 +163,8 @@ export default function Usuarios() {
             />
           </label>
           <label>
-            Empleado asociado (opcional)
-            <select value={form.personnelId} onChange={(e) => { const personnelId = e.target.value; const employee = personnel.find((item) => item.id === personnelId); setForm({ ...form, personnelId, ...(employee ? { fullName: employee.fullName } : {}) }); }}>
+            Empleado asociado {!editing && <span>(obligatorio)</span>}
+            <select required={!editing} value={form.personnelId} onChange={(e) => { const personnelId = e.target.value; const employee = personnel.find((item) => item.id === personnelId); setForm({ ...form, personnelId, ...(employee ? { fullName: employee.fullName } : {}) }); }}>
               <option value="">Sin empleado asociado</option>
               {personnel.filter((employee) => employee.status === "ACTIVE" && (!users.some((user) => user.personnel_id === employee.id) || employee.id === form.personnelId)).map((employee) => <option key={employee.id} value={employee.id}>{employee.code} - {employee.fullName}</option>)}
             </select>
