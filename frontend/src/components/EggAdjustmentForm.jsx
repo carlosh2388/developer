@@ -27,9 +27,8 @@ const presentations = {
 };
 
 const commercialPresentation = (code) => {
-  if (code === "COM_XL_M_NEST") return ["cajasCartones360"];
-  if (code === "COM_SMALL_NEST") return ["cartones30"];
-  return ["unidades"];
+  if (!code) return [];
+  return ["cajasCartones360", "cartones30", "unidades"];
 };
 
 const emptyRow = () => ({ id: clientId(), grade: "", presentation: "", quantity: "", reason: "", stock: 0 });
@@ -67,14 +66,15 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
     && /^\d+$/.test(row.quantity) && Number(row.quantity) > 0
     && row.reason.trim();
 
-  const addRow = () => setRows((current) => {
-    const lastRow = current[current.length - 1];
-    if (lastRow && !isRowComplete(lastRow)) {
-      alert("Completa la linea actual antes de agregar una nueva.");
-      return current;
-    }
-    return [...current, emptyRow()];
-  });
+  const resetForm = () => {
+    setClassification("");
+    setLocation("");
+    setWarehouse("");
+    setFlock("");
+    setStock({});
+    setRows([emptyRow()]);
+    onSaved?.();
+  };
 
   useEffect(() => { api("/huevos/clasificaciones").then(setGrades).catch((e) => alert(e.message)); }, []);
 
@@ -84,21 +84,26 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
   const selectedWarehouse = bodegas.find((item) => String(item.code) === String(warehouse) || String(item.id) === String(warehouse));
   const effectiveClass = warehouseClass(selectedWarehouse) || classification;
   const classGrades = grades.filter((item) => normalizeEggClass(item.egg_class) === effectiveClass);
+  const needsFlock = effectiveClass === "INCUBABLE" || movementType === "ADJUSTMENT_IN";
+  const flockOptions = opciones("lotes");
+  const visibleFlocks = flock && !flockOptions.some((item) => String(item.value) === String(flock))
+    ? [...flockOptions, { value: flock, label: flock }]
+    : flockOptions;
 
   useEffect(() => {
-    if (!warehouse || !effectiveClass || (effectiveClass === "INCUBABLE" && !flock)) { setStock({}); return; }
+    if (!warehouse || !effectiveClass || (needsFlock && !flock)) { setStock({}); return; }
     const query = new URLSearchParams({ clasificacion: apiEggClass(effectiveClass), bodega: warehouse });
-    if (effectiveClass === "INCUBABLE") query.set("lote", flock);
+    if (needsFlock) query.set("lote", flock);
     api(`/huevos/existencias?${query}`).then((items) => setStock(Object.fromEntries(
       items.map((item) => [item.grade_code, item]))))
       .catch((e) => alert(e.message));
-  }, [warehouse, effectiveClass, flock]);
+  }, [warehouse, effectiveClass, flock, needsFlock]);
 
   useEffect(() => {
     if (initialData) return;
     setRows([emptyRow()]); setStock({});
-    if (effectiveClass === "COMERCIAL") setFlock("");
-  }, [effectiveClass, warehouse, initialData]);
+    if (!needsFlock) setFlock("");
+  }, [effectiveClass, warehouse, initialData, needsFlock]);
 
   useEffect(() => {
     if (!initialData || !bodegas.length || !grades.length) return;
@@ -112,7 +117,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
     setClassification(nextClass);
     setLocation(nextWarehouseRow?.locationId ? String(nextWarehouseRow.locationId) : "");
     setWarehouse(nextWarehouse || "");
-    setFlock(nextClass === "INCUBABLE" ? (firstDetail.flock_code || "") : "");
+    setFlock(firstDetail.flock_code || "");
     setRows((initialData.detalles || []).map((detail) => rowFromDetail(detail, initialData.notes || "")));
   }, [initialData, bodegas, grades, movementType]);
 
@@ -131,7 +136,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
   const save = async (event) => {
     event.preventDefault();
     if (!location || !warehouse || !effectiveClass) return alert("Selecciona clasificación, localidad y bodega.");
-    if (effectiveClass === "INCUBABLE" && !flock) return alert("Selecciona el lote para huevo incubable.");
+    if (needsFlock && !flock) return alert("Selecciona el lote.");
     if (rows.some((row) => !isRowComplete(row))) {
       return alert("Completa tamaño, presentación, cantidad entera positiva y razón o justificación.");
     }
@@ -145,7 +150,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
         bodegaDestino: movementType === "ADJUSTMENT_IN" ? warehouse : undefined,
         observaciones: rows.map((row) => row.reason.trim()).filter(Boolean).join(" · "),
         detalles: rows.map((row) => ({
-          lote: effectiveClass === "INCUBABLE" ? flock : undefined,
+          lote: needsFlock ? flock : undefined,
           clasificacion: row.grade, existencia: Number(stock[row.grade]?.available_units || 0),
           cajasBandejas336: row.presentation === "cajasBandejas336" ? Number(row.quantity) : 0,
           cajasCartones360: row.presentation === "cajasCartones360" ? Number(row.quantity) : 0,
@@ -156,8 +161,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
         })),
       }, editingId);
       alert(editingId ? "Ajuste de huevo actualizado correctamente" : "Ajuste de huevo registrado correctamente");
-      setRows([emptyRow()]); setWarehouse(""); setLocation(""); setClassification(""); setFlock("");
-      onSaved?.();
+      resetForm();
     } catch (error) { alert(error.message); }
   };
 
@@ -176,9 +180,9 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
       <label>Bodega<select style={inputStyle} value={warehouse} disabled={!location || !classification} onChange={(e) => setWarehouse(e.target.value)}>
         <option value="">Seleccione</option>{warehouses.filter((item) => warehouseClass(item) === classification).map((item) => <option key={item.id} value={item.code}>{item.name}</option>)}
       </select></label>
-      {effectiveClass === "INCUBABLE" && <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", minWidth: 0 }}>
+      {needsFlock && <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", minWidth: 0 }}>
         <label style={{ flex: 1, minWidth: 0 }}># Lote<select style={inputStyle} value={flock} onChange={(e) => setFlock(e.target.value)}>
-          <option value="">Seleccione</option>{opciones("lotes").map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+          <option value="">Seleccione</option>{visibleFlocks.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
         </select></label>
         <button type="button" aria-label="Agregar lote" onClick={() => alert("Para agregar un lote nuevo, usa Datos Maestros > Lotes.")} style={{ padding: "8px 12px", minWidth: "38px", flexShrink: 0, border: "1px solid #0d6efd", borderRadius: "4px", background: "#0d6efd", color: "#fff", cursor: "pointer", fontWeight: 700 }}>+</button>
       </div>}
@@ -197,6 +201,6 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
       </tr>;
     })}</tbody></table>
     <div style={{ display: "flex", gap: "10px", marginTop: "15px" }}><button type="submit" style={{ flex: 1, padding: "10px", background: "#1976d2", color: "white", border: 0, borderRadius: "5px" }}>Guardar</button>
-      <button type="button" onClick={addRow} style={{ padding: "10px 24px", background: "#198754", color: "white", border: 0, borderRadius: "5px" }}>+ Nuevo</button></div>
+      <button type="button" onClick={resetForm} style={{ padding: "10px 24px", background: "#198754", color: "white", border: 0, borderRadius: "5px" }}>+ Nuevo</button></div>
   </form>;
 }

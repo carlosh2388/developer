@@ -79,17 +79,6 @@ function IngresoAlimento() {
           aditivos: meta?.aditivos || related.filter((item) => item.line_role === "ADDITIVE").map((item) => ({ producto: item.product_code, observacion: item.justification || "" })),
           medicamentos: meta?.medicamentos || related.filter((item) => item.line_role === "MEDICINE").map((item) => ({ producto: item.product_code, observacion: item.justification || "" })) };
       });
-      const firstFood = rows.find((item) => item.tipo === "Alimento");
-      if (firstFood && !firstFood.aditivos.some((item) => item.producto)) {
-        const standaloneAditivos = rows.filter((item) => item.tipo === "Aditivo" && item.aditivo)
-          .map((item) => ({ producto: item.aditivo, observacion: item.justificacion || "" }));
-        if (standaloneAditivos.length) firstFood.aditivos = standaloneAditivos;
-      }
-      if (firstFood && !firstFood.medicamentos.some((item) => item.producto)) {
-        const standaloneMedicamentos = document.detalles.filter((item) => !item.parent_line_id && item.line_role === "MEDICINE")
-          .map((item) => ({ producto: item.product_code, observacion: item.justification || "" }));
-        if (standaloneMedicamentos.length) firstFood.medicamentos = standaloneMedicamentos;
-      }
       setEditingId(document.id); setFecha(String(document.movement_date).slice(0, 10)); setProveedor(document.supplier_code || ""); setFilas(rows);
     } catch (error) { alert(error.message); }
   };
@@ -398,19 +387,19 @@ const agregarMedicamentoFila = (
           type="button"
           onClick={() =>
             agregarFila(
-              "Alimento"
+              "Aditivo"
             )
           }
           style={btnAdd}
         >
-          Agregar Alimento
+          Agregar Aditivo
         </button>
 
         <button
           type="button"
           onClick={() =>
             agregarFila(
-              "Aditivo"
+              "Alimento"
             )
           }
           style={{
@@ -418,7 +407,7 @@ const agregarMedicamentoFila = (
             marginLeft: "10px"
           }}
         >
-          Agregar Aditivo
+          Agregar Alimento
         </button>
 
         <button

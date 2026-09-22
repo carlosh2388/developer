@@ -550,10 +550,26 @@ function EgresoAlimento() {
                 onClick={() =>
                   agregarFila(
                     grupo.id,
-                    "Alimento"
+                    "Aditivo"
                   )
                 }
                 style={btnAdd}
+              >
+                Aditivo
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  agregarFila(
+                    grupo.id,
+                    "Alimento"
+                  )
+                }
+                style={{
+                  ...btnAdd,
+                  marginLeft: "10px"
+                }}
               >
                 Alimento
               </button>
@@ -572,22 +588,6 @@ function EgresoAlimento() {
                 }}
               >
                 Vacuna
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  agregarFila(
-                    grupo.id,
-                    "Aditivo"
-                  )
-                }
-                style={{
-                  ...btnAdd,
-                  marginLeft: "10px"
-                }}
-              >
-                Aditivo
               </button>
             </div>
 

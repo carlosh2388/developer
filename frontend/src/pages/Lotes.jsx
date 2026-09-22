@@ -330,7 +330,7 @@ function Lotes() {
               type="button"
               disabled={trasladoRegistrado}
               onClick={() => setMostrarNuevaGalera(true)}
-              title={trasladoRegistrado ? "La galera no se puede editar después de trasladar a producción" : ""}
+              title={trasladoRegistrado ? "La galera no se puede editar despues de trasladar a produccion" : ""}
               style={{
                 ...styles.addButton,
                 opacity: trasladoRegistrado ? 0.55 : 1,
@@ -348,39 +348,47 @@ function Lotes() {
             </div>
           )}
         </div>
-        <div style={styles.field}>
-          <label>Fecha ingreso Crianza</label>
-          <input
-            type="date"
-            value={fechaIngresoCrianza}
-            onChange={(e) => setFechaIngresoCrianza(e.target.value)}
-            style={styles.input}
-          />
-        </div>
-        <div style={styles.field}>
-          <label>Fecha producción</label>
-          <input
-            type="date"
-            value={fechaIngreso}
-            disabled={trasladoRegistrado}
-            onChange={(e) => setFechaIngreso(e.target.value)}
-            style={styles.input}
-          />
-        </div>
-        <button
-          type="button"
-          onClick={trasladarAProduccion}
-          disabled={!puedeTrasladar}
-          title={!loteExistente ? "Guarda o selecciona un lote existente para trasladarlo" : trasladoRegistrado ? "Este lote ya fue trasladado a producción" : ""}
-          style={{
-            ...styles.button,
-            minWidth: "240px",
-            opacity: !puedeTrasladar ? 0.55 : 1,
-            cursor: !puedeTrasladar ? "not-allowed" : "pointer",
-          }}
-        >
-          {trasladando ? "Trasladando..." : "Trasladar a Producción"}
-        </button>
+
+        {!editingId && (
+          <div style={styles.field}>
+            <label>Fecha ingreso Crianza</label>
+            <input
+              type="date"
+              value={fechaIngresoCrianza}
+              onChange={(e) => setFechaIngresoCrianza(e.target.value)}
+              style={styles.input}
+            />
+          </div>
+        )}
+
+        {editingId && (
+          <>
+            <div style={styles.field}>
+              <label>Fecha produccion</label>
+              <input
+                type="date"
+                value={fechaIngreso}
+                disabled={trasladoRegistrado}
+                onChange={(e) => setFechaIngreso(e.target.value)}
+                style={styles.input}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={trasladarAProduccion}
+              disabled={!puedeTrasladar}
+              title={!loteExistente ? "Guarda o selecciona un lote existente para trasladarlo" : trasladoRegistrado ? "Este lote ya fue trasladado a produccion" : ""}
+              style={{
+                ...styles.button,
+                minWidth: "240px",
+                opacity: !puedeTrasladar ? 0.55 : 1,
+                cursor: !puedeTrasladar ? "not-allowed" : "pointer",
+              }}
+            >
+              {trasladando ? "Trasladando..." : "Trasladar a Produccion"}
+            </button>
+          </>
+        )}
       </div>
 
       {/* PROVEEDOR Y ORIGEN */}

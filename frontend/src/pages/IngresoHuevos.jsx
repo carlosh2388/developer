@@ -33,8 +33,6 @@ function IngresoHuevos() {
   // =========================
   // LOTES
   // =========================
-  const lotes = opciones("lotes").map((x) => x.value);
-
   // =========================
   // TIPOS CLASIFICACIÓN (ACTUALIZADO)
   // =========================
@@ -74,6 +72,10 @@ function IngresoHuevos() {
   // =========================
   const [grupos, setGrupos] = useState([crearGrupo()]);
   const [editingId, setEditingId] = useState(null);
+  const lotes = Array.from(new Set([
+    ...opciones("lotes").map((x) => x.value),
+    ...grupos.map((grupo) => grupo.lote).filter(Boolean),
+  ]));
   const referenciasRecolectores = new Set(grupos.map((grupo) => String(grupo.recolector || "")).filter(Boolean));
   const referenciasClasificadores = new Set(grupos.map((grupo) => String(grupo.clasificador || "")).filter(Boolean));
   const recolectores = personal.filter((item) =>

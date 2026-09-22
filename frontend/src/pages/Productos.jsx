@@ -95,6 +95,7 @@ function Productos() {
     if (value !== "VA") { setDiluyente(""); setCepa(""); setModoAplicacion(""); }
     if (value !== "VA") setTipo("");
     if (value === "VA") setPresentacion("");
+    if (!["AD", "MD", "VA"].includes(value)) { setPresentacion(""); setEnfermedad(""); setDosis(""); }
 
     if (value) {
       setMostrarGenerales(true);
@@ -106,7 +107,7 @@ function Productos() {
         setIdProducto(next.code);
       } catch (error) { setIdProducto(""); alert(error.message); }
 
-      if (value === "MD" || value === "VA") {
+      if (value === "AD" || value === "MD" || value === "VA") {
         setMostrarInsumos(true);
       } else {
         setMostrarInsumos(false);
@@ -135,7 +136,7 @@ function Productos() {
       const saved = await api(editingId ? `/productos/${editingId}` : "/productos", { method: editingId ? "PUT" : "POST", body: JSON.stringify({
         ...(!editingId ? { tipoProducto: tipoInventario } : {}), nombre, unidad: units[unidad] || unidad,
         estado: estado === "Activo" ? "ACTIVE" : "INACTIVE", precioVenta: precio || 0,
-        existenciaInicial: 0, costoEstandar: costo || 0, presentacion: tipoInventario === "VA" ? null : presentacion,
+        existenciaInicial: 0, costoEstandar: ["AD", "MD", "VA"].includes(tipoInventario) ? 0 : (costo || 0), presentacion: tipoInventario === "VA" ? null : presentacion,
         enfermedadObjetivo: enfermedad, dosis,
         ...(tipoInventario === "VA" ? {
           tipoVacuna: tipo || null, diluyente: diluyente === "SI",
@@ -368,32 +369,13 @@ function Productos() {
         </div>
       )}
 
-      {/* CAMPOS MEDICAMENTOS Y VACUNAS */}
+      {/* CAMPOS ADITIVOS, MEDICAMENTOS Y VACUNAS */}
       {mostrarInsumos && (
         <div>
-          {/* FILA 3 */}
-          <div style={rowStyle}>
+          {tipoInventario !== "VA" && <div style={rowStyle}>
             <div style={{ flex: 1 }}>
               <label>
-                Costo
-              </label>
-
-              <input
-                type="number"
-                step="0.01"
-                value={costo}
-                onChange={(e) =>
-                  setCosto(
-                    e.target.value
-                  )
-                }
-                style={inputStyle}
-              />
-            </div>
-
-            {tipoInventario !== "VA" && <div style={{ flex: 1 }}>
-              <label>
-                Presentación
+                Presentacion
               </label>
 
               <input
@@ -406,11 +388,48 @@ function Productos() {
                 }
                 style={inputStyle}
               />
-            </div>}
-          </div>
+            </div>
 
-          {/* FILA 4 */}
-          <div style={rowStyle}>
+            <div style={{ flex: 1 }}>
+              <label>
+                {tipoInventario === "AD" ? "Dosis" : "Enfermedad"}
+              </label>
+
+              <input
+                type="text"
+                value={tipoInventario === "AD" ? dosis : enfermedad}
+                onChange={(e) =>
+                  tipoInventario === "AD" ? setDosis(
+                    e.target.value
+                  ) : setEnfermedad(
+                    e.target.value
+                  )
+                }
+                style={inputStyle}
+              />
+            </div>
+
+            <div style={{ flex: 1 }}>
+              <label>
+                {tipoInventario === "AD" ? "Motivo de Uso" : "Dosis"}
+              </label>
+
+              <input
+                type="text"
+                value={tipoInventario === "AD" ? enfermedad : dosis}
+                onChange={(e) =>
+                  tipoInventario === "AD" ? setEnfermedad(
+                    e.target.value
+                  ) : setDosis(
+                    e.target.value
+                  )
+                }
+                style={inputStyle}
+              />
+            </div>
+          </div>}
+
+          {tipoInventario === "VA" && <div style={rowStyle}>
             <div style={{ flex: 1 }}>
               <label>
                 Enfermedad
@@ -430,7 +449,7 @@ function Productos() {
 
             <div style={{ flex: 1 }}>
               <label>
-                {tipoInventario === "VA" ? "Dosis por Frasco" : "Dosis"}
+                Dosis por Frasco
               </label>
 
               <input
@@ -445,7 +464,7 @@ function Productos() {
               />
             </div>
 
-            {tipoInventario === "VA" && <div style={{ flex: 1 }}>
+            <div style={{ flex: 1 }}>
               <label>
                 Tipo
               </label>
@@ -465,8 +484,8 @@ function Productos() {
 
                 {(referencias.VACCINE_KIND || []).map((item) => <option key={item.valueCode} value={item.valueCode}>{item.label}</option>)}
               </select>
-            </div>}
-          </div>
+            </div>
+          </div>}
 
           {tipoInventario === "VA" && <>
             <div style={rowStyle}>
@@ -474,7 +493,7 @@ function Productos() {
                 <label>Diluyente</label>
                 <select value={diluyente} onChange={(e) => setDiluyente(e.target.value)} style={inputStyle}>
                   <option value="">Seleccione</option>
-                  <option value="SI">Sí</option>
+                  <option value="SI">Si</option>
                   <option value="NO">No</option>
                 </select>
               </div>
@@ -492,13 +511,13 @@ function Productos() {
               </div>
 
               <div style={{ flex: 2 }}>
-                <label>Modo de Aplicación</label>
+                <label>Modo de Aplicacion</label>
                 <div style={{ display: "flex", gap: 8 }}>
                   <select value={modoAplicacion} onChange={(e) => setModoAplicacion(e.target.value)} style={inputStyle}>
                     <option value="">Seleccione</option>
                     {modosAplicacion.map((item) => <option key={item.valueCode} value={item.valueCode}>{item.label}</option>)}
                   </select>
-                  <button type="button" onClick={() => setMostrarNuevoModo(true)} title="Agregar modo de aplicación"
+                  <button type="button" onClick={() => setMostrarNuevoModo(true)} title="Agregar modo de aplicacion"
                     style={{ width: 42, height: 42, padding: 0, flexShrink: 0, fontSize: 20 }}>+</button>
                 </div>
               </div>
@@ -513,7 +532,7 @@ function Productos() {
             </div>}
 
             {mostrarNuevoModo && <div className="inline-add-row" style={{ marginBottom: 15 }}>
-              <input value={nuevoModo} onChange={(e) => setNuevoModo(e.target.value)} placeholder="Nuevo modo de aplicación" style={inputStyle} />
+              <input value={nuevoModo} onChange={(e) => setNuevoModo(e.target.value)} placeholder="Nuevo modo de aplicacion" style={inputStyle} />
               <InlineAddActions
                 onSave={() => agregarOpcionVacuna("VACCINE_APPLICATION_MODE", nuevoModo, setModosAplicacion, setModoAplicacion, setMostrarNuevoModo, setNuevoModo)}
                 onCancel={() => { setMostrarNuevoModo(false); setNuevoModo(""); }}
@@ -550,7 +569,7 @@ function Productos() {
         setEnfermedad(row.targetDisease || ""); setDosis(row.dosage || ""); setTipo(row.vaccineKind || "");
         setDiluyente(row.hasDiluent === true ? "SI" : row.hasDiluent === false ? "NO" : "");
         setCepa(row.vaccineStrainCode || ""); setModoAplicacion(row.applicationModeCode || "");
-        setMostrarGenerales(true); setMostrarGuardar(true); setMostrarInsumos(["MD", "VA"].includes(row.productType));
+        setMostrarGenerales(true); setMostrarGuardar(true); setMostrarInsumos(["AD", "MD", "VA"].includes(row.productType));
       }} onDeactivate={async (row) => {
         if (!(await confirmAction(`¿Deseas dar de baja el producto ${row.name}?`, { title: "Dar de baja producto", confirmLabel: "Sí, dar de baja" }))) return;
         try { await api(`/productos/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); alert("Producto dado de baja correctamente."); }
