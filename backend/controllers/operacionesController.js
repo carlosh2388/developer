@@ -79,7 +79,7 @@ async function insertInventoryAllocation(client, orgId, lineId, allocation, targ
 async function resolveGrade(client, value) {
   required(value, "clasificacion");
   const { rows } = await client.query(
-    "SELECT id,egg_class FROM egg_quality_grades WHERE id::text=$1 OR LOWER(code)=LOWER($1) OR LOWER(label)=LOWER($1) LIMIT 1", [String(value).trim()]
+    "SELECT id,code,label,egg_class FROM egg_quality_grades WHERE id::text=$1 OR LOWER(code)=LOWER($1) OR LOWER(label)=LOWER($1) LIMIT 1", [String(value).trim()]
   );
   if (!rows[0]) throw new HttpError(400, "La clasificación de huevo no existe.", "INVALID_REFERENCE");
   return rows[0];
@@ -94,6 +94,117 @@ async function tableHasColumn(queryable, tableName, columnName) {
     [tableName, columnName]
   );
   return Boolean(rows[0]?.exists);
+}
+
+const eggColorFromFlock = (flockCode) => {
+  const code = String(flockCode || "").trim().toUpperCase();
+  if (code.startsWith("BL")) return { code: "RED", label: "Rojo" };
+  if (code.startsWith("SL")) return { code: "WHITE", label: "Blanco" };
+  return { code: "", label: "" };
+};
+
+const cleanEggText = (value) => String(value || "")
+  .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  .replace(/\*/g, "")
+  .toLowerCase();
+
+const eggSizeTerms = (grade) => {
+  const text = cleanEggText(`${grade.code} ${grade.label}`);
+  if (text.includes("mixed") || text.includes("mixto")) return ["mixto"];
+  if (text.includes("large") || text.includes("grande")) return ["grande"];
+  if (text.includes("medium") || text.includes("mediano")) return ["mediano"];
+  if (text.includes("small") || text.includes("pequeno")) return ["pequeno"];
+  if (text.includes("pewee")) return ["pewee"];
+  if (text.includes("dirty") || text.includes("sucio")) return ["sucio"];
+  if (text.includes("broken") || text.includes("quebrado")) return ["quebrado"];
+  if (text.includes("pale") || text.includes("palido")) return ["palido"];
+  if (text.includes("blood") || text.includes("sangre")) return ["sangre"];
+  if (text.includes("good") || text.includes("bueno")) return ["bueno"];
+  return ["otros"];
+};
+
+async function resolveEggProduct(client, orgId, grade, flockCode) {
+  const productType = grade.egg_class === "COMMERCIAL" ? "HC" : "HI";
+  const color = eggColorFromFlock(flockCode);
+  const terms = eggSizeTerms(grade);
+  const { rows } = await client.query(
+    `SELECT id,code,name,standard_cost FROM products
+     WHERE organization_id=$1 AND product_type=$2 AND status<>'INACTIVE'
+     ORDER BY code`,
+    [orgId, productType]
+  );
+  const candidates = rows.map((row) => ({ ...row, text: cleanEggText(`${row.code} ${row.name}`) }));
+  const colorText = cleanEggText(color.label);
+  let match = candidates.find((row) =>
+    (!colorText || row.text.includes(colorText)) && terms.every((term) => row.text.includes(term))
+  );
+  if (!match) match = candidates.find((row) => terms.every((term) => row.text.includes(term)));
+  if (!match) {
+    const description = [color.label, terms.join(" ")].filter(Boolean).join(" ");
+    throw new HttpError(400, `No se encontrÃ³ producto ${productType} asociado a ${description || grade.label}.`, "EGG_PRODUCT_NOT_FOUND");
+  }
+  const matchHasColor = colorText && cleanEggText(match.name).includes(colorText);
+  return { ...match, color: color.label, description: matchHasColor ? match.name : [color.label, match.name].filter(Boolean).join(" ") };
+}
+
+async function resolveDefaultEggWarehouse(client, orgId) {
+  const { rows } = await client.query(
+    `SELECT w.id FROM warehouses w
+     LEFT JOIN locations l ON l.id=w.location_id AND l.organization_id=w.organization_id
+     WHERE w.organization_id=$1 AND w.status<>'INACTIVE'
+       AND (LOWER(l.name) LIKE '%granja%' OR LOWER(l.code) LIKE '%granja%')
+       AND (LOWER(w.name) LIKE '%incubadora%' OR LOWER(w.code) LIKE '%incubadora%')
+     ORDER BY w.code LIMIT 1`,
+    [orgId]
+  );
+  return rows[0]?.id || null;
+}
+
+async function saveEggInventoryDocument(client, orgId, header, lines, userId) {
+  const supportsLink = await tableHasColumn(client, "egg_movements", "inventory_document_id");
+  if (!supportsLink || !lines.length) return null;
+  const existingId = header.inventory_document_id || null;
+  const movementType = header.movement_type === "OUTPUT" ? "OUTPUT" : "INPUT";
+  const destinationWarehouseId = movementType === "INPUT"
+    ? (header.destination_warehouse_id || await resolveDefaultEggWarehouse(client, orgId))
+    : header.destination_warehouse_id;
+  const sourceWarehouseId = movementType === "OUTPUT" ? header.source_warehouse_id : header.source_warehouse_id;
+  const details = lines.map((line) => ({
+    _productId: line.product_id,
+    _quantity: Number(line.total_units || 0),
+    _unitCost: Number(line.unit_cost || 0),
+    _skipLine: false,
+  }));
+  await validateProjectedInventory(client, orgId, details, movementType, existingId);
+  let documentId = existingId;
+  if (documentId) {
+    await client.query(
+      `UPDATE inventory_documents SET movement_type=$1,module_code='EGGS',movement_date=$2,source_warehouse_id=$3,
+       destination_warehouse_id=$4,notes=$5,updated_by=$6,updated_at=NOW()
+       WHERE id=$7 AND organization_id=$8`,
+      [movementType, header.movement_date, sourceWarehouseId, destinationWarehouseId, `Movimiento de huevos ${header.movement_number || header.id}`,
+        userId, documentId, orgId]
+    );
+    await client.query("DELETE FROM inventory_document_lines WHERE document_id=$1 AND organization_id=$2", [documentId, orgId]);
+  } else {
+    const inserted = await client.query(
+      `INSERT INTO inventory_documents(organization_id,movement_type,module_code,movement_date,source_warehouse_id,destination_warehouse_id,notes,created_by)
+       VALUES($1,$2,'EGGS',$3,$4,$5,$6,$7) RETURNING id`,
+      [orgId, movementType, header.movement_date, sourceWarehouseId, destinationWarehouseId,
+        `Movimiento de huevos ${header.movement_number || header.id}`, userId]
+    );
+    documentId = inserted.rows[0].id;
+    await client.query("UPDATE egg_movements SET inventory_document_id=$1 WHERE id=$2 AND organization_id=$3", [documentId, header.id, orgId]);
+  }
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    await client.query(
+      `INSERT INTO inventory_document_lines(organization_id,document_id,product_id,line_role,quantity,unit_cost,justification,line_number)
+       VALUES($1,$2,$3,'PRIMARY',$4,$5,$6,$7)`,
+      [orgId, documentId, line.product_id, line.total_units, line.unit_cost || 0, line.product_description || null, index + 1]
+    );
+  }
+  return documentId;
 }
 
 function positiveInteger(value, name) {
@@ -398,13 +509,24 @@ async function anularOperacion(req, res, next) {
   try {
     const config = voidableDocuments[req.params.tipo];
     if (!config) throw new HttpError(404, "El tipo de operación no existe.", "NOT_FOUND");
-    const { rows } = await db.query(
+    const orgId = organizationId(req);
+    const result = await transaction(async (client) => {
+      const { rows } = await client.query(
       `UPDATE ${config.table} SET status='VOID',voided_by=$1,voided_at=NOW()
        WHERE id=$2 AND organization_id=$3 AND status=$4 RETURNING *`,
-      [req.user.id, req.params.id, organizationId(req), config.active]
-    );
-    if (!rows[0]) throw new HttpError(404, "El registro no existe o ya fue anulado.", "NOT_FOUND");
-    res.json(rows[0]);
+        [req.user.id, req.params.id, orgId, config.active]
+      );
+      if (!rows[0]) throw new HttpError(404, "El registro no existe o ya fue anulado.", "NOT_FOUND");
+      if (req.params.tipo === "huevos" && rows[0].inventory_document_id) {
+        await client.query(
+          `UPDATE inventory_documents SET status='VOID',voided_by=$1,voided_at=NOW()
+           WHERE id=$2 AND organization_id=$3 AND status='POSTED'`,
+          [req.user.id, rows[0].inventory_document_id, orgId]
+        );
+      }
+      return rows[0];
+    });
+    res.json(result);
   } catch (error) { next(error); }
 }
 
@@ -413,6 +535,17 @@ async function listarHuevos(req, res, next) {
     const { rows } = await db.query(`SELECT m.*,
       COALESCE(STRING_AGG(DISTINCT f.code, ', '),'') AS flock_codes,
       COALESCE(STRING_AGG(DISTINCT g.label, ', '),'') AS grade_labels,
+      COALESCE(STRING_AGG(DISTINCT p.code, ', ') FILTER (WHERE p.code IS NOT NULL),'') AS product_codes,
+      COALESCE(STRING_AGG(DISTINCT p.id::text, ', ') FILTER (WHERE p.id IS NOT NULL),'') AS product_ids,
+      COALESCE(STRING_AGG(DISTINCT CASE
+        WHEN f.code ILIKE 'BL%' THEN 'Rojo'
+        WHEN f.code ILIKE 'SL%' THEN 'Blanco'
+        ELSE NULL END, ', '),'') AS egg_colors,
+      COALESCE(STRING_AGG(DISTINCT CASE
+        WHEN f.code ILIKE 'BL%' AND p.name NOT ILIKE '%rojo%' THEN CONCAT('Rojo ', p.name)
+        WHEN f.code ILIKE 'SL%' AND p.name NOT ILIKE '%blanco%' THEN CONCAT('Blanco ', p.name)
+        ELSE p.name END, ', ') FILTER (WHERE p.id IS NOT NULL),'') AS product_descriptions,
+      COALESCE(STRING_AGG(DISTINCT loc.name, ', ') FILTER (WHERE loc.name IS NOT NULL),'') AS location_names,
       COALESCE(STRING_AGG(DISTINCT pc.full_name, ', ') FILTER (WHERE pc.full_name IS NOT NULL),'') AS collector_names,
       COALESCE(STRING_AGG(DISTINCT pf.full_name, ', ') FILTER (WHERE pf.full_name IS NOT NULL),'') AS classifier_names,
       COUNT(l.id)::INTEGER AS line_count,
@@ -421,6 +554,10 @@ async function listarHuevos(req, res, next) {
       LEFT JOIN egg_movement_lines l ON l.movement_id=m.id AND l.organization_id=m.organization_id
       LEFT JOIN flocks f ON f.id=l.flock_id AND f.organization_id=l.organization_id
       LEFT JOIN egg_quality_grades g ON g.id=l.quality_grade_id
+      LEFT JOIN products p ON p.id=l.product_id AND p.organization_id=l.organization_id
+      LEFT JOIN warehouses sw ON sw.id=m.source_warehouse_id AND sw.organization_id=m.organization_id
+      LEFT JOIN warehouses dw ON dw.id=m.destination_warehouse_id AND dw.organization_id=m.organization_id
+      LEFT JOIN locations loc ON loc.id=COALESCE(sw.location_id,dw.location_id) AND loc.organization_id=m.organization_id
       LEFT JOIN personnel pc ON pc.id=l.collector_id
       LEFT JOIN personnel pf ON pf.id=l.classifier_id
       WHERE m.organization_id=$1
@@ -431,14 +568,23 @@ async function listarHuevos(req, res, next) {
 
 async function obtenerHuevos(req, res, next) {
   try { const orgId=organizationId(req); const header=await db.query(`SELECT m.*,sw.code source_warehouse_code,dw.code destination_warehouse_code,
+      sl.name source_location_name,dl.name destination_location_name,
       c.commercial_name customer_name,v.plate vehicle_plate,p.full_name driver_name FROM egg_movements m
       LEFT JOIN warehouses sw ON sw.id=m.source_warehouse_id LEFT JOIN warehouses dw ON dw.id=m.destination_warehouse_id
+      LEFT JOIN locations sl ON sl.id=sw.location_id LEFT JOIN locations dl ON dl.id=dw.location_id
       LEFT JOIN customers c ON c.id=m.customer_id AND c.organization_id=m.organization_id
       LEFT JOIN vehicles v ON v.id=m.vehicle_id LEFT JOIN personnel p ON p.id=m.driver_id
       WHERE m.id=$1 AND m.organization_id=$2`,[req.params.id,orgId]);
     if(!header.rows[0]) throw new HttpError(404,"El movimiento no existe.","NOT_FOUND");
-    const details=await db.query(`SELECT l.*,f.code flock_code,g.code grade_code,pc.full_name collector_name,pf.full_name classifier_name
+    const details=await db.query(`SELECT l.*,f.code flock_code,g.code grade_code,p.code product_code,p.name product_name,
+        CASE WHEN f.code ILIKE 'BL%' THEN 'Rojo' WHEN f.code ILIKE 'SL%' THEN 'Blanco' ELSE '' END color,
+        CASE
+          WHEN f.code ILIKE 'BL%' AND p.name NOT ILIKE '%rojo%' THEN CONCAT('Rojo ', p.name)
+          WHEN f.code ILIKE 'SL%' AND p.name NOT ILIKE '%blanco%' THEN CONCAT('Blanco ', p.name)
+          ELSE p.name END product_description,
+        pc.full_name collector_name,pf.full_name classifier_name
       FROM egg_movement_lines l LEFT JOIN flocks f ON f.id=l.flock_id JOIN egg_quality_grades g ON g.id=l.quality_grade_id
+      LEFT JOIN products p ON p.id=l.product_id AND p.organization_id=l.organization_id
       LEFT JOIN personnel pc ON pc.id=l.collector_id LEFT JOIN personnel pf ON pf.id=l.classifier_id
       WHERE l.movement_id=$1 AND l.organization_id=$2 ORDER BY l.line_number`,[req.params.id,orgId]); res.json({...header.rows[0],detalles:details.rows});
   } catch(error){next(error);} }
@@ -499,7 +645,7 @@ async function crearMovimientoHuevos(req, res, next) {
       const driverId = await resolveTenantId(client, "personnel", orgId, body.pilotoId || body.piloto, "piloto", true);
       let header;
       if (req.params.id) {
-        const current=await client.query("SELECT status FROM egg_movements WHERE id=$1 AND organization_id=$2 FOR UPDATE",[req.params.id,orgId]);
+        const current=await client.query("SELECT status,inventory_document_id FROM egg_movements WHERE id=$1 AND organization_id=$2 FOR UPDATE",[req.params.id,orgId]);
         if(!current.rows[0]) throw new HttpError(404,"El movimiento no existe.","NOT_FOUND"); if(current.rows[0].status==="VOID") throw new HttpError(409,"Un movimiento anulado no puede editarse.","VOID_DOCUMENT");
         header=await client.query(`UPDATE egg_movements SET movement_type=$1,movement_date=$2,movement_time=$3,production_date=$4,source_warehouse_id=$5,destination_warehouse_id=$6,destination_type=$7,destination_name=$8,customer_id=$9,vehicle_id=$10,driver_id=$11,notes=$12,updated_by=$13,updated_at=NOW() WHERE id=$14 AND organization_id=$15 RETURNING *`,
           [movementType,required(body.fecha,"fecha"),body.hora||null,body.fechaProduccion||null,sourceWarehouseId,destinationWarehouseId,body.tipoDestino||null,body.nombreDestino||null,customerId,vehicleId,driverId,body.observaciones||null,req.user.id,req.params.id,orgId]);
@@ -543,6 +689,8 @@ async function crearMovimientoHuevos(req, res, next) {
         const flockId = commercialMovement
           ? null
           : await resolveTenantId(client, "flocks", orgId, d.loteId || d.lote, "lote");
+        const flockCode = flockId ? (await client.query("SELECT code FROM flocks WHERE id=$1 AND organization_id=$2", [flockId, orgId])).rows[0]?.code : (d.lote || "");
+        const eggProduct = await resolveEggProduct(client, orgId, grade, flockCode);
         const requiresPersonnel = requestedMovementType === "INPUT";
         const collectorId = await resolveTenantId(client, "personnel", orgId, d.recolectorId || d.recolector, "recolector", !requiresPersonnel);
         const classifierId = await resolveTenantId(client, "personnel", orgId, d.clasificadorId || d.clasificador, "clasificador", !requiresPersonnel);
@@ -569,15 +717,16 @@ async function crearMovimientoHuevos(req, res, next) {
           if (requestedUnits > existingUnits) throw new HttpError(409, "Inventario insuficiente para operar egresos.", "INSUFFICIENT_EGG_STOCK");
         }
         const line = await client.query(
-          `INSERT INTO egg_movement_lines(organization_id,movement_id,flock_id,quality_grade_id,collector_id,classifier_id,existing_units,boxes_trays_336,boxes_cartons_360,trays_84,cartons_30,loose_units,total_weight_grams,line_number)
-           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+          `INSERT INTO egg_movement_lines(organization_id,movement_id,flock_id,quality_grade_id,product_id,collector_id,classifier_id,existing_units,boxes_trays_336,boxes_cartons_360,trays_84,cartons_30,loose_units,total_weight_grams,line_number)
+           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
           [orgId, header.rows[0].id, flockId, gradeId,
-            collectorId, classifierId, existingUnits, ...values,
+            eggProduct.id, collectorId, classifierId, existingUnits, ...values,
             totalWeight, index + 1]
         );
-        lines.push(line.rows[0]);
+        lines.push({ ...line.rows[0], unit_cost: eggProduct.standard_cost, product_description: eggProduct.description });
       }
-      return { ...header.rows[0], detalles: lines };
+      const inventoryDocumentId = await saveEggInventoryDocument(client, orgId, header.rows[0], lines, req.user.id);
+      return { ...header.rows[0], inventory_document_id: inventoryDocumentId || header.rows[0].inventory_document_id, detalles: lines };
     });
     res.status(req.params.id ? 200 : 201).json(result);
   } catch (error) { next(error); }

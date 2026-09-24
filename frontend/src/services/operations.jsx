@@ -71,6 +71,7 @@ const eggGradeCodes = {
 };
 
 export function eggGradeCode(label, type = "") {
+  if (label === "Mixto") return type === "Comercial" ? "COM_MIXED" : "INC_MIXED";
   if (eggGradeCodes[label]) {
     if ((label === "Pequeño (Nido)" || label === "PequeÃ±o (Nido)") && type === "Comercial") return "COM_SMALL_NEST";
     return eggGradeCodes[label];
@@ -81,6 +82,8 @@ export function eggGradeCode(label, type = "") {
 const labelByEggGrade = Object.fromEntries(Object.entries(eggGradeCodes).map(([label, code]) => [code, label]));
 labelByEggGrade.INC_SMALL_NEST = "Pequeño (Nido)";
 labelByEggGrade.COM_SMALL_NEST = "Pequeño (Nido)";
+labelByEggGrade.INC_MIXED = "Mixto";
+labelByEggGrade.COM_MIXED = "Mixto";
 export function eggGradeLabel(code) { return labelByEggGrade[code] || code; }
 
 export function eggPackageDetail(row = {}) {

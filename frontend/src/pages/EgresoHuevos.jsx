@@ -24,7 +24,7 @@ const eggWarehouseClassification = (warehouse) => {
 };
 
 function EgresoHuevos() {
-  const { bodegas, localidades, clientes, opciones } = useOperationalCatalogs(["lotes", "personal", "vehiculos", "bodegas", "localidades", "clientes"]);
+  const { bodegas, clientes, opciones } = useOperationalCatalogs(["lotes", "personal", "vehiculos", "bodegas", "clientes"]);
 
   // =====================================================
   // DATOS GENERALES
@@ -55,13 +55,9 @@ function EgresoHuevos() {
   const [bodegaDestino, setBodegaDestino] =
     useState("");
 
-  const [localidadSalida, setLocalidadSalida] = useState("");
-  const [localidadDestino, setLocalidadDestino] = useState("");
-
-  const localidadesActivas = localidades.filter((item) => item.status !== "INACTIVE");
   const esBodegaHuevos = (item) => Boolean(eggWarehouseClassification(item));
-  const bodegasSalida = bodegas.filter((item) => item.status !== "INACTIVE" && esBodegaHuevos(item) && String(item.locationId) === String(localidadSalida));
-  const bodegasDestino = bodegas.filter((item) => item.status !== "INACTIVE" && esBodegaHuevos(item) && String(item.locationId) === String(localidadDestino));
+  const bodegasSalida = bodegas.filter((item) => item.status !== "INACTIVE" && esBodegaHuevos(item));
+  const bodegasDestino = bodegas.filter((item) => item.status !== "INACTIVE" && esBodegaHuevos(item));
   const bodegaSalidaSeleccionada = bodegas.find((item) => item.code === bodegaSalida || item.id === bodegaSalida);
   const clasificacionForzada = eggWarehouseClassification(bodegaSalidaSeleccionada);
   const clientesDestino = clientes
@@ -113,7 +109,8 @@ function EgresoHuevos() {
     "Mediano (Nido)",
     "Pequeño (Nido)",
     "Otros* (Nido)",
-    "Otros* (Piso)"
+    "Otros* (Piso)",
+    "Mixto"
   ];
 
   // =====================================================
@@ -130,7 +127,8 @@ function EgresoHuevos() {
     "Con Sangre (Nido)",
     "Sucio (Piso)",
     "Quebrado (Piso)",
-    "Bueno (Piso)"
+    "Bueno (Piso)",
+    "Mixto"
   ];
 
   // =====================================================
@@ -245,9 +243,10 @@ const crearFilaComercial = () => ({
     setFechaProduccion(String(data.production_date || "").slice(0, 10)); setEgreso(data.shipment_number || "");
     setBodegaSalida(data.source_warehouse_code || "");
     if (data.customer_id) {
-      setLocalidadDestino("CLIENTE"); setBodegaDestino(data.customer_id);
+      setBodegaDestino(`CLIENTE:${data.customer_id}`);
     } else {
-      setBodegaDestino(data.destination_warehouse_code || data.destination_name || "");
+      const destination = data.destination_warehouse_code || data.destination_name || "";
+      setBodegaDestino(destination ? `BODEGA:${destination}` : "");
     }
     setPlaca(data.vehicle_plate || ""); setPiloto(data.driver_name || ""); setLotes([...grouped.values()]);
   } catch (error) { alert(error.message); } };
@@ -264,16 +263,6 @@ const crearFilaComercial = () => ({
       }
     }).catch((error) => alert(error.message));
   }, []);
-
-  useEffect(() => {
-    const selected = bodegas.find((item) => item.code === bodegaSalida || item.id === bodegaSalida);
-    if (selected?.locationId) setLocalidadSalida(String(selected.locationId));
-  }, [bodegas, bodegaSalida]);
-
-  useEffect(() => {
-    const selected = bodegas.find((item) => item.code === bodegaDestino || item.id === bodegaDestino);
-    if (selected?.locationId) setLocalidadDestino(String(selected.locationId));
-  }, [bodegas, bodegaDestino]);
 
   // =====================================================
   // FECHA Y HORA ACTUAL
@@ -730,29 +719,26 @@ const calcularSubTotal = (
           ...eggPackageDetail(datos),
         })).filter((d) => d.cajasBandejas336 + d.cajasCartones360 + d.bandejas84 + d.cartones30 + d.unidades > 0);
       });
-      const localidadSeleccionada = localidadesActivas.find((item) => String(item.id) === String(localidadDestino));
-      const nombreLocalidad = String(localidadSeleccionada?.name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-      const tipoDestino = localidadDestino === "CLIENTE"
-        ? "CUSTOMER"
-        : nombreLocalidad.includes("INCUBADORA")
-          ? "INCUBATOR"
-          : nombreLocalidad.includes("GRANJA")
-            ? "FARM"
-            : "OTHER";
+      const destinoCliente = bodegaDestino.startsWith("CLIENTE:");
+      const destinoBodega = bodegaDestino.startsWith("BODEGA:") ? bodegaDestino.slice("BODEGA:".length) : "";
+      const clienteDestino = destinoCliente ? bodegaDestino.slice("CLIENTE:".length) : "";
+      const bodegaDestinoSeleccionada = bodegasDestino.find((item) => item.code === destinoBodega || item.id === destinoBodega);
+      const destinoClass = eggWarehouseClassification(bodegaDestinoSeleccionada);
+      const tipoDestino = destinoCliente ? "CUSTOMER" : destinoClass === "Incubable" ? "INCUBATOR" : destinoClass === "Comercial" ? "FARM" : "OTHER";
       await saveOperation("/huevos/movimientos", { tipoMovimiento: "OUTPUT", fecha, hora, fechaProduccion,
         bodegaOrigen: bodegaSalida || undefined,
-        bodegaDestino: localidadDestino === "CLIENTE" ? undefined : (bodegaDestino || undefined),
-        clienteId: localidadDestino === "CLIENTE" ? (bodegaDestino || undefined) : undefined,
+        bodegaDestino: destinoCliente ? undefined : (destinoBodega || undefined),
+        clienteId: destinoCliente ? (clienteDestino || undefined) : undefined,
         tipoDestino,
-        nombreDestino: localidadDestino === "CLIENTE"
-          ? clientesDestino.find((item) => String(item.id) === String(bodegaDestino))?.commercialName
-          : (bodegaDestino || undefined),
+        nombreDestino: destinoCliente
+          ? clientesDestino.find((item) => String(item.id) === String(clienteDestino))?.commercialName
+          : (destinoBodega || undefined),
         placa: placa || undefined,
         piloto: piloto || undefined, detalles }, editingId);
       alert(editingId ? "Egreso actualizado correctamente" : `Egreso ${egreso} registrado correctamente`);
       const now = new Date();
       setFecha(now.toISOString().split("T")[0]); setHora(now.toTimeString().slice(0, 5));
-      setFechaProduccion(now.toISOString().split("T")[0]); setLocalidadSalida(""); setBodegaSalida(""); setLocalidadDestino(""); setBodegaDestino("");
+      setFechaProduccion(now.toISOString().split("T")[0]); setBodegaSalida(""); setBodegaDestino("");
       setPlaca(""); setNuevaPlaca(""); setMostrarNuevaPlaca(false);
       setPiloto(""); setNuevoPiloto(""); setMostrarNuevoPiloto(false);
       setLotes([crearLote()]); setEditingId(null);
@@ -1271,7 +1257,17 @@ const calcularSubTotal = (
   // =====================================================
 
   return (<OperationPanel><OperationRecordsModal title="Egresos de huevos" path="/huevos/movimientos" annulPath={(row) => `/operaciones/huevos/${row.id}/anular`} dateField="movement_date" columns={[
-    { key: "movement_number", label: "Movimiento" }, { key: "movement_date", label: "Fecha" }, { key: "production_date", label: "Producción" }, { key: "destination_name", label: "Destino" }, { key: "status", label: "Estado" },
+    { key: "movement_number", label: "Movimiento" },
+    { key: "movement_date", label: "Fecha", render: (value) => String(value || "").slice(0, 10) },
+    { key: "production_date", label: "Produccion", render: (value) => String(value || "").slice(0, 10) },
+    { key: "location_names", label: "Localidad" },
+    { key: "flock_codes", label: "Lote" },
+    { key: "product_ids", label: "Id producto" },
+    { key: "product_codes", label: "Codigo producto" },
+    { key: "egg_colors", label: "Color" },
+    { key: "product_descriptions", label: "Producto" },
+    { key: "destination_name", label: "Destino" },
+    { key: "status", label: "Estado", render: (value) => ({ POSTED: "Registrado", VOID: "Anulado" }[value] || value) },
   ]} rowFilter={(row) => row.movement_type === "OUTPUT"} onEdit={cargarEdicion}/>
 
     <div className="form-container egg-operation-form">
@@ -1334,7 +1330,7 @@ const calcularSubTotal = (
 
       </div>
 
-      {/* LOCALIDAD Y BODEGA DE SALIDA */}
+      {/* BODEGAS */}
 
       <div
         style={{
@@ -1367,54 +1363,19 @@ const calcularSubTotal = (
         </div>
 
         <div>
-          <label>Localidad Salida</label>
-          <select
-            value={localidadSalida}
-            onChange={(e) => { setLocalidadSalida(e.target.value); setBodegaSalida(""); }}
-          >
-            <option value="">Seleccione</option>
-            {localidadesActivas.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-        </div>
-
-        <div>
           <label>Bodega Salida</label>
-          <select value={bodegaSalida} onChange={(e) => setBodegaSalida(e.target.value)} disabled={!localidadSalida}>
+          <select value={bodegaSalida} onChange={(e) => setBodegaSalida(e.target.value)}>
             <option value="">Seleccione</option>
             {bodegasSalida.map((item) => <option key={item.id} value={item.code}>{item.name}</option>)}
           </select>
         </div>
 
-      </div>
-
-      {/* LOCALIDAD Y BODEGA DE DESTINO */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(220px, 1fr) minmax(360px, 2fr)",
-          gap: "10px",
-          marginTop: "10px"
-        }}
-      >
-        <div>
-          <label>Localidad Destino</label>
-          <select
-            value={localidadDestino}
-            onChange={(e) => { setLocalidadDestino(e.target.value); setBodegaDestino(""); }}
-          >
-            <option value="">Seleccione</option>
-            <option value="CLIENTE">Cliente</option>
-            {localidadesActivas.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-        </div>
-
         <div>
           <label>Bodega Destino</label>
-          <select value={bodegaDestino} onChange={(e) => setBodegaDestino(e.target.value)} disabled={!localidadDestino}>
+          <select value={bodegaDestino} onChange={(e) => setBodegaDestino(e.target.value)}>
             <option value="">Seleccione</option>
-            {localidadDestino === "CLIENTE"
-              ? clientesDestino.map((item) => <option key={item.id} value={item.id}>{item.commercialName}</option>)
-              : bodegasDestino.map((item) => <option key={item.id} value={item.code}>{item.name}</option>)}
+            {clientesDestino.map((item) => <option key={`cliente-${item.id}`} value={`CLIENTE:${item.id}`}>Cliente - {item.commercialName}</option>)}
+            {bodegasDestino.map((item) => <option key={`bodega-${item.id}`} value={`BODEGA:${item.code}`}>Bodega - {item.name}</option>)}
           </select>
         </div>
       </div>

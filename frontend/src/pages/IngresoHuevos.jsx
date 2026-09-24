@@ -594,7 +594,12 @@ const calcularSubTotal = (grupo, filtro) => {
   return (<OperationPanel maxWidth={1100}><OperationRecordsModal title="Ingresos de huevos" path="/huevos/movimientos" annulPath={(row) => `/operaciones/huevos/${row.id}/anular`} dateField="movement_date" columns={[
     { key: "movement_number", label: "Movimiento" },
     { key: "movement_date", label: "Fecha", render: (value) => String(value || "").slice(0, 10) },
+    { key: "location_names", label: "Localidad", render: (value) => value || "Granja" },
     { key: "flock_codes", label: "Lote" },
+    { key: "product_ids", label: "Id producto" },
+    { key: "product_codes", label: "Código producto" },
+    { key: "egg_colors", label: "Color" },
+    { key: "product_descriptions", label: "Producto" },
     { key: "grade_labels", label: "Clasificaciones" },
     { key: "collector_names", label: "Recolector", render: (value) => value || "Sin recolector" },
     { key: "classifier_names", label: "Clasificador", render: (value) => value || "Sin clasificador" },
