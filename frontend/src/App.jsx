@@ -202,8 +202,10 @@ export default function App() {
       <Inicio user={user} />
     ) : vista === "usuarios" ? (
       <Usuarios />
-    ) : vista === "reportes" ? (
-      <Reportes user={user} />
+    ) : vista === "reporteProduccion" ? (
+      <Reportes user={user} initialTab="produccion" />
+    ) : vista === "reporteKardex" ? (
+      <Reportes user={user} initialTab="kardex" />
     ) : vista === "controlPesoHuevos" ? (
       <ControlPesoHuevos user={user} />
     ) : (

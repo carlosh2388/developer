@@ -33,7 +33,10 @@ function MenuIcon({ name }) {
 }
 
 const sections = [
-  { id: "reports", title: "Reportes", icon: "reports", items: [["Producción por granja", "reportes", "production"]] },
+  { id: "reports", title: "Reportes", icon: "reports", items: [
+    ["Producción por granja", "reporteProduccion", "production"],
+    ["Kardex de Productos", "reporteKardex", "product"],
+  ] },
   { id: "config", title: "Datos Maestros", icon: "database", items: [
     ["Líneas avícolas", "lineasAvicolas", "line"], ["Lotes", "lotes", "flock"], ["Bodegas", "bodegas", "warehouse"],
     ["Productos", "productos", "product"], ["Clientes", "clientes", "clients"], ["Proveedores", "proveedores", "supplier"], ["Empleados", "empleados", "employee"],

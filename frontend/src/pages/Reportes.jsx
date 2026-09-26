@@ -60,8 +60,8 @@ function tableHtml({ title, subtitle, rows, columns, display, printable = false 
     <p>${escapeHtml(subtitle)}</p><table><thead><tr>${headings}</tr></thead><tbody>${body}</tbody></table></body></html>`;
 }
 
-export default function Reportes({ user }) {
-  const [tab, setTab] = useState("produccion");
+export default function Reportes({ user, initialTab = "produccion" }) {
+  const tab = initialTab;
   const [lotes, setLotes] = useState([]);
   const [productos, setProductos] = useState([]);
   const [seleccion, setSeleccion] = useState([]);
@@ -123,11 +123,6 @@ export default function Reportes({ user }) {
 
   return <div className="page-shell"><section className="report-panel">
     <div className="report-screen-header"><img src="/igag-logo.jpeg" alt="Industria Genetica Avicola de Guatemala"/><div><p className="eyebrow">REPORTES</p><h1>{tab === "produccion" ? "Produccion por granja" : "Kardex de Productos"}</h1><p>{tab === "produccion" ? "Produccion, inventario, mortalidad y clasificacion de huevos." : "Movimientos, entradas, salidas y saldos por producto."}</p></div></div>
-    <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
-      <button type="button" className="primary-button" style={{ opacity: tab === "produccion" ? 1 : 0.65 }} onClick={() => setTab("produccion")}>Produccion por granja</button>
-      <button type="button" className="primary-button" style={{ opacity: tab === "kardex" ? 1 : 0.65 }} onClick={() => setTab("kardex")}>Kardex de Productos</button>
-    </div>
-
     {tab === "produccion" ? <>
       <div className="report-filters"><label>Fecha inicio<input type="date" value={fechaInicio} max={fechaFin} onChange={(e) => setFechaInicio(e.target.value)}/></label><label>Fecha fin<input type="date" value={fechaFin} min={fechaInicio} onChange={(e) => setFechaFin(e.target.value)}/></label><label>Lotes (Ctrl para seleccionar varios)<select multiple value={seleccion} onChange={(e) => setSeleccion([...e.target.selectedOptions].map((option) => option.value))}>{lotes.map((lote) => <option key={lote.id} value={lote.code}>{lote.code}</option>)}</select></label><button className="primary-button" onClick={generarProduccion} disabled={loading}>{loading ? "Generando..." : "Generar reporte"}</button></div>
       {error && <div className="alert alert-error">{error}</div>}
@@ -137,7 +132,7 @@ export default function Reportes({ user }) {
       <div className="report-filters report-filters-kardex"><label>Fecha inicio<input type="date" value={fechaInicio} max={fechaFin} onChange={(e) => setFechaInicio(e.target.value)}/></label><label>Fecha fin<input type="date" value={fechaFin} min={fechaInicio} onChange={(e) => setFechaFin(e.target.value)}/></label><label>Productos<select value={tipoProducto} onChange={(e) => { setTipoProducto(e.target.value); setProductosSeleccionados([]); }}><option value="">Todos</option>{productTypes.map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}</select></label><label className="report-filter-detail">Detalle (Ctrl para seleccionar varios)<select multiple value={productosSeleccionados} onChange={(e) => setProductosSeleccionados([...e.target.selectedOptions].map((option) => option.value))}>{productOptions.map((item) => <option key={item.id} value={item.code}>{item.code} - {item.name}{item.unitLabel || item.unitCode ? ` (${item.unitLabel || item.unitCode})` : ""}</option>)}</select></label><button className="primary-button" onClick={generarKardex} disabled={loading}>{loading ? "Generando..." : "Generar reporte"}</button></div>
       {error && <div className="alert alert-error">{error}</div>}
       <div className="report-actions"><button onClick={() => exportDocument({ rows: kardexRows, title: "REPORTE DE KARDEX DE PRODUCTOS", subtitle: kardexSubtitle, columns: kardexColumns, display: displayKardex, printable: true })} disabled={!kardexRows.length}>Generar PDF</button>{isAdmin && <button onClick={() => exportDocument({ rows: kardexRows, title: "REPORTE DE KARDEX DE PRODUCTOS", subtitle: kardexSubtitle, columns: kardexColumns, display: displayKardex, filename: `kardex-productos-${fechaInicio}-${fechaFin}.xls` })} disabled={!kardexRows.length}>Exportar Excel</button>}<span>{kardexRows.length} registro(s)</span></div>
-      <div className="report-table-wrap"><table className="report-table"><thead><tr>{kardexColumns.map(([key, label]) => <th key={key}>{label}</th>)}</tr></thead><tbody>{kardexRows.map((row, index) => <tr key={`${row.product_code}-${row.fecha}-${row.documento}-${index}`}>{kardexColumns.map(([key]) => <td key={key}>{displayKardex(key, row[key])}</td>)}</tr>)}{!kardexRows.length && <tr><td colSpan={kardexColumns.length}>Selecciona los filtros y genera el reporte.</td></tr>}</tbody></table></div>
+      <div className="report-table-wrap report-table-wrap-kardex"><table className="report-table"><thead><tr>{kardexColumns.map(([key, label]) => <th key={key}>{label}</th>)}</tr></thead><tbody>{kardexRows.map((row, index) => <tr key={`${row.product_code}-${row.fecha}-${row.documento}-${index}`}>{kardexColumns.map(([key]) => <td key={key}>{displayKardex(key, row[key])}</td>)}</tr>)}{!kardexRows.length && <tr><td colSpan={kardexColumns.length}>Selecciona los filtros y genera el reporte.</td></tr>}</tbody></table></div>
     </>}
   </section></div>;
 }
