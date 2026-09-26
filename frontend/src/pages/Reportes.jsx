@@ -49,18 +49,19 @@ const displayKardex = (key, value) => {
   return value || "";
 };
 const pageSize = 20;
-const compareDesc = (left, right, keys) => {
+const compareByKeys = (left, right, keys, direction = "desc") => {
   for (const key of keys) {
     const a = left[key] ?? "";
     const b = right[key] ?? "";
-    const result = String(b).localeCompare(String(a), "es", { numeric: true, sensitivity: "base" });
+    const result = String(a).localeCompare(String(b), "es", { numeric: true, sensitivity: "base" });
     if (result) return result;
   }
   return 0;
 };
-const withDescendingCorrelative = (rows, keys) => {
-  const sorted = [...rows].sort((a, b) => compareDesc(a, b, keys));
-  return sorted.map((row, index) => ({ ...row, correlativo: sorted.length - index }));
+const withOrderedCorrelative = (rows, keys, direction) => {
+  const factor = direction === "asc" ? 1 : -1;
+  const sorted = [...rows].sort((a, b) => compareByKeys(a, b, keys) * factor);
+  return sorted.map((row, index) => ({ ...row, correlativo: direction === "asc" ? index + 1 : sorted.length - index }));
 };
 
 function tableHtml({ title, subtitle, rows, columns, display, printable = false }) {
@@ -89,6 +90,8 @@ export default function Reportes({ user, initialTab = "produccion" }) {
   const [kardexRows, setKardexRows] = useState([]);
   const [productionPage, setProductionPage] = useState(1);
   const [kardexPage, setKardexPage] = useState(1);
+  const [productionOrder, setProductionOrder] = useState("desc");
+  const [kardexOrder, setKardexOrder] = useState("desc");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const isAdmin = user?.role === "ADMINISTRATOR";
@@ -113,15 +116,15 @@ export default function Reportes({ user, initialTab = "produccion" }) {
     ...(productosSeleccionados.length ? { productos: productosSeleccionados.join(",") } : {}),
   }).toString(), [fechaInicio, fechaFin, tipoProducto, productosSeleccionados]);
   const typeLabel = productTypes.find((item) => item.code === tipoProducto)?.label || "Todos";
-  const orderedProductionRows = useMemo(() => withDescendingCorrelative(productionRows, ["fecha", "lote"]), [productionRows]);
-  const orderedKardexRows = useMemo(() => withDescendingCorrelative(kardexRows, ["fecha", "documento", "product_code"]), [kardexRows]);
+  const orderedProductionRows = useMemo(() => withOrderedCorrelative(productionRows, ["fecha", "lote"], productionOrder), [productionRows, productionOrder]);
+  const orderedKardexRows = useMemo(() => withOrderedCorrelative(kardexRows, ["fecha", "documento", "product_code"], kardexOrder), [kardexRows, kardexOrder]);
   const productionTotalPages = Math.max(1, Math.ceil(orderedProductionRows.length / pageSize));
   const kardexTotalPages = Math.max(1, Math.ceil(orderedKardexRows.length / pageSize));
   const visibleProductionRows = useMemo(() => orderedProductionRows.slice((productionPage - 1) * pageSize, productionPage * pageSize), [orderedProductionRows, productionPage]);
   const visibleKardexRows = useMemo(() => orderedKardexRows.slice((kardexPage - 1) * pageSize, kardexPage * pageSize), [orderedKardexRows, kardexPage]);
 
-  useEffect(() => { setProductionPage(1); }, [productionRows]);
-  useEffect(() => { setKardexPage(1); }, [kardexRows]);
+  useEffect(() => { setProductionPage(1); }, [productionRows, productionOrder]);
+  useEffect(() => { setKardexPage(1); }, [kardexRows, kardexOrder]);
 
   function Pagination({ page, totalPages, totalRows, onPageChange }) {
     if (!totalRows) return null;
@@ -139,6 +142,15 @@ export default function Reportes({ user, initialTab = "produccion" }) {
         <button type="button" onClick={() => onPageChange(Math.min(totalPages, page + 1))} disabled={page === totalPages}>Siguiente</button>
       </div>
     </div>;
+  }
+
+  function OrderSelect({ value, onChange }) {
+    return <label className="report-order">Orden
+      <select value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="desc">Descendente</option>
+        <option value="asc">Ascendente</option>
+      </select>
+    </label>;
   }
 
   async function generarProduccion() {
@@ -163,19 +175,19 @@ export default function Reportes({ user, initialTab = "produccion" }) {
     const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = filename; link.click(); URL.revokeObjectURL(link.href);
   }
 
-  const productionSubtitle = `Del ${fechaInicio} al ${fechaFin} - Lotes: ${seleccion.length ? seleccion.join(", ") : "Todos"}`;
-  const kardexSubtitle = `Del ${fechaInicio} al ${fechaFin} - Productos: ${typeLabel} - Detalle: ${productosSeleccionados.length ? productosSeleccionados.join(", ") : "Todos"}`;
+  const productionSubtitle = `Del ${fechaInicio} al ${fechaFin} - Lotes: ${seleccion.length ? seleccion.join(", ") : "Todos"} - Orden: ${productionOrder === "asc" ? "Ascendente" : "Descendente"}`;
+  const kardexSubtitle = `Del ${fechaInicio} al ${fechaFin} - Productos: ${typeLabel} - Detalle: ${productosSeleccionados.length ? productosSeleccionados.join(", ") : "Todos"} - Orden: ${kardexOrder === "asc" ? "Ascendente" : "Descendente"}`;
 
   return <div className="page-shell"><section className="report-panel">
     <div className="report-screen-header"><img src="/igag-logo.jpeg" alt="Industria Genetica Avicola de Guatemala"/><div><p className="eyebrow">REPORTES</p><h1>{tab === "produccion" ? "Produccion por granja" : "Kardex de Productos"}</h1><p>{tab === "produccion" ? "Produccion, inventario, mortalidad y clasificacion de huevos." : "Movimientos, entradas, salidas y saldos por producto."}</p></div></div>
     {tab === "produccion" ? <>
-      <div className="report-filters"><label>Fecha inicio<input type="date" value={fechaInicio} max={fechaFin} onChange={(e) => setFechaInicio(e.target.value)}/></label><label>Fecha fin<input type="date" value={fechaFin} min={fechaInicio} onChange={(e) => setFechaFin(e.target.value)}/></label><label>Lotes (Ctrl para seleccionar varios)<select multiple value={seleccion} onChange={(e) => setSeleccion([...e.target.selectedOptions].map((option) => option.value))}>{lotes.map((lote) => <option key={lote.id} value={lote.code}>{lote.code}</option>)}</select></label><button className="primary-button" onClick={generarProduccion} disabled={loading}>{loading ? "Generando..." : "Generar reporte"}</button></div>
+      <div className="report-filters report-filters-production"><label>Fecha inicio<input type="date" value={fechaInicio} max={fechaFin} onChange={(e) => setFechaInicio(e.target.value)}/></label><label>Fecha fin<input type="date" value={fechaFin} min={fechaInicio} onChange={(e) => setFechaFin(e.target.value)}/></label><OrderSelect value={productionOrder} onChange={setProductionOrder}/><label>Lotes (Ctrl para seleccionar varios)<select multiple value={seleccion} onChange={(e) => setSeleccion([...e.target.selectedOptions].map((option) => option.value))}>{lotes.map((lote) => <option key={lote.id} value={lote.code}>{lote.code}</option>)}</select></label><button className="primary-button" onClick={generarProduccion} disabled={loading}>{loading ? "Generando..." : "Generar reporte"}</button></div>
       {error && <div className="alert alert-error">{error}</div>}
       <div className="report-actions"><button onClick={() => exportDocument({ rows: orderedProductionRows, title: "REPORTE DE PRODUCCION - GRANJA", subtitle: productionSubtitle, columns: productionColumns, display: displayProduction, printable: true })} disabled={!productionRows.length}>Generar PDF</button>{isAdmin && <button onClick={() => exportDocument({ rows: orderedProductionRows, title: "REPORTE DE PRODUCCION - GRANJA", subtitle: productionSubtitle, columns: productionColumns, display: displayProduction, filename: `reporte-produccion-${fechaInicio}-${fechaFin}.xls` })} disabled={!productionRows.length}>Exportar Excel</button>}<span>{productionRows.length} registro(s)</span></div>
       <div className="report-table-wrap"><table className="report-table"><thead><tr>{productionColumns.map(([key, label]) => <th key={key}>{label}</th>)}</tr></thead><tbody>{visibleProductionRows.map((row, index) => <tr key={`${row.lote}-${row.fecha}-${index}`}>{productionColumns.map(([key]) => <td key={key}>{displayProduction(key, row[key])}</td>)}</tr>)}{!productionRows.length && <tr><td colSpan={productionColumns.length}>Selecciona los filtros y genera el reporte.</td></tr>}</tbody></table></div>
       <Pagination page={productionPage} totalPages={productionTotalPages} totalRows={orderedProductionRows.length} onPageChange={setProductionPage}/>
     </> : <>
-      <div className="report-filters report-filters-kardex"><label>Fecha inicio<input type="date" value={fechaInicio} max={fechaFin} onChange={(e) => setFechaInicio(e.target.value)}/></label><label>Fecha fin<input type="date" value={fechaFin} min={fechaInicio} onChange={(e) => setFechaFin(e.target.value)}/></label><label>Productos<select value={tipoProducto} onChange={(e) => { setTipoProducto(e.target.value); setProductosSeleccionados([]); }}><option value="">Todos</option>{productTypes.map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}</select></label><label className="report-filter-detail">Detalle (Ctrl para seleccionar varios)<select multiple value={productosSeleccionados} onChange={(e) => setProductosSeleccionados([...e.target.selectedOptions].map((option) => option.value))}>{productOptions.map((item) => <option key={item.id} value={item.code}>{item.code} - {item.name}{item.unitLabel || item.unitCode ? ` (${item.unitLabel || item.unitCode})` : ""}</option>)}</select></label><button className="primary-button" onClick={generarKardex} disabled={loading}>{loading ? "Generando..." : "Generar reporte"}</button></div>
+      <div className="report-filters report-filters-kardex"><label>Fecha inicio<input type="date" value={fechaInicio} max={fechaFin} onChange={(e) => setFechaInicio(e.target.value)}/></label><label>Fecha fin<input type="date" value={fechaFin} min={fechaInicio} onChange={(e) => setFechaFin(e.target.value)}/></label><OrderSelect value={kardexOrder} onChange={setKardexOrder}/><label>Productos<select value={tipoProducto} onChange={(e) => { setTipoProducto(e.target.value); setProductosSeleccionados([]); }}><option value="">Todos</option>{productTypes.map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}</select></label><label className="report-filter-detail">Detalle (Ctrl para seleccionar varios)<select multiple value={productosSeleccionados} onChange={(e) => setProductosSeleccionados([...e.target.selectedOptions].map((option) => option.value))}>{productOptions.map((item) => <option key={item.id} value={item.code}>{item.code} - {item.name}{item.unitLabel || item.unitCode ? ` (${item.unitLabel || item.unitCode})` : ""}</option>)}</select></label><button className="primary-button" onClick={generarKardex} disabled={loading}>{loading ? "Generando..." : "Generar reporte"}</button></div>
       {error && <div className="alert alert-error">{error}</div>}
       <div className="report-actions"><button onClick={() => exportDocument({ rows: orderedKardexRows, title: "REPORTE DE KARDEX DE PRODUCTOS", subtitle: kardexSubtitle, columns: kardexColumns, display: displayKardex, printable: true })} disabled={!kardexRows.length}>Generar PDF</button>{isAdmin && <button onClick={() => exportDocument({ rows: orderedKardexRows, title: "REPORTE DE KARDEX DE PRODUCTOS", subtitle: kardexSubtitle, columns: kardexColumns, display: displayKardex, filename: `kardex-productos-${fechaInicio}-${fechaFin}.xls` })} disabled={!kardexRows.length}>Exportar Excel</button>}<span>{kardexRows.length} registro(s)</span></div>
       <div className="report-table-wrap report-table-wrap-kardex"><table className="report-table"><thead><tr>{kardexColumns.map(([key, label]) => <th key={key}>{label}</th>)}</tr></thead><tbody>{visibleKardexRows.map((row, index) => <tr key={`${row.product_code}-${row.fecha}-${row.documento}-${index}`}>{kardexColumns.map(([key]) => <td key={key}>{displayKardex(key, row[key])}</td>)}</tr>)}{!kardexRows.length && <tr><td colSpan={kardexColumns.length}>Selecciona los filtros y genera el reporte.</td></tr>}</tbody></table></div>

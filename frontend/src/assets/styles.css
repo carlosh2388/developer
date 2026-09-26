@@ -1110,12 +1110,13 @@ td small {
 }
 .report-panel{background:#fff;border:1px solid #d7e0da;border-radius:12px;padding:24px;max-width:1600px;margin:auto}
 .report-panel h1{margin:2px 0}
-.report-filters{display:grid;grid-template-columns:180px 180px minmax(260px,1fr) 170px;gap:14px;align-items:end;margin:22px 0}
-.report-filters-kardex{grid-template-columns:minmax(160px,180px) minmax(160px,180px) minmax(300px,360px) minmax(360px,1fr) 180px;justify-content:stretch;align-items:end}
+.report-filters{display:grid;grid-template-columns:180px 180px minmax(150px,170px) minmax(260px,1fr) 170px;gap:14px;align-items:end;margin:22px 0}
+.report-filters-kardex{grid-template-columns:minmax(150px,170px) minmax(150px,170px) minmax(150px,170px) minmax(260px,320px) minmax(340px,1fr) 180px;justify-content:stretch;align-items:end}
 .report-filters label{display:flex;flex-direction:column;gap:6px;font-weight:600}
 .report-filter-detail{max-width:none}
 .report-filters input,.report-filters select{border:1px solid #cbd6cf;border-radius:6px;padding:9px;background:#fff}
 .report-filters select{min-height:82px}
+.report-order select{min-height:42px}
 .report-filters-kardex select:not([multiple]){min-height:42px}
 .report-filters-kardex .report-filter-detail select{min-height:110px}
 .report-actions{display:flex;gap:10px;align-items:center;margin:12px 0}
