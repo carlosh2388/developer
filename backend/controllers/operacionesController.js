@@ -186,18 +186,22 @@ async function saveEggInventoryDocument(client, orgId, header, lines, userId) {
   await validateProjectedInventory(client, orgId, details, movementType, existingId);
   let documentId = existingId;
   if (documentId) {
+    const hasUpdatedBy = await tableHasColumn(client, "inventory_documents", "updated_by");
+    const hasUpdatedAt = await tableHasColumn(client, "inventory_documents", "updated_at");
+    const auditSet = [hasUpdatedBy ? "updated_by=$6" : null, hasUpdatedAt ? "updated_at=NOW()" : null].filter(Boolean);
+    const values = [movementType, header.movement_date, sourceWarehouseId, destinationWarehouseId,
+      `Movimiento de huevos ${header.movement_number || header.id}`];
     await client.query(
-      `UPDATE inventory_documents SET movement_type=$1,module_code='EGGS',movement_date=$2,source_warehouse_id=$3,
-       destination_warehouse_id=$4,notes=$5,updated_by=$6,updated_at=NOW()
-       WHERE id=$7 AND organization_id=$8`,
-      [movementType, header.movement_date, sourceWarehouseId, destinationWarehouseId, `Movimiento de huevos ${header.movement_number || header.id}`,
-        userId, documentId, orgId]
+      `UPDATE inventory_documents SET movement_type=$1,module_code='OTHER',movement_date=$2,source_warehouse_id=$3,
+       destination_warehouse_id=$4,notes=$5${auditSet.length ? `,${auditSet.join(",")}` : ""}
+       WHERE id=$${hasUpdatedBy ? 7 : 6} AND organization_id=$${hasUpdatedBy ? 8 : 7}`,
+      hasUpdatedBy ? [...values, userId, documentId, orgId] : [...values, documentId, orgId]
     );
     await client.query("DELETE FROM inventory_document_lines WHERE document_id=$1 AND organization_id=$2", [documentId, orgId]);
   } else {
     const inserted = await client.query(
       `INSERT INTO inventory_documents(organization_id,movement_type,module_code,movement_date,source_warehouse_id,destination_warehouse_id,notes,created_by)
-       VALUES($1,$2,'EGGS',$3,$4,$5,$6,$7) RETURNING id`,
+       VALUES($1,$2,'OTHER',$3,$4,$5,$6,$7) RETURNING id`,
       [orgId, movementType, header.movement_date, sourceWarehouseId, destinationWarehouseId,
         `Movimiento de huevos ${header.movement_number || header.id}`, userId]
     );
