@@ -21,7 +21,7 @@ vi.mock('../services/api', () => ({
 }));
 
 describe('EggAdjustmentForm', () => {
-  test('muestra el boton de agregar lote sin crear filas de detalle', async () => {
+  test('no agrega una fila nueva cuando la linea actual esta incompleta', async () => {
     const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const { container } = render(
       <EggAdjustmentForm
@@ -35,17 +35,17 @@ describe('EggAdjustmentForm', () => {
     fireEvent.change(screen.getByLabelText(/localidad/i), { target: { value: '2' } });
     fireEvent.change(screen.getByLabelText(/bodega/i), { target: { value: 'INC-01' } });
 
-    expect(await screen.findByRole('button', { name: /agregar lote/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /agregar fila/i })).toBeInTheDocument();
     expect(container.querySelectorAll('tbody tr')).toHaveLength(1);
 
-    fireEvent.click(screen.getByRole('button', { name: /agregar lote/i }));
+    fireEvent.click(screen.getByRole('button', { name: /agregar fila/i }));
     expect(container.querySelectorAll('tbody tr')).toHaveLength(1);
-    expect(alertSpy).toHaveBeenCalledWith('Para agregar un lote nuevo, usa Datos Maestros > Lotes.');
+    expect(alertSpy).toHaveBeenCalledWith('Completa la línea actual antes de agregar una nueva.');
 
     alertSpy.mockRestore();
   });
 
-  test('no agrega una fila nueva cuando la linea actual esta incompleta', async () => {
+  test('el boton nuevo reinicia el formulario sin agregar filas', async () => {
     const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const { container } = render(
       <EggAdjustmentForm
@@ -62,7 +62,7 @@ describe('EggAdjustmentForm', () => {
     fireEvent.click(await screen.findByRole('button', { name: /\+ Nuevo/i }));
 
     expect(container.querySelectorAll('tbody tr')).toHaveLength(1);
-    expect(alertSpy).toHaveBeenCalledWith('Completa la linea actual antes de agregar una nueva.');
+    expect(alertSpy).not.toHaveBeenCalled();
 
     alertSpy.mockRestore();
   });

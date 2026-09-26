@@ -147,6 +147,20 @@ function IngresoHuevos() {
     );
   };
 
+  const cambiarTipoGrupo = (id, tipo) => {
+    setGrupos((prev) => prev.map((grupo) => grupo.id === id ? {
+      ...grupo,
+      tipo,
+      lote: "",
+      recolector: "",
+      clasificador: "",
+      recolectorNombre: "",
+      clasificadorNombre: "",
+      peso: 0,
+      datos: {},
+    } : grupo));
+  };
+
   const actualizarTabla = (grupoId, tamaño, campo, valor) => {
     const quantity = nonNegativeInteger(valor);
     if (quantity === null) return;
@@ -252,7 +266,7 @@ const calcularSubTotal = (grupo, filtro) => {
               <label>Clasificación</label>
               <select
                 value={grupo.tipo}
-                onChange={(e) => actualizarGrupo(grupo.id, "tipo", e.target.value)}
+                onChange={(e) => cambiarTipoGrupo(grupo.id, e.target.value)}
               >
                 <option value="">Seleccione</option>
                 {opcionesGrupo.map(op => (

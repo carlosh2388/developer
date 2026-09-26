@@ -177,13 +177,6 @@ async function saveEggInventoryDocument(client, orgId, header, lines, userId) {
     ? (header.destination_warehouse_id || await resolveDefaultEggWarehouse(client, orgId))
     : header.destination_warehouse_id;
   const sourceWarehouseId = movementType === "OUTPUT" ? header.source_warehouse_id : header.source_warehouse_id;
-  const details = lines.map((line) => ({
-    _productId: line.product_id,
-    _quantity: Number(line.total_units || 0),
-    _unitCost: Number(line.unit_cost || 0),
-    _skipLine: false,
-  }));
-  await validateProjectedInventory(client, orgId, details, movementType, existingId);
   let documentId = existingId;
   if (documentId) {
     const hasUpdatedBy = await tableHasColumn(client, "inventory_documents", "updated_by");
@@ -730,13 +723,15 @@ async function crearMovimientoHuevos(req, res, next) {
         const requestedUnits = values[0] * 336 + values[1] * 360 + values[2] * 84 + values[3] * 30 + values[4];
         let existingUnits = Number(d.existencia || 0);
         if (isOutputMovement) {
-          await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:${flockId}:${gradeId}`]);
+          const balanceProductId = commercialMovement ? eggProduct.id : null;
+          await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:${flockId}:${gradeId}:${balanceProductId || ""}`]);
           const balance = await client.query(`SELECT COALESCE(SUM(CASE WHEN m.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.total_units ELSE -l.total_units END)
             FILTER (WHERE m.status='POSTED' AND ($4::uuid IS NULL OR m.id<>$4::uuid)),0)::BIGINT AS available_units
             FROM egg_movement_lines l JOIN egg_movements m ON m.id=l.movement_id AND m.organization_id=l.organization_id
             WHERE l.organization_id=$1 AND ($2::uuid IS NULL OR l.flock_id=$2) AND l.quality_grade_id=$3
-              AND (COALESCE(m.source_warehouse_id,m.destination_warehouse_id)=$5 OR (m.source_warehouse_id IS NULL AND m.destination_warehouse_id IS NULL))`,
-            [orgId, flockId, gradeId, req.params.id || null, sourceWarehouseId]);
+              AND (COALESCE(m.source_warehouse_id,m.destination_warehouse_id)=$5 OR (m.source_warehouse_id IS NULL AND m.destination_warehouse_id IS NULL))
+              AND ($6::uuid IS NULL OR l.product_id=$6)`,
+            [orgId, flockId, gradeId, req.params.id || null, sourceWarehouseId, balanceProductId]);
           existingUnits = Number(balance.rows[0].available_units || 0);
           if (requestedUnits > existingUnits) throw new HttpError(409, "Inventario insuficiente para operar egresos.", "INSUFFICIENT_EGG_STOCK");
         }
@@ -769,6 +764,7 @@ async function listarExistenciasHuevos(req, res, next) {
     const lote = req.query.lote;
     const bodega = req.query.bodega;
     const comercial = String(req.query.clasificacion || "").toUpperCase() === "COMERCIAL";
+    const color = eggColorFromInput(req.query.color).label;
     if (!lote && !comercial) required(lote, "lote");
     let flockId = null;
     const warehouseId = await resolveTenantId(db, "warehouses", orgId, bodega, "bodega", true);
@@ -782,23 +778,24 @@ async function listarExistenciasHuevos(req, res, next) {
     }
     const { rows } = await db.query(`SELECT g.code AS grade_code,g.label,
       COALESCE(SUM(CASE WHEN m.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.total_units ELSE -l.total_units END)
-        FILTER (WHERE m.status='POSTED'),0)::BIGINT AS available_units,
+        FILTER (WHERE m.status='POSTED' AND ($5::text='' OR p.name ILIKE '%' || $5 || '%')),0)::BIGINT AS available_units,
       COALESCE(SUM(CASE WHEN m.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.boxes_trays_336 ELSE -l.boxes_trays_336 END)
-        FILTER (WHERE m.status='POSTED'),0)::BIGINT AS available_boxes_trays_336,
+        FILTER (WHERE m.status='POSTED' AND ($5::text='' OR p.name ILIKE '%' || $5 || '%')),0)::BIGINT AS available_boxes_trays_336,
       COALESCE(SUM(CASE WHEN m.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.boxes_cartons_360 ELSE -l.boxes_cartons_360 END)
-        FILTER (WHERE m.status='POSTED'),0)::BIGINT AS available_boxes_cartons_360,
+        FILTER (WHERE m.status='POSTED' AND ($5::text='' OR p.name ILIKE '%' || $5 || '%')),0)::BIGINT AS available_boxes_cartons_360,
       COALESCE(SUM(CASE WHEN m.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.trays_84 ELSE -l.trays_84 END)
-        FILTER (WHERE m.status='POSTED'),0)::BIGINT AS available_trays_84,
+        FILTER (WHERE m.status='POSTED' AND ($5::text='' OR p.name ILIKE '%' || $5 || '%')),0)::BIGINT AS available_trays_84,
       COALESCE(SUM(CASE WHEN m.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.cartons_30 ELSE -l.cartons_30 END)
-        FILTER (WHERE m.status='POSTED'),0)::BIGINT AS available_cartons_30,
+        FILTER (WHERE m.status='POSTED' AND ($5::text='' OR p.name ILIKE '%' || $5 || '%')),0)::BIGINT AS available_cartons_30,
       COALESCE(SUM(CASE WHEN m.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.loose_units ELSE -l.loose_units END)
-        FILTER (WHERE m.status='POSTED'),0)::BIGINT AS available_loose_units
+        FILTER (WHERE m.status='POSTED' AND ($5::text='' OR p.name ILIKE '%' || $5 || '%')),0)::BIGINT AS available_loose_units
       FROM egg_quality_grades g
       LEFT JOIN egg_movement_lines l ON l.quality_grade_id=g.id AND l.organization_id=$1 AND ($2::uuid IS NULL OR l.flock_id=$2)
+      LEFT JOIN products p ON p.id=l.product_id AND p.organization_id=l.organization_id
       LEFT JOIN egg_movements m ON m.id=l.movement_id AND m.organization_id=l.organization_id
         AND ($4::uuid IS NULL OR COALESCE(m.source_warehouse_id,m.destination_warehouse_id)=$4 OR (m.source_warehouse_id IS NULL AND m.destination_warehouse_id IS NULL))
       WHERE g.is_active=TRUE AND ($3::boolean=FALSE OR g.egg_class='COMMERCIAL')
-      GROUP BY g.id ORDER BY g.egg_class,g.sort_order`, [orgId, flockId, comercial, warehouseId]);
+      GROUP BY g.id ORDER BY g.egg_class,g.sort_order`, [orgId, flockId, comercial, warehouseId, color]);
     res.json(rows);
   } catch (error) { next(error); }
 }

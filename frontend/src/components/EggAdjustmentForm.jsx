@@ -58,6 +58,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
   const [location, setLocation] = useState("");
   const [warehouse, setWarehouse] = useState("");
   const [flock, setFlock] = useState("");
+  const [color, setColor] = useState("");
   const [grades, setGrades] = useState([]);
   const [stock, setStock] = useState({});
   const [rows, setRows] = useState([emptyRow()]);
@@ -71,6 +72,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
     setLocation("");
     setWarehouse("");
     setFlock("");
+    setColor("");
     setStock({});
     setRows([emptyRow()]);
     onSaved?.();
@@ -90,14 +92,52 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
     ? [...flockOptions, { value: flock, label: flock }]
     : flockOptions;
 
+  const clearDependentFields = ({ clearLocation = false } = {}) => {
+    if (clearLocation) setLocation("");
+    setWarehouse("");
+    setFlock("");
+    setColor("");
+    setStock({});
+    setRows([emptyRow()]);
+  };
+
+  const handleClassificationChange = (value) => {
+    setClassification(value);
+    clearDependentFields({ clearLocation: true });
+  };
+
+  const handleLocationChange = (value) => {
+    setLocation(value);
+    clearDependentFields();
+  };
+
+  const handleWarehouseChange = (value) => {
+    setWarehouse(value);
+    setFlock("");
+    setColor("");
+    setStock({});
+    setRows([emptyRow()]);
+  };
+
+  const addRow = () => {
+    const lastRow = rows[rows.length - 1];
+    if (lastRow && !isRowComplete(lastRow)) return alert("Completa la línea actual antes de agregar una nueva.");
+    setRows((current) => [...current, emptyRow()]);
+  };
+
+  const removeRow = (id) => {
+    setRows((current) => current.length === 1 ? [emptyRow()] : current.filter((item) => item.id !== id));
+  };
+
   useEffect(() => {
-    if (!warehouse || !effectiveClass || (needsFlock && !flock)) { setStock({}); return; }
+    if (!warehouse || !effectiveClass || (needsFlock && !flock) || (movementType === "ADJUSTMENT_OUT" && effectiveClass === "COMERCIAL" && !color)) { setStock({}); return; }
     const query = new URLSearchParams({ clasificacion: apiEggClass(effectiveClass), bodega: warehouse });
     if (needsFlock) query.set("lote", flock);
+    if (movementType === "ADJUSTMENT_OUT" && effectiveClass === "COMERCIAL") query.set("color", color);
     api(`/huevos/existencias?${query}`).then((items) => setStock(Object.fromEntries(
       items.map((item) => [item.grade_code, item]))))
       .catch((e) => alert(e.message));
-  }, [warehouse, effectiveClass, flock, needsFlock]);
+  }, [warehouse, effectiveClass, flock, needsFlock, color, movementType]);
 
   useEffect(() => {
     if (initialData) return;
@@ -118,6 +158,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
     setLocation(nextWarehouseRow?.locationId ? String(nextWarehouseRow.locationId) : "");
     setWarehouse(nextWarehouse || "");
     setFlock(firstDetail.flock_code || "");
+    setColor(firstDetail.color || "");
     setRows((initialData.detalles || []).map((detail) => rowFromDetail(detail, initialData.notes || "")));
   }, [initialData, bodegas, grades, movementType]);
 
@@ -137,6 +178,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
     event.preventDefault();
     if (!location || !warehouse || !effectiveClass) return alert("Selecciona clasificación, localidad y bodega.");
     if (needsFlock && !flock) return alert("Selecciona el lote.");
+    if (movementType === "ADJUSTMENT_OUT" && effectiveClass === "COMERCIAL" && !color) return alert("Selecciona el color.");
     if (rows.some((row) => !isRowComplete(row))) {
       return alert("Completa tamaño, presentación, cantidad entera positiva y razón o justificación.");
     }
@@ -152,6 +194,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
         detalles: rows.map((row) => ({
           lote: needsFlock ? flock : undefined,
           clasificacion: row.grade, existencia: Number(stock[row.grade]?.available_units || 0),
+          color: movementType === "ADJUSTMENT_OUT" && effectiveClass === "COMERCIAL" ? color : undefined,
           cajasBandejas336: row.presentation === "cajasBandejas336" ? Number(row.quantity) : 0,
           cajasCartones360: row.presentation === "cajasCartones360" ? Number(row.quantity) : 0,
           bandejas84: row.presentation === "bandejas84" ? Number(row.quantity) : 0,
@@ -171,20 +214,23 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
       Este tipo de ajustes es especial y diferente a los demás tipos, no se puede combinar
     </p>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(150px, 1fr))", gap: "10px", marginBottom: "16px" }}>
-      <label>Clasificación<select style={inputStyle} value={classification} onChange={(e) => { setClassification(e.target.value); setWarehouse(""); }}>
+      <label>Clasificación<select style={inputStyle} value={classification} onChange={(e) => handleClassificationChange(e.target.value)}>
         <option value="">Seleccione</option><option value="INCUBABLE">Incubable</option><option value="COMERCIAL">Comercial</option>
       </select></label>
-      <label>Localidad<select style={inputStyle} value={location} onChange={(e) => { setLocation(e.target.value); setWarehouse(""); }}>
+      <label>Localidad<select style={inputStyle} value={location} onChange={(e) => handleLocationChange(e.target.value)}>
         <option value="">Seleccione</option>{locations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
       </select></label>
-      <label>Bodega<select style={inputStyle} value={warehouse} disabled={!location || !classification} onChange={(e) => setWarehouse(e.target.value)}>
+      <label>Bodega<select style={inputStyle} value={warehouse} disabled={!location || !classification} onChange={(e) => handleWarehouseChange(e.target.value)}>
         <option value="">Seleccione</option>{warehouses.filter((item) => warehouseClass(item) === classification).map((item) => <option key={item.id} value={item.code}>{item.name}</option>)}
       </select></label>
+      {movementType === "ADJUSTMENT_OUT" && effectiveClass === "COMERCIAL" && <label>Color<select style={inputStyle} value={color} onChange={(e) => { setColor(e.target.value); setStock({}); setRows([emptyRow()]); }}>
+        <option value="">Seleccione</option><option value="Blanco">Blanco</option><option value="Rojo">Rojo</option>
+      </select></label>}
       {needsFlock && <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", minWidth: 0 }}>
         <label style={{ flex: 1, minWidth: 0 }}># Lote<select style={inputStyle} value={flock} onChange={(e) => setFlock(e.target.value)}>
           <option value="">Seleccione</option>{visibleFlocks.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
         </select></label>
-        <button type="button" aria-label="Agregar lote" onClick={() => alert("Para agregar un lote nuevo, usa Datos Maestros > Lotes.")} style={{ padding: "8px 12px", minWidth: "38px", flexShrink: 0, border: "1px solid #0d6efd", borderRadius: "4px", background: "#0d6efd", color: "#fff", cursor: "pointer", fontWeight: 700 }}>+</button>
+        <button type="button" aria-label="Agregar fila" onClick={addRow} style={{ padding: "8px 12px", minWidth: "38px", flexShrink: 0, border: "1px solid #0d6efd", borderRadius: "4px", background: "#0d6efd", color: "#fff", cursor: "pointer", fontWeight: 700 }}>+</button>
       </div>}
     </div>
     <table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr style={{ background: "#f1f5f9" }}>
@@ -197,7 +243,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
         <td style={{ textAlign: "center" }}>{Number(stock[row.grade]?.available_units || 0)}</td>
         <td><input style={inputStyle} type="number" min="1" step="1" value={row.quantity} onChange={(e) => /^\d*$/.test(e.target.value) && updateRow(row.id, "quantity", e.target.value)}/></td>
         <td><input style={inputStyle} type="text" value={row.reason} onChange={(e) => updateRow(row.id, "reason", e.target.value)}/></td>
-        <td><button type="button" onClick={() => setRows((current) => current.length === 1 ? current : current.filter((item) => item.id !== row.id))} style={{ padding: "5px 10px", background: "#d9534f", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}>X</button></td>
+        <td><button type="button" onClick={() => removeRow(row.id)} style={{ padding: "5px 10px", background: "#d9534f", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}>X</button></td>
       </tr>;
     })}</tbody></table>
     <div style={{ display: "flex", gap: "10px", marginTop: "15px" }}><button type="submit" style={{ flex: 1, padding: "10px", background: "#1976d2", color: "white", border: 0, borderRadius: "5px" }}>Guardar</button>
