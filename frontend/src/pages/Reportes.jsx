@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
 
 const productionColumns = [
+  ["correlativo", "#"],
   ["lote", "LOTE"], ["fecha", "FECHA"], ["edad_semana", "EDAD SEM."],
   ["inventario_hembras", "HEMBRAS SALDO"], ["mortalidad_hembras", "HEMBRAS MORT."],
   ["inventario_machos", "MACHOS SALDO"], ["mortalidad_machos", "MACHOS MORT."],
@@ -29,6 +30,7 @@ const unitLabels = {
   UNIT: "Unidad",
 };
 const kardexColumns = [
+  ["correlativo", "#"],
   ["fecha", "FECHA"], ["documento", "DOCUMENTO"], ["tipo_producto", "PRODUCTO"], ["product_code", "CODIGO"],
   ["product_name", "DETALLE"], ["unit_code", "UNIDAD"], ["tipo_movimiento", "MOVIMIENTO"],
   ["entrada", "ENTRADA"], ["salida", "SALIDA"], ["saldo", "SALDO"], ["costo_unitario", "COSTO UNIT."], ["justificacion", "JUSTIFICACION"],
@@ -45,6 +47,20 @@ const displayKardex = (key, value) => {
   if (key === "tipo_movimiento") return movementLabels[value] || value;
   if (["entrada", "salida", "saldo", "costo_unitario"].includes(key)) return Number(value || 0).toLocaleString("es-GT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return value || "";
+};
+const pageSize = 20;
+const compareDesc = (left, right, keys) => {
+  for (const key of keys) {
+    const a = left[key] ?? "";
+    const b = right[key] ?? "";
+    const result = String(b).localeCompare(String(a), "es", { numeric: true, sensitivity: "base" });
+    if (result) return result;
+  }
+  return 0;
+};
+const withDescendingCorrelative = (rows, keys) => {
+  const sorted = [...rows].sort((a, b) => compareDesc(a, b, keys));
+  return sorted.map((row, index) => ({ ...row, correlativo: sorted.length - index }));
 };
 
 function tableHtml({ title, subtitle, rows, columns, display, printable = false }) {
@@ -71,6 +87,8 @@ export default function Reportes({ user, initialTab = "produccion" }) {
   const [fechaFin, setFechaFin] = useState(today);
   const [productionRows, setProductionRows] = useState([]);
   const [kardexRows, setKardexRows] = useState([]);
+  const [productionPage, setProductionPage] = useState(1);
+  const [kardexPage, setKardexPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const isAdmin = user?.role === "ADMINISTRATOR";
@@ -95,6 +113,33 @@ export default function Reportes({ user, initialTab = "produccion" }) {
     ...(productosSeleccionados.length ? { productos: productosSeleccionados.join(",") } : {}),
   }).toString(), [fechaInicio, fechaFin, tipoProducto, productosSeleccionados]);
   const typeLabel = productTypes.find((item) => item.code === tipoProducto)?.label || "Todos";
+  const orderedProductionRows = useMemo(() => withDescendingCorrelative(productionRows, ["fecha", "lote"]), [productionRows]);
+  const orderedKardexRows = useMemo(() => withDescendingCorrelative(kardexRows, ["fecha", "documento", "product_code"]), [kardexRows]);
+  const productionTotalPages = Math.max(1, Math.ceil(orderedProductionRows.length / pageSize));
+  const kardexTotalPages = Math.max(1, Math.ceil(orderedKardexRows.length / pageSize));
+  const visibleProductionRows = useMemo(() => orderedProductionRows.slice((productionPage - 1) * pageSize, productionPage * pageSize), [orderedProductionRows, productionPage]);
+  const visibleKardexRows = useMemo(() => orderedKardexRows.slice((kardexPage - 1) * pageSize, kardexPage * pageSize), [orderedKardexRows, kardexPage]);
+
+  useEffect(() => { setProductionPage(1); }, [productionRows]);
+  useEffect(() => { setKardexPage(1); }, [kardexRows]);
+
+  function Pagination({ page, totalPages, totalRows, onPageChange }) {
+    if (!totalRows) return null;
+    const start = (page - 1) * pageSize + 1;
+    const end = Math.min(page * pageSize, totalRows);
+    const pages = Array.from({ length: totalPages }, (_, index) => index + 1)
+      .filter((item) => item === 1 || item === totalPages || Math.abs(item - page) <= 1);
+    return <div className="report-pagination">
+      <span>Mostrando {start}-{end} de {totalRows}</span>
+      <div>
+        <button type="button" onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page === 1}>Anterior</button>
+        {pages.map((item, index) => <button type="button" key={item} className={item === page ? "active" : ""} onClick={() => onPageChange(item)}>
+          {index > 0 && item - pages[index - 1] > 1 ? "... " : ""}{item}
+        </button>)}
+        <button type="button" onClick={() => onPageChange(Math.min(totalPages, page + 1))} disabled={page === totalPages}>Siguiente</button>
+      </div>
+    </div>;
+  }
 
   async function generarProduccion() {
     try { setLoading(true); setError(""); setProductionRows((await api(`/reportes/produccion?${productionQuery}`)).registros); }
@@ -126,13 +171,15 @@ export default function Reportes({ user, initialTab = "produccion" }) {
     {tab === "produccion" ? <>
       <div className="report-filters"><label>Fecha inicio<input type="date" value={fechaInicio} max={fechaFin} onChange={(e) => setFechaInicio(e.target.value)}/></label><label>Fecha fin<input type="date" value={fechaFin} min={fechaInicio} onChange={(e) => setFechaFin(e.target.value)}/></label><label>Lotes (Ctrl para seleccionar varios)<select multiple value={seleccion} onChange={(e) => setSeleccion([...e.target.selectedOptions].map((option) => option.value))}>{lotes.map((lote) => <option key={lote.id} value={lote.code}>{lote.code}</option>)}</select></label><button className="primary-button" onClick={generarProduccion} disabled={loading}>{loading ? "Generando..." : "Generar reporte"}</button></div>
       {error && <div className="alert alert-error">{error}</div>}
-      <div className="report-actions"><button onClick={() => exportDocument({ rows: productionRows, title: "REPORTE DE PRODUCCION - GRANJA", subtitle: productionSubtitle, columns: productionColumns, display: displayProduction, printable: true })} disabled={!productionRows.length}>Generar PDF</button>{isAdmin && <button onClick={() => exportDocument({ rows: productionRows, title: "REPORTE DE PRODUCCION - GRANJA", subtitle: productionSubtitle, columns: productionColumns, display: displayProduction, filename: `reporte-produccion-${fechaInicio}-${fechaFin}.xls` })} disabled={!productionRows.length}>Exportar Excel</button>}<span>{productionRows.length} registro(s)</span></div>
-      <div className="report-table-wrap"><table className="report-table"><thead><tr>{productionColumns.map(([key, label]) => <th key={key}>{label}</th>)}</tr></thead><tbody>{productionRows.map((row, index) => <tr key={`${row.lote}-${row.fecha}-${index}`}>{productionColumns.map(([key]) => <td key={key}>{displayProduction(key, row[key])}</td>)}</tr>)}{!productionRows.length && <tr><td colSpan={productionColumns.length}>Selecciona los filtros y genera el reporte.</td></tr>}</tbody></table></div>
+      <div className="report-actions"><button onClick={() => exportDocument({ rows: orderedProductionRows, title: "REPORTE DE PRODUCCION - GRANJA", subtitle: productionSubtitle, columns: productionColumns, display: displayProduction, printable: true })} disabled={!productionRows.length}>Generar PDF</button>{isAdmin && <button onClick={() => exportDocument({ rows: orderedProductionRows, title: "REPORTE DE PRODUCCION - GRANJA", subtitle: productionSubtitle, columns: productionColumns, display: displayProduction, filename: `reporte-produccion-${fechaInicio}-${fechaFin}.xls` })} disabled={!productionRows.length}>Exportar Excel</button>}<span>{productionRows.length} registro(s)</span></div>
+      <div className="report-table-wrap"><table className="report-table"><thead><tr>{productionColumns.map(([key, label]) => <th key={key}>{label}</th>)}</tr></thead><tbody>{visibleProductionRows.map((row, index) => <tr key={`${row.lote}-${row.fecha}-${index}`}>{productionColumns.map(([key]) => <td key={key}>{displayProduction(key, row[key])}</td>)}</tr>)}{!productionRows.length && <tr><td colSpan={productionColumns.length}>Selecciona los filtros y genera el reporte.</td></tr>}</tbody></table></div>
+      <Pagination page={productionPage} totalPages={productionTotalPages} totalRows={orderedProductionRows.length} onPageChange={setProductionPage}/>
     </> : <>
       <div className="report-filters report-filters-kardex"><label>Fecha inicio<input type="date" value={fechaInicio} max={fechaFin} onChange={(e) => setFechaInicio(e.target.value)}/></label><label>Fecha fin<input type="date" value={fechaFin} min={fechaInicio} onChange={(e) => setFechaFin(e.target.value)}/></label><label>Productos<select value={tipoProducto} onChange={(e) => { setTipoProducto(e.target.value); setProductosSeleccionados([]); }}><option value="">Todos</option>{productTypes.map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}</select></label><label className="report-filter-detail">Detalle (Ctrl para seleccionar varios)<select multiple value={productosSeleccionados} onChange={(e) => setProductosSeleccionados([...e.target.selectedOptions].map((option) => option.value))}>{productOptions.map((item) => <option key={item.id} value={item.code}>{item.code} - {item.name}{item.unitLabel || item.unitCode ? ` (${item.unitLabel || item.unitCode})` : ""}</option>)}</select></label><button className="primary-button" onClick={generarKardex} disabled={loading}>{loading ? "Generando..." : "Generar reporte"}</button></div>
       {error && <div className="alert alert-error">{error}</div>}
-      <div className="report-actions"><button onClick={() => exportDocument({ rows: kardexRows, title: "REPORTE DE KARDEX DE PRODUCTOS", subtitle: kardexSubtitle, columns: kardexColumns, display: displayKardex, printable: true })} disabled={!kardexRows.length}>Generar PDF</button>{isAdmin && <button onClick={() => exportDocument({ rows: kardexRows, title: "REPORTE DE KARDEX DE PRODUCTOS", subtitle: kardexSubtitle, columns: kardexColumns, display: displayKardex, filename: `kardex-productos-${fechaInicio}-${fechaFin}.xls` })} disabled={!kardexRows.length}>Exportar Excel</button>}<span>{kardexRows.length} registro(s)</span></div>
-      <div className="report-table-wrap report-table-wrap-kardex"><table className="report-table"><thead><tr>{kardexColumns.map(([key, label]) => <th key={key}>{label}</th>)}</tr></thead><tbody>{kardexRows.map((row, index) => <tr key={`${row.product_code}-${row.fecha}-${row.documento}-${index}`}>{kardexColumns.map(([key]) => <td key={key}>{displayKardex(key, row[key])}</td>)}</tr>)}{!kardexRows.length && <tr><td colSpan={kardexColumns.length}>Selecciona los filtros y genera el reporte.</td></tr>}</tbody></table></div>
+      <div className="report-actions"><button onClick={() => exportDocument({ rows: orderedKardexRows, title: "REPORTE DE KARDEX DE PRODUCTOS", subtitle: kardexSubtitle, columns: kardexColumns, display: displayKardex, printable: true })} disabled={!kardexRows.length}>Generar PDF</button>{isAdmin && <button onClick={() => exportDocument({ rows: orderedKardexRows, title: "REPORTE DE KARDEX DE PRODUCTOS", subtitle: kardexSubtitle, columns: kardexColumns, display: displayKardex, filename: `kardex-productos-${fechaInicio}-${fechaFin}.xls` })} disabled={!kardexRows.length}>Exportar Excel</button>}<span>{kardexRows.length} registro(s)</span></div>
+      <div className="report-table-wrap report-table-wrap-kardex"><table className="report-table"><thead><tr>{kardexColumns.map(([key, label]) => <th key={key}>{label}</th>)}</tr></thead><tbody>{visibleKardexRows.map((row, index) => <tr key={`${row.product_code}-${row.fecha}-${row.documento}-${index}`}>{kardexColumns.map(([key]) => <td key={key}>{displayKardex(key, row[key])}</td>)}</tr>)}{!kardexRows.length && <tr><td colSpan={kardexColumns.length}>Selecciona los filtros y genera el reporte.</td></tr>}</tbody></table></div>
+      <Pagination page={kardexPage} totalPages={kardexTotalPages} totalRows={orderedKardexRows.length} onPageChange={setKardexPage}/>
     </>}
   </section></div>;
 }
