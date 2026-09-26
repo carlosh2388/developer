@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { eggGradeCode, eggGradeLabel, eggPackageDetail, post, saveOperation } from "../services/operations";
 import { api } from "../services/api";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
-import OperationRecordsModal from "../components/OperationRecordsModal";
+import OperationRecordsModal, { compareMovementDesc } from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
 import CancelEditButton from "../components/CancelEditButton";
 import InlineAddActions from "../components/InlineAddActions";
@@ -109,8 +109,7 @@ function EgresoHuevos() {
     "Mediano (Nido)",
     "Pequeño (Nido)",
     "Otros* (Nido)",
-    "Otros* (Piso)",
-    "Mixto"
+    "Otros* (Piso)"
   ];
 
   // =====================================================
@@ -199,6 +198,8 @@ const crearFilaComercial = () => ({
 
     clasificacion: clasificacionForzada || "",
 
+    color: "",
+
     collapsed: false,
 
     incubadora: crearIncubadora(),
@@ -220,10 +221,11 @@ const crearFilaComercial = () => ({
     const grouped = new Map();
     data.detalles.forEach((item) => {
       const classification = item.grade_code.startsWith("INC_") ? "Incubable" : "Comercial";
-      const key = classification === "Comercial" ? "Comercial" : `${classification}|${item.flock_code}`;
+      const key = classification === "Comercial" ? `Comercial|${item.color || ""}` : `${classification}|${item.flock_code}`;
       if (!grouped.has(key)) {
         const lot = crearLote(classification === "Comercial" ? "" : item.flock_code);
         lot.clasificacion = classification;
+        if (classification === "Comercial") lot.color = item.color || "";
         grouped.set(key, lot);
       }
       const lot = grouped.get(key);
@@ -348,7 +350,8 @@ const crearFilaComercial = () => ({
           ? {
               ...l,
               lote: codigoLote,
-              clasificacion: value
+              clasificacion: value,
+              color: value === "Comercial" ? l.color : ""
             }
           : l
       )
@@ -363,6 +366,7 @@ const crearFilaComercial = () => ({
         ...item,
         clasificacion: clasificacionForzada,
         lote: clasificacionForzada === "Comercial" ? "" : item.lote,
+        color: clasificacionForzada === "Comercial" ? item.color : "",
       }));
       return clasificacionForzada === "Comercial" ? actualizados.slice(0, 1) : actualizados;
     });
@@ -499,6 +503,10 @@ const crearFilaComercial = () => ({
           : l
       )
     );
+  };
+
+  const handleColorComercial = (loteId, value) => {
+    setLotes((prev) => prev.map((lote) => lote.id === loteId ? { ...lote, color: value } : lote));
   };
 
   // =====================================================
@@ -712,10 +720,12 @@ const calcularSubTotal = (
       if (!bodegaSalida) throw new Error("Selecciona la bodega de salida para validar las existencias.");
       if (lotes.some((item) => !item.clasificacion)) throw new Error("Selecciona la clasificación.");
       if (lotes.some((item) => item.clasificacion === "Incubable" && !item.lote)) throw new Error("Selecciona el lote para la clasificación Incubable.");
+      if (lotes.some((item) => item.clasificacion === "Comercial" && !item.color)) throw new Error("Selecciona el color para la clasificación Comercial.");
       const detalles = lotes.flatMap((item) => {
         const source = item.clasificacion === "Comercial" ? item.comercial : item.incubadora;
         return Object.entries(source || {}).map(([calidad, datos]) => ({
           lote: item.clasificacion === "Comercial" ? undefined : item.lote, clasificacion: eggGradeCode(calidad, item.clasificacion),
+          color: item.clasificacion === "Comercial" ? item.color : undefined,
           ...eggPackageDetail(datos),
         })).filter((d) => d.cajasBandejas336 + d.cajasCartones360 + d.bandejas84 + d.cartones30 + d.unidades > 0);
       });
@@ -1268,7 +1278,7 @@ const calcularSubTotal = (
     { key: "product_descriptions", label: "Producto" },
     { key: "destination_name", label: "Destino" },
     { key: "status", label: "Estado", render: (value) => ({ POSTED: "Registrado", VOID: "Anulado" }[value] || value) },
-  ]} rowFilter={(row) => row.movement_type === "OUTPUT"} onEdit={cargarEdicion}/>
+  ]} rowFilter={(row) => row.movement_type === "OUTPUT"} sortRows={compareMovementDesc} onEdit={cargarEdicion}/>
 
     <div className="form-container egg-operation-form">
 
@@ -1617,7 +1627,7 @@ const calcularSubTotal = (
                 style={{
                   display: "grid",
                   gridTemplateColumns:
-                    loteItem.clasificacion === "Comercial" ? "250px 180px 1fr" : "250px 220px 180px 1fr",
+                    loteItem.clasificacion === "Comercial" ? "250px 180px 180px 1fr" : "250px 220px 180px 1fr",
                   gap: "20px",
                   alignItems:
                     "center",
@@ -1659,6 +1669,15 @@ const calcularSubTotal = (
                   </select>
 
                 </div>
+
+                {loteItem.clasificacion === "Comercial" && <div>
+                  <label>Color</label>
+                  <select value={loteItem.color} onChange={(e) => handleColorComercial(loteItem.id, e.target.value)}>
+                    <option value="">Seleccione</option>
+                    <option value="Blanco">Blanco</option>
+                    <option value="Rojo">Rojo</option>
+                  </select>
+                </div>}
 
                 {loteItem.clasificacion !== "Comercial" && <div>
 

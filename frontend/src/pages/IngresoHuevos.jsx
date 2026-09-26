@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { clientId, eggGradeCode, eggGradeLabel, eggPackageDetail, saveOperation } from "../services/operations";
 import { api } from "../services/api";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
-import OperationRecordsModal from "../components/OperationRecordsModal";
+import OperationRecordsModal, { compareMovementDesc } from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
 import CancelEditButton from "../components/CancelEditButton";
 
@@ -606,7 +606,7 @@ const calcularSubTotal = (grupo, filtro) => {
     { key: "line_count", label: "Detalles" },
     { key: "total_units", label: "Total unidades", render: (value) => Number(value || 0).toLocaleString("es-GT") },
     { key: "status", label: "Estado", render: (value) => ({ POSTED: "Registrado", VOID: "Anulado" }[value] || value) },
-  ]} rowFilter={(row) => row.movement_type === "INPUT"} onEdit={cargarEdicion}/>
+  ]} rowFilter={(row) => row.movement_type === "INPUT"} sortRows={compareMovementDesc} onEdit={cargarEdicion}/>
     <div className="egg-operation-form">
       <h2>Ingreso Huevos</h2>
 

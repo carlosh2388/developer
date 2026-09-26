@@ -108,6 +108,13 @@ const cleanEggText = (value) => String(value || "")
   .replace(/\*/g, "")
   .toLowerCase();
 
+const eggColorFromInput = (value) => {
+  const text = cleanEggText(value);
+  if (text === "rojo" || text === "red") return { code: "RED", label: "Rojo" };
+  if (text === "blanco" || text === "white") return { code: "WHITE", label: "Blanco" };
+  return { code: "", label: "" };
+};
+
 const eggSizeTerms = (grade) => {
   const text = cleanEggText(`${grade.code} ${grade.label}`);
   if (text.includes("mixed") || text.includes("mixto")) return ["mixto"];
@@ -123,9 +130,10 @@ const eggSizeTerms = (grade) => {
   return ["otros"];
 };
 
-async function resolveEggProduct(client, orgId, grade, flockCode) {
+async function resolveEggProduct(client, orgId, grade, flockCode, requestedColor) {
   const productType = grade.egg_class === "COMMERCIAL" ? "HC" : "HI";
-  const color = eggColorFromFlock(flockCode);
+  const inputColor = eggColorFromInput(requestedColor);
+  const color = inputColor.label ? inputColor : eggColorFromFlock(flockCode);
   const terms = eggSizeTerms(grade);
   const { rows } = await client.query(
     `SELECT id,code,name,standard_cost FROM products
@@ -540,6 +548,8 @@ async function listarHuevos(req, res, next) {
       COALESCE(STRING_AGG(DISTINCT CASE
         WHEN f.code ILIKE 'BL%' THEN 'Rojo'
         WHEN f.code ILIKE 'SL%' THEN 'Blanco'
+        WHEN p.name ILIKE '%rojo%' THEN 'Rojo'
+        WHEN p.name ILIKE '%blanco%' THEN 'Blanco'
         ELSE NULL END, ', '),'') AS egg_colors,
       COALESCE(STRING_AGG(DISTINCT CASE
         WHEN f.code ILIKE 'BL%' AND p.name NOT ILIKE '%rojo%' THEN CONCAT('Rojo ', p.name)
@@ -577,7 +587,12 @@ async function obtenerHuevos(req, res, next) {
       WHERE m.id=$1 AND m.organization_id=$2`,[req.params.id,orgId]);
     if(!header.rows[0]) throw new HttpError(404,"El movimiento no existe.","NOT_FOUND");
     const details=await db.query(`SELECT l.*,f.code flock_code,g.code grade_code,p.code product_code,p.name product_name,
-        CASE WHEN f.code ILIKE 'BL%' THEN 'Rojo' WHEN f.code ILIKE 'SL%' THEN 'Blanco' ELSE '' END color,
+        CASE
+          WHEN f.code ILIKE 'BL%' THEN 'Rojo'
+          WHEN f.code ILIKE 'SL%' THEN 'Blanco'
+          WHEN p.name ILIKE '%rojo%' THEN 'Rojo'
+          WHEN p.name ILIKE '%blanco%' THEN 'Blanco'
+          ELSE '' END color,
         CASE
           WHEN f.code ILIKE 'BL%' AND p.name NOT ILIKE '%rojo%' THEN CONCAT('Rojo ', p.name)
           WHEN f.code ILIKE 'SL%' AND p.name NOT ILIKE '%blanco%' THEN CONCAT('Blanco ', p.name)
@@ -686,11 +701,16 @@ async function crearMovimientoHuevos(req, res, next) {
           throw new HttpError(400, `La clasificación del detalle ${index + 1} no corresponde a la bodega.`, "VALIDATION_ERROR");
         }
         const commercialMovement = grade.egg_class === "COMMERCIAL";
+        const requestedCommercialColor = commercialMovement ? eggColorFromInput(d.color || d.colorHuevo || d.eggColor) : { label: "" };
         const flockId = commercialMovement
           ? null
           : await resolveTenantId(client, "flocks", orgId, d.loteId || d.lote, "lote");
         const flockCode = flockId ? (await client.query("SELECT code FROM flocks WHERE id=$1 AND organization_id=$2", [flockId, orgId])).rows[0]?.code : (d.lote || "");
-        const eggProduct = await resolveEggProduct(client, orgId, grade, flockCode);
+        const commercialColor = requestedCommercialColor.label ? requestedCommercialColor : eggColorFromFlock(flockCode);
+        if (commercialMovement && !commercialColor.label) {
+          throw new HttpError(400, `Selecciona el color del detalle comercial ${index + 1}.`, "VALIDATION_ERROR");
+        }
+        const eggProduct = await resolveEggProduct(client, orgId, grade, flockCode, commercialColor.label);
         const requiresPersonnel = requestedMovementType === "INPUT";
         const collectorId = await resolveTenantId(client, "personnel", orgId, d.recolectorId || d.recolector, "recolector", !requiresPersonnel);
         const classifierId = await resolveTenantId(client, "personnel", orgId, d.clasificadorId || d.clasificador, "clasificador", !requiresPersonnel);

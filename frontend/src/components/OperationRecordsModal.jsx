@@ -27,6 +27,14 @@ export const compareDocumentDesc = (left, right) => {
   return String(right.created_at || right.id || "").localeCompare(String(left.created_at || left.id || ""), "es", { numeric: true, sensitivity: "base" });
 };
 
+export const compareMovementDesc = (left, right) => {
+  const leftMovement = String(left.movement_number || "");
+  const rightMovement = String(right.movement_number || "");
+  const byMovement = rightMovement.localeCompare(leftMovement, "es", { numeric: true, sensitivity: "base" });
+  if (byMovement) return byMovement;
+  return String(right.created_at || right.id || "").localeCompare(String(left.created_at || left.id || ""), "es", { numeric: true, sensitivity: "base" });
+};
+
 export const inventoryColumns = [
   { key: "document_number", label: "Documento" },
   { key: "movement_date", label: "Fecha", render: (value) => String(value || "").slice(0, 10) },
