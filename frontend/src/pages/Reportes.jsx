@@ -49,16 +49,24 @@ const displayKardex = (key, value) => {
   return value || "";
 };
 const pageSize = 20;
-const compareByKeys = (left, right, keys, direction = "desc") => {
+const compareValues = (a, b) => {
+  const left = a ?? "";
+  const right = b ?? "";
+  const leftNumber = Number(left);
+  const rightNumber = Number(right);
+  if (left !== "" && right !== "" && !Number.isNaN(leftNumber) && !Number.isNaN(rightNumber)) return leftNumber - rightNumber;
+  return String(left).localeCompare(String(right), "es", { numeric: true, sensitivity: "base" });
+};
+const compareByKeys = (left, right, keys) => {
   for (const key of keys) {
-    const a = left[key] ?? "";
-    const b = right[key] ?? "";
-    const result = String(a).localeCompare(String(b), "es", { numeric: true, sensitivity: "base" });
+    const result = compareValues(left[key], right[key]);
     if (result) return result;
   }
   return 0;
 };
-const withOrderedCorrelative = (rows, keys, direction) => {
+const withOrderedCorrelative = (rows, sort, fallbackKeys) => {
+  const keys = sort.key === "correlativo" ? fallbackKeys : [sort.key, ...fallbackKeys.filter((key) => key !== sort.key)];
+  const direction = sort.direction;
   const factor = direction === "asc" ? 1 : -1;
   const sorted = [...rows].sort((a, b) => compareByKeys(a, b, keys) * factor);
   return sorted.map((row, index) => ({ ...row, correlativo: direction === "asc" ? index + 1 : sorted.length - index }));
@@ -90,8 +98,8 @@ export default function Reportes({ user, initialTab = "produccion" }) {
   const [kardexRows, setKardexRows] = useState([]);
   const [productionPage, setProductionPage] = useState(1);
   const [kardexPage, setKardexPage] = useState(1);
-  const [productionOrder, setProductionOrder] = useState("desc");
-  const [kardexOrder, setKardexOrder] = useState("desc");
+  const [productionSort, setProductionSort] = useState({ key: "fecha", direction: "asc" });
+  const [kardexSort, setKardexSort] = useState({ key: "fecha", direction: "asc" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const isAdmin = user?.role === "ADMINISTRATOR";
@@ -116,15 +124,15 @@ export default function Reportes({ user, initialTab = "produccion" }) {
     ...(productosSeleccionados.length ? { productos: productosSeleccionados.join(",") } : {}),
   }).toString(), [fechaInicio, fechaFin, tipoProducto, productosSeleccionados]);
   const typeLabel = productTypes.find((item) => item.code === tipoProducto)?.label || "Todos";
-  const orderedProductionRows = useMemo(() => withOrderedCorrelative(productionRows, ["fecha", "lote"], productionOrder), [productionRows, productionOrder]);
-  const orderedKardexRows = useMemo(() => withOrderedCorrelative(kardexRows, ["fecha", "documento", "product_code"], kardexOrder), [kardexRows, kardexOrder]);
+  const orderedProductionRows = useMemo(() => withOrderedCorrelative(productionRows, productionSort, ["fecha", "lote"]), [productionRows, productionSort]);
+  const orderedKardexRows = useMemo(() => withOrderedCorrelative(kardexRows, kardexSort, ["fecha", "documento", "product_code"]), [kardexRows, kardexSort]);
   const productionTotalPages = Math.max(1, Math.ceil(orderedProductionRows.length / pageSize));
   const kardexTotalPages = Math.max(1, Math.ceil(orderedKardexRows.length / pageSize));
   const visibleProductionRows = useMemo(() => orderedProductionRows.slice((productionPage - 1) * pageSize, productionPage * pageSize), [orderedProductionRows, productionPage]);
   const visibleKardexRows = useMemo(() => orderedKardexRows.slice((kardexPage - 1) * pageSize, kardexPage * pageSize), [orderedKardexRows, kardexPage]);
 
-  useEffect(() => { setProductionPage(1); }, [productionRows, productionOrder]);
-  useEffect(() => { setKardexPage(1); }, [kardexRows, kardexOrder]);
+  useEffect(() => { setProductionPage(1); }, [productionRows, productionSort]);
+  useEffect(() => { setKardexPage(1); }, [kardexRows, kardexSort]);
 
   function Pagination({ page, totalPages, totalRows, onPageChange }) {
     if (!totalRows) return null;
@@ -144,13 +152,16 @@ export default function Reportes({ user, initialTab = "produccion" }) {
     </div>;
   }
 
-  function OrderSelect({ value, onChange }) {
-    return <label className="report-order">Orden
-      <select value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="desc">Descendente</option>
-        <option value="asc">Ascendente</option>
-      </select>
-    </label>;
+  function SortableHead({ columns, sort, onSort }) {
+    return <tr>{columns.map(([key, label]) => <th key={key}>
+      <button type="button" className="report-sort-button" onClick={() => onSort((current) => ({
+        key,
+        direction: current.key === key && current.direction === "asc" ? "desc" : "asc",
+      }))}>
+        <span>{label}</span>
+        <span aria-hidden="true">{sort.key === key ? (sort.direction === "asc" ? "▲" : "▼") : "↕"}</span>
+      </button>
+    </th>)}</tr>;
   }
 
   async function generarProduccion() {
@@ -175,22 +186,22 @@ export default function Reportes({ user, initialTab = "produccion" }) {
     const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = filename; link.click(); URL.revokeObjectURL(link.href);
   }
 
-  const productionSubtitle = `Del ${fechaInicio} al ${fechaFin} - Lotes: ${seleccion.length ? seleccion.join(", ") : "Todos"} - Orden: ${productionOrder === "asc" ? "Ascendente" : "Descendente"}`;
-  const kardexSubtitle = `Del ${fechaInicio} al ${fechaFin} - Productos: ${typeLabel} - Detalle: ${productosSeleccionados.length ? productosSeleccionados.join(", ") : "Todos"} - Orden: ${kardexOrder === "asc" ? "Ascendente" : "Descendente"}`;
+  const productionSubtitle = `Del ${fechaInicio} al ${fechaFin} - Lotes: ${seleccion.length ? seleccion.join(", ") : "Todos"}`;
+  const kardexSubtitle = `Del ${fechaInicio} al ${fechaFin} - Productos: ${typeLabel} - Detalle: ${productosSeleccionados.length ? productosSeleccionados.join(", ") : "Todos"}`;
 
   return <div className="page-shell"><section className="report-panel">
     <div className="report-screen-header"><img src="/igag-logo.jpeg" alt="Industria Genetica Avicola de Guatemala"/><div><p className="eyebrow">REPORTES</p><h1>{tab === "produccion" ? "Produccion por granja" : "Kardex de Productos"}</h1><p>{tab === "produccion" ? "Produccion, inventario, mortalidad y clasificacion de huevos." : "Movimientos, entradas, salidas y saldos por producto."}</p></div></div>
     {tab === "produccion" ? <>
-      <div className="report-filters report-filters-production"><label>Fecha inicio<input type="date" value={fechaInicio} max={fechaFin} onChange={(e) => setFechaInicio(e.target.value)}/></label><label>Fecha fin<input type="date" value={fechaFin} min={fechaInicio} onChange={(e) => setFechaFin(e.target.value)}/></label><OrderSelect value={productionOrder} onChange={setProductionOrder}/><label>Lotes (Ctrl para seleccionar varios)<select multiple value={seleccion} onChange={(e) => setSeleccion([...e.target.selectedOptions].map((option) => option.value))}>{lotes.map((lote) => <option key={lote.id} value={lote.code}>{lote.code}</option>)}</select></label><button className="primary-button" onClick={generarProduccion} disabled={loading}>{loading ? "Generando..." : "Generar reporte"}</button></div>
+      <div className="report-filters"><label>Fecha inicio<input type="date" value={fechaInicio} max={fechaFin} onChange={(e) => setFechaInicio(e.target.value)}/></label><label>Fecha fin<input type="date" value={fechaFin} min={fechaInicio} onChange={(e) => setFechaFin(e.target.value)}/></label><label>Lotes (Ctrl para seleccionar varios)<select multiple value={seleccion} onChange={(e) => setSeleccion([...e.target.selectedOptions].map((option) => option.value))}>{lotes.map((lote) => <option key={lote.id} value={lote.code}>{lote.code}</option>)}</select></label><button className="primary-button" onClick={generarProduccion} disabled={loading}>{loading ? "Generando..." : "Generar reporte"}</button></div>
       {error && <div className="alert alert-error">{error}</div>}
       <div className="report-actions"><button onClick={() => exportDocument({ rows: orderedProductionRows, title: "REPORTE DE PRODUCCION - GRANJA", subtitle: productionSubtitle, columns: productionColumns, display: displayProduction, printable: true })} disabled={!productionRows.length}>Generar PDF</button>{isAdmin && <button onClick={() => exportDocument({ rows: orderedProductionRows, title: "REPORTE DE PRODUCCION - GRANJA", subtitle: productionSubtitle, columns: productionColumns, display: displayProduction, filename: `reporte-produccion-${fechaInicio}-${fechaFin}.xls` })} disabled={!productionRows.length}>Exportar Excel</button>}<span>{productionRows.length} registro(s)</span></div>
-      <div className="report-table-wrap"><table className="report-table"><thead><tr>{productionColumns.map(([key, label]) => <th key={key}>{label}</th>)}</tr></thead><tbody>{visibleProductionRows.map((row, index) => <tr key={`${row.lote}-${row.fecha}-${index}`}>{productionColumns.map(([key]) => <td key={key}>{displayProduction(key, row[key])}</td>)}</tr>)}{!productionRows.length && <tr><td colSpan={productionColumns.length}>Selecciona los filtros y genera el reporte.</td></tr>}</tbody></table></div>
+      <div className="report-table-wrap"><table className="report-table"><thead><SortableHead columns={productionColumns} sort={productionSort} onSort={setProductionSort}/></thead><tbody>{visibleProductionRows.map((row, index) => <tr key={`${row.lote}-${row.fecha}-${index}`}>{productionColumns.map(([key]) => <td key={key}>{displayProduction(key, row[key])}</td>)}</tr>)}{!productionRows.length && <tr><td colSpan={productionColumns.length}>Selecciona los filtros y genera el reporte.</td></tr>}</tbody></table></div>
       <Pagination page={productionPage} totalPages={productionTotalPages} totalRows={orderedProductionRows.length} onPageChange={setProductionPage}/>
     </> : <>
-      <div className="report-filters report-filters-kardex"><label>Fecha inicio<input type="date" value={fechaInicio} max={fechaFin} onChange={(e) => setFechaInicio(e.target.value)}/></label><label>Fecha fin<input type="date" value={fechaFin} min={fechaInicio} onChange={(e) => setFechaFin(e.target.value)}/></label><OrderSelect value={kardexOrder} onChange={setKardexOrder}/><label>Productos<select value={tipoProducto} onChange={(e) => { setTipoProducto(e.target.value); setProductosSeleccionados([]); }}><option value="">Todos</option>{productTypes.map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}</select></label><label className="report-filter-detail">Detalle (Ctrl para seleccionar varios)<select multiple value={productosSeleccionados} onChange={(e) => setProductosSeleccionados([...e.target.selectedOptions].map((option) => option.value))}>{productOptions.map((item) => <option key={item.id} value={item.code}>{item.code} - {item.name}{item.unitLabel || item.unitCode ? ` (${item.unitLabel || item.unitCode})` : ""}</option>)}</select></label><button className="primary-button" onClick={generarKardex} disabled={loading}>{loading ? "Generando..." : "Generar reporte"}</button></div>
+      <div className="report-filters report-filters-kardex"><label>Fecha inicio<input type="date" value={fechaInicio} max={fechaFin} onChange={(e) => setFechaInicio(e.target.value)}/></label><label>Fecha fin<input type="date" value={fechaFin} min={fechaInicio} onChange={(e) => setFechaFin(e.target.value)}/></label><label>Productos<select value={tipoProducto} onChange={(e) => { setTipoProducto(e.target.value); setProductosSeleccionados([]); }}><option value="">Todos</option>{productTypes.map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}</select></label><label className="report-filter-detail">Detalle (Ctrl para seleccionar varios)<select multiple value={productosSeleccionados} onChange={(e) => setProductosSeleccionados([...e.target.selectedOptions].map((option) => option.value))}>{productOptions.map((item) => <option key={item.id} value={item.code}>{item.code} - {item.name}{item.unitLabel || item.unitCode ? ` (${item.unitLabel || item.unitCode})` : ""}</option>)}</select></label><button className="primary-button" onClick={generarKardex} disabled={loading}>{loading ? "Generando..." : "Generar reporte"}</button></div>
       {error && <div className="alert alert-error">{error}</div>}
       <div className="report-actions"><button onClick={() => exportDocument({ rows: orderedKardexRows, title: "REPORTE DE KARDEX DE PRODUCTOS", subtitle: kardexSubtitle, columns: kardexColumns, display: displayKardex, printable: true })} disabled={!kardexRows.length}>Generar PDF</button>{isAdmin && <button onClick={() => exportDocument({ rows: orderedKardexRows, title: "REPORTE DE KARDEX DE PRODUCTOS", subtitle: kardexSubtitle, columns: kardexColumns, display: displayKardex, filename: `kardex-productos-${fechaInicio}-${fechaFin}.xls` })} disabled={!kardexRows.length}>Exportar Excel</button>}<span>{kardexRows.length} registro(s)</span></div>
-      <div className="report-table-wrap report-table-wrap-kardex"><table className="report-table"><thead><tr>{kardexColumns.map(([key, label]) => <th key={key}>{label}</th>)}</tr></thead><tbody>{visibleKardexRows.map((row, index) => <tr key={`${row.product_code}-${row.fecha}-${row.documento}-${index}`}>{kardexColumns.map(([key]) => <td key={key}>{displayKardex(key, row[key])}</td>)}</tr>)}{!kardexRows.length && <tr><td colSpan={kardexColumns.length}>Selecciona los filtros y genera el reporte.</td></tr>}</tbody></table></div>
+      <div className="report-table-wrap report-table-wrap-kardex"><table className="report-table"><thead><SortableHead columns={kardexColumns} sort={kardexSort} onSort={setKardexSort}/></thead><tbody>{visibleKardexRows.map((row, index) => <tr key={`${row.product_code}-${row.fecha}-${row.documento}-${index}`}>{kardexColumns.map(([key]) => <td key={key}>{displayKardex(key, row[key])}</td>)}</tr>)}{!kardexRows.length && <tr><td colSpan={kardexColumns.length}>Selecciona los filtros y genera el reporte.</td></tr>}</tbody></table></div>
       <Pagination page={kardexPage} totalPages={kardexTotalPages} totalRows={orderedKardexRows.length} onPageChange={setKardexPage}/>
     </>}
   </section></div>;
