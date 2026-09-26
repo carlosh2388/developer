@@ -21,7 +21,7 @@ vi.mock('../services/api', () => ({
 }));
 
 describe('EggAdjustmentForm', () => {
-  test('no agrega una fila nueva cuando la linea actual esta incompleta', async () => {
+  test('agrega filas aunque la linea actual este incompleta', async () => {
     const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const { container } = render(
       <EggAdjustmentForm
@@ -39,8 +39,8 @@ describe('EggAdjustmentForm', () => {
     expect(container.querySelectorAll('tbody tr')).toHaveLength(1);
 
     fireEvent.click(screen.getByRole('button', { name: /agregar fila/i }));
-    expect(container.querySelectorAll('tbody tr')).toHaveLength(1);
-    expect(alertSpy).toHaveBeenCalledWith('Completa la línea actual antes de agregar una nueva.');
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(2);
+    expect(alertSpy).not.toHaveBeenCalled();
 
     alertSpy.mockRestore();
   });

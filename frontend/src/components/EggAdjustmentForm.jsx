@@ -120,13 +120,11 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
   };
 
   const addRow = () => {
-    const lastRow = rows[rows.length - 1];
-    if (lastRow && !isRowComplete(lastRow)) return alert("Completa la línea actual antes de agregar una nueva.");
     setRows((current) => [...current, emptyRow()]);
   };
 
   const removeRow = (id) => {
-    setRows((current) => current.length === 1 ? [emptyRow()] : current.filter((item) => item.id !== id));
+    setRows((current) => current.filter((item) => item.id !== id));
   };
 
   useEffect(() => {
