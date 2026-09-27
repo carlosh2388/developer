@@ -362,13 +362,17 @@ const crearFilaComercial = () => ({
   // CAMBIAR LOTE
   // =====================================================
 
-  const cargarExistencias = async (id, codigoLote, clasificacion) => {
+  const cargarExistencias = async (id, codigoLote, clasificacion, colorOverride = "") => {
     if (!clasificacion || (clasificacion !== "Comercial" && !codigoLote)) return;
     try {
+      const actual = lotes.find((item) => item.id === id);
       const params = new URLSearchParams();
       if (clasificacion === "Comercial") params.set("clasificacion", "Comercial");
       else params.set("lote", codigoLote);
       if (bodegaSalida) params.set("bodega", bodegaSalida);
+      const colorConsulta = colorOverride || actual?.color || "";
+      if (clasificacion === "Comercial" && colorConsulta) params.set("color", colorConsulta);
+      params.set("inventario", "productos");
       const query = params.toString();
       const saldos = await api(`/huevos/existencias?${query}`);
       setLotes((actuales) => actuales.map((item) => {
@@ -578,6 +582,7 @@ const crearFilaComercial = () => ({
 
   const handleColorComercial = (loteId, value) => {
     setLotes((prev) => prev.map((lote) => lote.id === loteId ? { ...lote, color: value } : lote));
+    cargarExistencias(loteId, "", "Comercial", value);
   };
 
   // =====================================================

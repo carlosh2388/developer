@@ -819,7 +819,9 @@ async function listarExistenciasHuevos(req, res, next) {
           FILTER (WHERE d.status='POSTED'),0)::BIGINT AS available_units
         FROM inventory_document_lines l
         JOIN inventory_documents d ON d.id=l.document_id AND d.organization_id=l.organization_id
-        WHERE l.organization_id=$1 AND l.product_id=$2`, [orgId, product.id]);
+        WHERE l.organization_id=$1 AND l.product_id=$2
+          AND ($3::uuid IS NULL OR COALESCE(d.source_warehouse_id,d.destination_warehouse_id)=$3 OR (d.source_warehouse_id IS NULL AND d.destination_warehouse_id IS NULL))`,
+        [orgId, product.id, warehouseId]);
       return { ...row, available_units: Number(stock.rows[0]?.available_units || 0) };
     }));
     res.json(productRows);
