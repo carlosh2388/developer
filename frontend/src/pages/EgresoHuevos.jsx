@@ -22,6 +22,7 @@ const eggWarehouseClassification = (warehouse) => {
   if (name.includes("HUEVO INCUBABLE")) return "Incubable";
   return "";
 };
+const CLIENT_DESTINATION = "CLIENTE";
 
 function EgresoHuevos() {
   const { bodegas, clientes, localidades, opciones } = useOperationalCatalogs(["lotes", "personal", "vehiculos", "bodegas", "clientes", "localidades"]);
@@ -66,15 +67,26 @@ function EgresoHuevos() {
   const localidadesSalida = localidades
     .filter((item) => item.status !== "INACTIVE" && !esLocalidad(item, "Incubadora"))
     .sort((left, right) => String(left.name || "").localeCompare(String(right.name || ""), "es", { sensitivity: "base", numeric: true }));
-  const localidadesDestino = localidades
+  const localidadesDestinoBase = localidades
     .filter((item) => item.status !== "INACTIVE" && !esLocalidad(item, "Granja"))
     .sort((left, right) => String(left.name || "").localeCompare(String(right.name || ""), "es", { sensitivity: "base", numeric: true }));
+  const localidadesDestino = [...localidadesDestinoBase, { id: CLIENT_DESTINATION, name: "Cliente" }];
+  const destinoEsCliente = localidadDestino === CLIENT_DESTINATION;
   const bodegasSalida = bodegas.filter((item) => item.status !== "INACTIVE"
     && esBodegaHuevos(item) && (!localidadSalida || String(item.locationId) === String(localidadSalida)));
   const bodegasDestino = bodegas.filter((item) => item.status !== "INACTIVE"
-    && esBodegaHuevos(item) && (!localidadDestino || String(item.locationId) === String(localidadDestino)));
+    && esBodegaHuevos(item) && !destinoEsCliente && (!localidadDestino || String(item.locationId) === String(localidadDestino)));
   const bodegaSalidaSeleccionada = bodegas.find((item) => item.code === bodegaSalida || item.id === bodegaSalida);
   const clasificacionForzada = eggWarehouseClassification(bodegaSalidaSeleccionada);
+  const bodegaDestinoAutomatica = (sourceWarehouse) => {
+    const sourceClass = eggWarehouseClassification(sourceWarehouse);
+    if (!sourceClass) return "";
+    const incubadora = localidades.find((item) => item.status !== "INACTIVE" && esLocalidad(item, "Incubadora"));
+    const target = bodegas.find((item) => item.status !== "INACTIVE"
+      && String(item.locationId) === String(incubadora?.id)
+      && eggWarehouseClassification(item) === sourceClass);
+    return target?.code || "";
+  };
   const clientesDestino = clientes
     .filter((item) => item.status !== "INACTIVE")
     .sort((left, right) => String(left.commercialName || "").localeCompare(String(right.commercialName || ""), "es", { sensitivity: "base", numeric: true }));
@@ -262,7 +274,7 @@ const crearFilaComercial = () => ({
     setLocalidadSalida(bodegas.find((item) => item.code === data.source_warehouse_code)?.locationId || "");
     if (data.customer_id) {
       setBodegaDestino(`CLIENTE:${data.customer_id}`);
-      setLocalidadDestino("");
+      setLocalidadDestino(CLIENT_DESTINATION);
     } else {
       const destination = data.destination_warehouse_code || data.destination_name || "";
       setBodegaDestino(destination ? `BODEGA:${destination}` : "");
@@ -281,6 +293,20 @@ const crearFilaComercial = () => ({
   const cambiarLocalidadDestino = (value) => {
     setLocalidadDestino(value);
     setBodegaDestino("");
+  };
+
+  const cambiarBodegaSalida = (value) => {
+    setBodegaSalida(value);
+    const source = bodegas.find((item) => item.code === value || item.id === value);
+    const incubadora = localidades.find((item) => item.status !== "INACTIVE" && esLocalidad(item, "Incubadora"));
+    const destination = bodegaDestinoAutomatica(source);
+    if (incubadora?.id && destination) {
+      setLocalidadDestino(String(incubadora.id));
+      setBodegaDestino(`BODEGA:${destination}`);
+    } else {
+      setLocalidadDestino("");
+      setBodegaDestino("");
+    }
   };
 
   useEffect(() => {
@@ -761,6 +787,8 @@ const calcularSubTotal = (
       const destinoCliente = bodegaDestino.startsWith("CLIENTE:");
       const destinoBodega = bodegaDestino.startsWith("BODEGA:") ? bodegaDestino.slice("BODEGA:".length) : "";
       const clienteDestino = destinoCliente ? bodegaDestino.slice("CLIENTE:".length) : "";
+      if (destinoEsCliente && !clienteDestino) throw new Error("Selecciona el cliente de destino.");
+      if (!destinoEsCliente && !destinoBodega) throw new Error("Selecciona la bodega de destino.");
       const bodegaDestinoSeleccionada = bodegasDestino.find((item) => item.code === destinoBodega || item.id === destinoBodega);
       const destinoClass = eggWarehouseClassification(bodegaDestinoSeleccionada);
       const tipoDestino = destinoCliente ? "CUSTOMER" : destinoClass === "Incubable" ? "INCUBATOR" : destinoClass === "Comercial" ? "FARM" : "OTHER";
@@ -1411,7 +1439,7 @@ const calcularSubTotal = (
 
         <div>
           <label>Bodega Salida</label>
-          <select value={bodegaSalida} onChange={(e) => setBodegaSalida(e.target.value)}>
+          <select value={bodegaSalida} onChange={(e) => cambiarBodegaSalida(e.target.value)}>
             <option value="">Seleccione</option>
             {bodegasSalida.map((item) => <option key={item.id} value={item.code}>{item.name}</option>)}
           </select>
@@ -1439,8 +1467,9 @@ const calcularSubTotal = (
           <label>Bodega Destino</label>
           <select value={bodegaDestino} onChange={(e) => setBodegaDestino(e.target.value)}>
             <option value="">Seleccione</option>
-            {clientesDestino.map((item) => <option key={`cliente-${item.id}`} value={`CLIENTE:${item.id}`}>Cliente - {item.commercialName}</option>)}
-            {bodegasDestino.map((item) => <option key={`bodega-${item.id}`} value={`BODEGA:${item.code}`}>Bodega - {item.name}</option>)}
+            {destinoEsCliente
+              ? clientesDestino.map((item) => <option key={`cliente-${item.id}`} value={`CLIENTE:${item.id}`}>Cliente - {item.commercialName}</option>)
+              : bodegasDestino.map((item) => <option key={`bodega-${item.id}`} value={`BODEGA:${item.code}`}>Bodega - {item.name}</option>)}
           </select>
         </div>
       </div>
