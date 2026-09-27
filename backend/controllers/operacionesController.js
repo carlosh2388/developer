@@ -117,17 +117,24 @@ const eggColorFromInput = (value) => {
 
 const eggSizeTerms = (grade) => {
   const text = cleanEggText(`${grade.code} ${grade.label}`);
+  const locationTerm = text.includes("floor") || text.includes("piso") ? "piso"
+    : text.includes("nest") || text.includes("nido") ? "nido" : "";
+  const withLocation = (terms, forceNest = false) => {
+    if (locationTerm === "piso") return [...terms, "piso"];
+    if (forceNest && locationTerm === "nido") return [...terms, "nido"];
+    return terms;
+  };
   if (text.includes("mixed") || text.includes("mixto")) return ["mixto"];
   if (text.includes("large") || text.includes("grande")) return ["grande"];
   if (text.includes("medium") || text.includes("mediano")) return ["mediano"];
   if (text.includes("small") || text.includes("pequeno")) return ["pequeno"];
   if (text.includes("pewee")) return ["pewee"];
-  if (text.includes("dirty") || text.includes("sucio")) return ["sucio"];
-  if (text.includes("broken") || text.includes("quebrado")) return ["quebrado"];
+  if (text.includes("dirty") || text.includes("sucio")) return withLocation(["sucio"]);
+  if (text.includes("broken") || text.includes("quebrado")) return withLocation(["quebrado"]);
   if (text.includes("pale") || text.includes("palido")) return ["palido"];
   if (text.includes("blood") || text.includes("sangre")) return ["sangre"];
-  if (text.includes("good") || text.includes("bueno")) return ["bueno"];
-  return ["otros"];
+  if (text.includes("good") || text.includes("bueno")) return withLocation(["bueno"]);
+  return withLocation(["otros"], true);
 };
 
 async function resolveEggProduct(client, orgId, grade, flockCode, requestedColor) {

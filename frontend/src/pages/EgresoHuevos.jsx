@@ -24,7 +24,7 @@ const eggWarehouseClassification = (warehouse) => {
 };
 
 function EgresoHuevos() {
-  const { bodegas, clientes, opciones } = useOperationalCatalogs(["lotes", "personal", "vehiculos", "bodegas", "clientes"]);
+  const { bodegas, clientes, localidades, opciones } = useOperationalCatalogs(["lotes", "personal", "vehiculos", "bodegas", "clientes", "localidades"]);
 
   // =====================================================
   // DATOS GENERALES
@@ -49,6 +49,12 @@ function EgresoHuevos() {
   // BODEGAS
   // =====================================================
 
+  const [localidadSalida, setLocalidadSalida] =
+    useState("");
+
+  const [localidadDestino, setLocalidadDestino] =
+    useState("");
+
   const [bodegaSalida, setBodegaSalida] =
     useState("");
 
@@ -56,8 +62,17 @@ function EgresoHuevos() {
     useState("");
 
   const esBodegaHuevos = (item) => Boolean(eggWarehouseClassification(item));
-  const bodegasSalida = bodegas.filter((item) => item.status !== "INACTIVE" && esBodegaHuevos(item));
-  const bodegasDestino = bodegas.filter((item) => item.status !== "INACTIVE" && esBodegaHuevos(item));
+  const esLocalidad = (item, name) => normalizedName(item?.name).includes(normalizedName(name));
+  const localidadesSalida = localidades
+    .filter((item) => item.status !== "INACTIVE" && !esLocalidad(item, "Incubadora"))
+    .sort((left, right) => String(left.name || "").localeCompare(String(right.name || ""), "es", { sensitivity: "base", numeric: true }));
+  const localidadesDestino = localidades
+    .filter((item) => item.status !== "INACTIVE" && !esLocalidad(item, "Granja"))
+    .sort((left, right) => String(left.name || "").localeCompare(String(right.name || ""), "es", { sensitivity: "base", numeric: true }));
+  const bodegasSalida = bodegas.filter((item) => item.status !== "INACTIVE"
+    && esBodegaHuevos(item) && (!localidadSalida || String(item.locationId) === String(localidadSalida)));
+  const bodegasDestino = bodegas.filter((item) => item.status !== "INACTIVE"
+    && esBodegaHuevos(item) && (!localidadDestino || String(item.locationId) === String(localidadDestino)));
   const bodegaSalidaSeleccionada = bodegas.find((item) => item.code === bodegaSalida || item.id === bodegaSalida);
   const clasificacionForzada = eggWarehouseClassification(bodegaSalidaSeleccionada);
   const clientesDestino = clientes
@@ -244,16 +259,29 @@ const crearFilaComercial = () => ({
     setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setHora(String(data.movement_time || "").slice(0, 5));
     setFechaProduccion(String(data.production_date || "").slice(0, 10)); setEgreso(data.shipment_number || "");
     setBodegaSalida(data.source_warehouse_code || "");
+    setLocalidadSalida(bodegas.find((item) => item.code === data.source_warehouse_code)?.locationId || "");
     if (data.customer_id) {
       setBodegaDestino(`CLIENTE:${data.customer_id}`);
+      setLocalidadDestino("");
     } else {
       const destination = data.destination_warehouse_code || data.destination_name || "";
       setBodegaDestino(destination ? `BODEGA:${destination}` : "");
+      setLocalidadDestino(bodegas.find((item) => item.code === destination)?.locationId || "");
     }
     setPlaca(data.vehicle_plate || ""); setPiloto(data.driver_name || ""); setLotes([...grouped.values()]);
   } catch (error) { alert(error.message); } };
 
   useEffect(() => { cargarSiguienteEnvio(); }, []);
+
+  const cambiarLocalidadSalida = (value) => {
+    setLocalidadSalida(value);
+    setBodegaSalida("");
+  };
+
+  const cambiarLocalidadDestino = (value) => {
+    setLocalidadDestino(value);
+    setBodegaDestino("");
+  };
 
   useEffect(() => {
     api("/huevos/existencias/resumen").then((data) => {
@@ -717,6 +745,7 @@ const calcularSubTotal = (
         alert("Inventario insuficiente para operar egresos.");
         return;
       }
+      if (!localidadSalida) throw new Error("Selecciona la localidad de salida.");
       if (!bodegaSalida) throw new Error("Selecciona la bodega de salida para validar las existencias.");
       if (lotes.some((item) => !item.clasificacion)) throw new Error("Selecciona la clasificación.");
       if (lotes.some((item) => item.clasificacion === "Incubable" && !item.lote)) throw new Error("Selecciona el lote para la clasificación Incubable.");
@@ -748,7 +777,7 @@ const calcularSubTotal = (
       alert(editingId ? "Egreso actualizado correctamente" : `Egreso ${egreso} registrado correctamente`);
       const now = new Date();
       setFecha(now.toISOString().split("T")[0]); setHora(now.toTimeString().slice(0, 5));
-      setFechaProduccion(now.toISOString().split("T")[0]); setBodegaSalida(""); setBodegaDestino("");
+      setFechaProduccion(now.toISOString().split("T")[0]); setLocalidadSalida(""); setBodegaSalida(""); setLocalidadDestino(""); setBodegaDestino("");
       setPlaca(""); setNuevaPlaca(""); setMostrarNuevaPlaca(false);
       setPiloto(""); setNuevoPiloto(""); setMostrarNuevoPiloto(false);
       setLotes([crearLote()]); setEditingId(null);
@@ -1373,10 +1402,36 @@ const calcularSubTotal = (
         </div>
 
         <div>
+          <label>Localidad Salida</label>
+          <select value={localidadSalida} onChange={(e) => cambiarLocalidadSalida(e.target.value)}>
+            <option value="">Seleccione</option>
+            {localidadesSalida.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+        </div>
+
+        <div>
           <label>Bodega Salida</label>
           <select value={bodegaSalida} onChange={(e) => setBodegaSalida(e.target.value)}>
             <option value="">Seleccione</option>
             {bodegasSalida.map((item) => <option key={item.id} value={item.code}>{item.name}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            "1fr 2fr",
+          gap: "10px",
+          marginTop: "10px"
+        }}
+      >
+        <div>
+          <label>Localidad Destino</label>
+          <select value={localidadDestino} onChange={(e) => cambiarLocalidadDestino(e.target.value)}>
+            <option value="">Seleccione</option>
+            {localidadesDestino.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
         </div>
 
