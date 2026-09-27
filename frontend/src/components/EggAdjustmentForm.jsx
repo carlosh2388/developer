@@ -141,7 +141,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
     const query = new URLSearchParams({ clasificacion: apiEggClass(effectiveClass), bodega: warehouse });
     if (needsFlock) query.set("lote", flock);
     if (movementType === "ADJUSTMENT_OUT" && effectiveClass === "COMERCIAL") query.set("color", color);
-    if (movementType === "ADJUSTMENT_IN") query.set("inventario", "productos");
+    query.set("inventario", "productos");
     api(`/huevos/existencias?${query}`).then((items) => setStock(Object.fromEntries(
       items.map((item) => [item.grade_code, item]))))
       .catch((e) => alert(e.message));

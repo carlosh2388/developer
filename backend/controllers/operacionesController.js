@@ -730,15 +730,20 @@ async function crearMovimientoHuevos(req, res, next) {
         const requestedUnits = values[0] * 336 + values[1] * 360 + values[2] * 84 + values[3] * 30 + values[4];
         let existingUnits = Number(d.existencia || 0);
         if (isOutputMovement) {
-          const balanceProductId = commercialMovement ? eggProduct.id : null;
-          await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:${flockId}:${gradeId}:${balanceProductId || ""}`]);
-          const balance = await client.query(`SELECT COALESCE(SUM(CASE WHEN m.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.total_units ELSE -l.total_units END)
-            FILTER (WHERE m.status='POSTED' AND ($4::uuid IS NULL OR m.id<>$4::uuid)),0)::BIGINT AS available_units
-            FROM egg_movement_lines l JOIN egg_movements m ON m.id=l.movement_id AND m.organization_id=l.organization_id
-            WHERE l.organization_id=$1 AND ($2::uuid IS NULL OR l.flock_id=$2) AND l.quality_grade_id=$3
-              AND (COALESCE(m.source_warehouse_id,m.destination_warehouse_id)=$5 OR (m.source_warehouse_id IS NULL AND m.destination_warehouse_id IS NULL))
-              AND ($6::uuid IS NULL OR l.product_id=$6)`,
-            [orgId, flockId, gradeId, req.params.id || null, sourceWarehouseId, balanceProductId]);
+          await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${orgId}:EGG-PRODUCT:${eggProduct.id}`]);
+          const balance = isAdjustmentOut
+            ? await client.query(`SELECT COALESCE(SUM(CASE WHEN d.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.quantity ELSE -l.quantity END)
+                FILTER (WHERE d.status='POSTED' AND ($3::uuid IS NULL OR d.id<>$3::uuid)),0)::BIGINT AS available_units
+                FROM inventory_document_lines l JOIN inventory_documents d ON d.id=l.document_id AND d.organization_id=l.organization_id
+                WHERE l.organization_id=$1 AND l.product_id=$2`,
+              [orgId, eggProduct.id, header.rows[0].inventory_document_id || null])
+            : await client.query(`SELECT COALESCE(SUM(CASE WHEN m.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.total_units ELSE -l.total_units END)
+                FILTER (WHERE m.status='POSTED' AND ($4::uuid IS NULL OR m.id<>$4::uuid)),0)::BIGINT AS available_units
+                FROM egg_movement_lines l JOIN egg_movements m ON m.id=l.movement_id AND m.organization_id=l.organization_id
+                WHERE l.organization_id=$1 AND ($2::uuid IS NULL OR l.flock_id=$2) AND l.quality_grade_id=$3
+                  AND (COALESCE(m.source_warehouse_id,m.destination_warehouse_id)=$5 OR (m.source_warehouse_id IS NULL AND m.destination_warehouse_id IS NULL))
+                  AND ($6::uuid IS NULL OR l.product_id=$6)`,
+              [orgId, flockId, gradeId, req.params.id || null, sourceWarehouseId, commercialMovement ? eggProduct.id : null]);
           existingUnits = Number(balance.rows[0].available_units || 0);
           if (requestedUnits > existingUnits) throw new HttpError(409, "Inventario insuficiente para operar egresos.", "INSUFFICIENT_EGG_STOCK");
         }
