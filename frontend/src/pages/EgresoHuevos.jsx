@@ -295,6 +295,15 @@ const crearFilaComercial = () => ({
 
   const cambiarLocalidadDestino = (value) => {
     setLocalidadDestino(value);
+    if (String(value) === String(destinoIncubadora?.id)) {
+      const source = bodegas.find((item) => item.code === bodegaSalida || item.id === bodegaSalida);
+      const sourceClass = eggWarehouseClassification(source);
+      const destination = bodegas.find((item) => item.status !== "INACTIVE"
+        && String(item.locationId) === String(value)
+        && eggWarehouseClassification(item) === sourceClass);
+      setBodegaDestino(destination ? `BODEGA:${destination.code}` : "");
+      return;
+    }
     setBodegaDestino("");
   };
 
@@ -1477,7 +1486,7 @@ const calcularSubTotal = (
             <option value="">Seleccione</option>
             {destinoEsCliente
               ? clientesDestino.map((item) => <option key={`cliente-${item.id}`} value={`CLIENTE:${item.id}`}>Cliente - {item.commercialName}</option>)
-              : bodegasDestino.map((item) => <option key={`bodega-${item.id}`} value={`BODEGA:${item.code}`}>Bodega - {item.name}</option>)}
+              : bodegasDestino.map((item) => <option key={`bodega-${item.id}`} value={`BODEGA:${item.code}`}>{item.name}</option>)}
           </select>
         </div>
       </div>
