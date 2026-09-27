@@ -804,7 +804,7 @@ async function listarExistenciasHuevos(req, res, next) {
       LEFT JOIN products p ON p.id=l.product_id AND p.organization_id=l.organization_id
       LEFT JOIN egg_movements m ON m.id=l.movement_id AND m.organization_id=l.organization_id
         AND ($4::uuid IS NULL OR COALESCE(m.source_warehouse_id,m.destination_warehouse_id)=$4 OR (m.source_warehouse_id IS NULL AND m.destination_warehouse_id IS NULL))
-      WHERE g.is_active=TRUE AND ($3::boolean=FALSE OR g.egg_class='COMMERCIAL')
+      WHERE g.is_active=TRUE AND g.egg_class=CASE WHEN $3::boolean THEN 'COMMERCIAL' ELSE 'INCUBABLE' END
       GROUP BY g.id ORDER BY g.egg_class,g.sort_order`, [orgId, flockId, comercial, warehouseId, color]);
     if (!useProductInventory) return res.json(rows);
     const productRows = await Promise.all(rows.map(async (row) => {
