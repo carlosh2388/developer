@@ -70,7 +70,6 @@ function EgresoHuevos() {
   const localidadesDestinoBase = localidades
     .filter((item) => item.status !== "INACTIVE" && !esLocalidad(item, "Granja"))
     .sort((left, right) => String(left.name || "").localeCompare(String(right.name || ""), "es", { sensitivity: "base", numeric: true }));
-  const localidadesDestino = [...localidadesDestinoBase, { id: CLIENT_DESTINATION, name: "Cliente" }];
   const destinoEsCliente = localidadDestino === CLIENT_DESTINATION;
   const bodegasSalida = bodegas.filter((item) => item.status !== "INACTIVE"
     && esBodegaHuevos(item) && (!localidadSalida || String(item.locationId) === String(localidadSalida)));
@@ -78,12 +77,16 @@ function EgresoHuevos() {
     && esBodegaHuevos(item) && !destinoEsCliente && (!localidadDestino || String(item.locationId) === String(localidadDestino)));
   const bodegaSalidaSeleccionada = bodegas.find((item) => item.code === bodegaSalida || item.id === bodegaSalida);
   const clasificacionForzada = eggWarehouseClassification(bodegaSalidaSeleccionada);
+  const destinoIncubadora = localidades.find((item) => item.status !== "INACTIVE" && esLocalidad(item, "Incubadora"));
+  const destinoIncubableForzado = clasificacionForzada === "Incubable";
+  const localidadesDestino = destinoIncubableForzado && destinoIncubadora
+    ? [destinoIncubadora]
+    : [...localidadesDestinoBase, { id: CLIENT_DESTINATION, name: "Cliente" }];
   const bodegaDestinoAutomatica = (sourceWarehouse) => {
     const sourceClass = eggWarehouseClassification(sourceWarehouse);
-    if (!sourceClass) return "";
-    const incubadora = localidades.find((item) => item.status !== "INACTIVE" && esLocalidad(item, "Incubadora"));
+    if (sourceClass !== "Incubable") return "";
     const target = bodegas.find((item) => item.status !== "INACTIVE"
-      && String(item.locationId) === String(incubadora?.id)
+      && String(item.locationId) === String(destinoIncubadora?.id)
       && eggWarehouseClassification(item) === sourceClass);
     return target?.code || "";
   };
@@ -298,10 +301,15 @@ const crearFilaComercial = () => ({
   const cambiarBodegaSalida = (value) => {
     setBodegaSalida(value);
     const source = bodegas.find((item) => item.code === value || item.id === value);
-    const incubadora = localidades.find((item) => item.status !== "INACTIVE" && esLocalidad(item, "Incubadora"));
     const destination = bodegaDestinoAutomatica(source);
-    if (incubadora?.id && destination) {
-      setLocalidadDestino(String(incubadora.id));
+    setPlaca("");
+    setPiloto("");
+    setNuevaPlaca("");
+    setNuevoPiloto("");
+    setMostrarNuevaPlaca(false);
+    setMostrarNuevoPiloto(false);
+    if (destinoIncubadora?.id && destination) {
+      setLocalidadDestino(String(destinoIncubadora.id));
       setBodegaDestino(`BODEGA:${destination}`);
     } else {
       setLocalidadDestino("");
