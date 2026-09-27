@@ -364,13 +364,24 @@ const crearFilaComercial = () => ({
 
   const cargarExistencias = async (id, codigoLote, clasificacion, colorOverride = "") => {
     if (!clasificacion || (clasificacion !== "Comercial" && !codigoLote)) return;
+    const actual = lotes.find((item) => item.id === id);
+    const colorConsulta = colorOverride || actual?.color || "";
+    if (clasificacion === "Comercial" && !colorConsulta) {
+      setLotes((actuales) => actuales.map((item) => {
+        if (item.id !== id) return item;
+        const comercial = { ...item.comercial };
+        Object.keys(comercial).forEach((calidad) => {
+          comercial[calidad] = { ...comercial[calidad], existencias: 0 };
+        });
+        return { ...item, comercial };
+      }));
+      return;
+    }
     try {
-      const actual = lotes.find((item) => item.id === id);
       const params = new URLSearchParams();
       if (clasificacion === "Comercial") params.set("clasificacion", "Comercial");
       else params.set("lote", codigoLote);
       if (bodegaSalida) params.set("bodega", bodegaSalida);
-      const colorConsulta = colorOverride || actual?.color || "";
       if (clasificacion === "Comercial" && colorConsulta) params.set("color", colorConsulta);
       params.set("inventario", "productos");
       const query = params.toString();
@@ -386,7 +397,9 @@ const crearFilaComercial = () => ({
         });
         return { ...item, [campo]: actualizado };
       }));
-    } catch (error) { alert(`No fue posible consultar las existencias: ${error.message}`); }
+    } catch (error) {
+      if (clasificacion !== "Comercial" || colorConsulta) alert(`No fue posible consultar las existencias: ${error.message}`);
+    }
   };
 
   const handleLote = (

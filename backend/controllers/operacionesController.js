@@ -814,7 +814,13 @@ async function listarExistenciasHuevos(req, res, next) {
     if (!useProductInventory) return res.json(rows);
     const productRows = await Promise.all(rows.map(async (row) => {
       const grade = { code: row.grade_code, label: row.label, egg_class: row.grade_code.startsWith("COM_") ? "COMMERCIAL" : "INCUBABLE" };
-      const product = await resolveEggProduct(db, orgId, grade, flockCode, color);
+      let product;
+      try {
+        product = await resolveEggProduct(db, orgId, grade, flockCode, color);
+      } catch (error) {
+        if (error.code !== "EGG_PRODUCT_NOT_FOUND") throw error;
+        return { ...row, available_units: 0 };
+      }
       const stock = await db.query(`SELECT COALESCE(SUM(CASE WHEN d.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.quantity ELSE -l.quantity END)
           FILTER (WHERE d.status='POSTED'),0)::BIGINT AS available_units
         FROM inventory_document_lines l
