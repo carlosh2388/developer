@@ -772,16 +772,19 @@ async function listarExistenciasHuevos(req, res, next) {
     const bodega = req.query.bodega;
     const comercial = String(req.query.clasificacion || "").toUpperCase() === "COMERCIAL";
     const color = eggColorFromInput(req.query.color).label;
+    const useProductInventory = String(req.query.inventario || "").toUpperCase() === "PRODUCTOS";
     if (!lote && !comercial) required(lote, "lote");
     let flockId = null;
+    let flockCode = lote || "";
     const warehouseId = await resolveTenantId(db, "warehouses", orgId, bodega, "bodega", true);
     if (lote) {
     const { rows: flocks } = await db.query(
-      "SELECT id FROM flocks WHERE organization_id=$1 AND (id::text=$2 OR LOWER(code)=LOWER($2)) LIMIT 1",
+      "SELECT id,code FROM flocks WHERE organization_id=$1 AND (id::text=$2 OR LOWER(code)=LOWER($2)) LIMIT 1",
       [orgId, String(lote).trim()]
     );
     if (!flocks[0]) throw new HttpError(404, "El lote seleccionado no existe.", "INVALID_REFERENCE");
       flockId = flocks[0].id;
+      flockCode = flocks[0].code;
     }
     const { rows } = await db.query(`SELECT g.code AS grade_code,g.label,
       COALESCE(SUM(CASE WHEN m.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.total_units ELSE -l.total_units END)
@@ -803,7 +806,18 @@ async function listarExistenciasHuevos(req, res, next) {
         AND ($4::uuid IS NULL OR COALESCE(m.source_warehouse_id,m.destination_warehouse_id)=$4 OR (m.source_warehouse_id IS NULL AND m.destination_warehouse_id IS NULL))
       WHERE g.is_active=TRUE AND ($3::boolean=FALSE OR g.egg_class='COMMERCIAL')
       GROUP BY g.id ORDER BY g.egg_class,g.sort_order`, [orgId, flockId, comercial, warehouseId, color]);
-    res.json(rows);
+    if (!useProductInventory) return res.json(rows);
+    const productRows = await Promise.all(rows.map(async (row) => {
+      const grade = { code: row.grade_code, label: row.label, egg_class: row.grade_code.startsWith("COM_") ? "COMMERCIAL" : "INCUBABLE" };
+      const product = await resolveEggProduct(db, orgId, grade, flockCode, color);
+      const stock = await db.query(`SELECT COALESCE(SUM(CASE WHEN d.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.quantity ELSE -l.quantity END)
+          FILTER (WHERE d.status='POSTED'),0)::BIGINT AS available_units
+        FROM inventory_document_lines l
+        JOIN inventory_documents d ON d.id=l.document_id AND d.organization_id=l.organization_id
+        WHERE l.organization_id=$1 AND l.product_id=$2`, [orgId, product.id]);
+      return { ...row, available_units: Number(stock.rows[0]?.available_units || 0) };
+    }));
+    res.json(productRows);
   } catch (error) { next(error); }
 }
 

@@ -31,6 +31,15 @@ const commercialPresentation = (code) => {
   return ["cajasCartones360", "cartones30", "unidades"];
 };
 
+const gradeDisplayLabel = (grade) => {
+  const code = String(grade?.code || "");
+  const label = String(grade?.label || "");
+  const other = code.includes("_OTHER_") ? "Otros*" : label;
+  if (code.endsWith("_NEST")) return `${other} (Nido)`;
+  if (code.endsWith("_FLOOR")) return `${other} (Piso)`;
+  return label || code;
+};
+
 const emptyRow = () => ({ id: clientId(), grade: "", presentation: "", quantity: "", reason: "", stock: 0 });
 
 const rowFromDetail = (detail, reason) => {
@@ -132,6 +141,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
     const query = new URLSearchParams({ clasificacion: apiEggClass(effectiveClass), bodega: warehouse });
     if (needsFlock) query.set("lote", flock);
     if (movementType === "ADJUSTMENT_OUT" && effectiveClass === "COMERCIAL") query.set("color", color);
+    if (movementType === "ADJUSTMENT_IN") query.set("inventario", "productos");
     api(`/huevos/existencias?${query}`).then((items) => setStock(Object.fromEntries(
       items.map((item) => [item.grade_code, item]))))
       .catch((e) => alert(e.message));
@@ -231,12 +241,12 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
         <button type="button" aria-label="Agregar fila" onClick={addRow} style={{ padding: "8px 12px", minWidth: "38px", flexShrink: 0, border: "1px solid #0d6efd", borderRadius: "4px", background: "#0d6efd", color: "#fff", cursor: "pointer", fontWeight: 700 }}>+</button>
       </div>}
     </div>
-    <table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr style={{ background: "#f1f5f9" }}>
+    <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}><colgroup><col style={{ width: "240px" }}/><col/><col style={{ width: "110px" }}/><col/><col/><col style={{ width: "80px" }}/></colgroup><thead><tr style={{ background: "#f1f5f9" }}>
       <th>Tamaño</th><th>Presentación</th><th>Existencia</th><th>Cantidad</th><th>Razón o Justificación</th><th>Acción</th>
     </tr></thead><tbody>{rows.map((row) => {
       const allowed = effectiveClass === "COMERCIAL" ? commercialPresentation(row.grade) : Object.keys(presentations);
       return <tr key={row.id}>
-        <td><select style={inputStyle} value={row.grade} onChange={(e) => updateRow(row.id, "grade", e.target.value)}><option value="">Seleccione</option>{classGrades.map((item) => <option key={item.id} value={item.code}>{item.label}</option>)}</select></td>
+        <td><select style={{ ...inputStyle, minWidth: "220px" }} value={row.grade} onChange={(e) => updateRow(row.id, "grade", e.target.value)}><option value="">Seleccione</option>{classGrades.map((item) => <option key={item.id} value={item.code}>{gradeDisplayLabel(item)}</option>)}</select></td>
         <td><select style={inputStyle} value={row.presentation} disabled={!row.grade} onChange={(e) => updateRow(row.id, "presentation", e.target.value)}><option value="">Seleccione</option>{allowed.map((key) => <option key={key} value={key}>{presentations[key].label} (Existencia: {Number(stock[row.grade]?.[presentations[key].stockKey] || 0)})</option>)}</select></td>
         <td style={{ textAlign: "center" }}>{Number(stock[row.grade]?.available_units || 0)}</td>
         <td><input style={inputStyle} type="number" min="1" step="1" value={row.quantity} onChange={(e) => /^\d*$/.test(e.target.value) && updateRow(row.id, "quantity", e.target.value)}/></td>
