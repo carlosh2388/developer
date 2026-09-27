@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import ConfigRecordsTable from "./ConfigRecordsTable";
 import { useCatalogList } from "../hooks/useCatalogList";
 import { api } from "../services/api";
@@ -10,7 +11,7 @@ const productNames = (value) => String(value || "").split(", ")
 
 export default function OperationRecordsModal({ title, path, annulPath, columns, dateField, rowFilter, onEdit, sortRows, buttonStyle }) {
   const list = useCatalogList(path);
-  const rows = rowFilter ? list.rows.filter(rowFilter) : list.rows;
+  const rows = useMemo(() => rowFilter ? list.rows.filter(rowFilter) : list.rows, [list.rows, rowFilter]);
   return <ConfigRecordsTable title={title} rows={rows} loading={list.loading} error={list.error} columns={columns} dateField={dateField} onEdit={onEdit}
     deactivateLabel="Anular" inactiveStatuses={["VOID"]} nonEditableStatuses={["VOID"]} onDeactivate={annulPath ? async (row) => {
       if (!(await confirmAction("¿Deseas anular este registro? Permanecerá visible para auditoría, pero ya no podrá editarse.", { title: "Anular registro", confirmLabel: "Sí, anular" }))) return;

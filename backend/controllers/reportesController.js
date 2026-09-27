@@ -128,9 +128,37 @@ async function kardexProductos(req, res, next) {
         JOIN selected_products p ON p.id=l.product_id
         WHERE d.organization_id=$1 AND d.status='POSTED' AND d.movement_date < $2::date
         GROUP BY l.product_id
+      ), line_allocations AS (
+        SELECT a.line_id,
+          STRING_AGG(DISTINCT f.code, ', ' ORDER BY f.code) FILTER (WHERE f.code IS NOT NULL) lote
+        FROM inventory_line_allocations a
+        LEFT JOIN flocks f ON f.id=a.flock_id AND f.organization_id=a.organization_id
+        WHERE a.organization_id=$1
+        GROUP BY a.line_id
+      ), egg_line_context AS (
+        SELECT m.inventory_document_id document_id,l.line_number,
+          STRING_AGG(DISTINCT f.code, ', ' ORDER BY f.code) FILTER (WHERE f.code IS NOT NULL) lote,
+          STRING_AGG(DISTINCT CASE g.egg_class
+            WHEN 'INCUBABLE' THEN 'Incubable'
+            WHEN 'COMMERCIAL' THEN 'Comercial'
+            ELSE COALESCE(g.egg_class,'')
+          END, ', ' ORDER BY CASE g.egg_class
+            WHEN 'INCUBABLE' THEN 'Incubable'
+            WHEN 'COMMERCIAL' THEN 'Comercial'
+            ELSE COALESCE(g.egg_class,'')
+          END) FILTER (WHERE g.egg_class IS NOT NULL) clasificacion
+        FROM egg_movements m
+        JOIN egg_movement_lines l ON l.movement_id=m.id AND l.organization_id=m.organization_id
+        JOIN egg_quality_grades g ON g.id=l.quality_grade_id
+        LEFT JOIN flocks f ON f.id=l.flock_id AND f.organization_id=l.organization_id
+        WHERE m.organization_id=$1
+        GROUP BY m.inventory_document_id,l.line_number
       ), movements AS (
         SELECT p.product_type,p.code product_code,p.name product_name,p.unit_code,d.movement_date,d.document_number,
-          d.movement_type,d.module_code,l.line_number,l.quantity,l.unit_cost,l.justification,
+          d.movement_type,d.module_code,l.line_number,l.quantity,l.unit_cost,
+          COALESCE(sloc.name,'') localidad_salida,COALESCE(sw.name,'') bodega_salida,
+          COALESCE(dloc.name,'') localidad_destino,COALESCE(dw.name,'') bodega_destino,
+          COALESCE(eggctx.clasificacion,'') clasificacion,COALESCE(eggctx.lote,alloc.lote,'') lote,
           CASE WHEN d.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.quantity ELSE 0 END::numeric entrada,
           CASE WHEN d.movement_type IN ('OUTPUT','ADJUSTMENT_OUT') THEN l.quantity ELSE 0 END::numeric salida,
           COALESCE(p.opening_stock,0) + COALESCE(prev.previous_balance,0) opening_balance
@@ -138,13 +166,19 @@ async function kardexProductos(req, res, next) {
         JOIN inventory_document_lines l ON l.product_id=p.id AND l.organization_id=$1
         JOIN inventory_documents d ON d.id=l.document_id AND d.organization_id=l.organization_id
         LEFT JOIN previous prev ON prev.product_id=p.id
+        LEFT JOIN warehouses sw ON sw.id=d.source_warehouse_id AND sw.organization_id=d.organization_id
+        LEFT JOIN warehouses dw ON dw.id=d.destination_warehouse_id AND dw.organization_id=d.organization_id
+        LEFT JOIN locations sloc ON sloc.id=sw.location_id AND sloc.organization_id=d.organization_id
+        LEFT JOIN locations dloc ON dloc.id=dw.location_id AND dloc.organization_id=d.organization_id
+        LEFT JOIN line_allocations alloc ON alloc.line_id=l.id
+        LEFT JOIN egg_line_context eggctx ON eggctx.document_id=d.id AND eggctx.line_number=l.line_number
         WHERE d.organization_id=$1 AND d.status='POSTED' AND d.movement_date BETWEEN $2::date AND $3::date
       )
       SELECT product_type,product_code,product_name,unit_code,movement_date fecha,document_number documento,
         movement_type tipo_movimiento,module_code modulo,line_number linea,quantity cantidad,unit_cost costo_unitario,
+        localidad_salida,bodega_salida,localidad_destino,bodega_destino,clasificacion,lote,
         entrada,salida,
-        opening_balance + SUM(entrada-salida) OVER (PARTITION BY product_code ORDER BY movement_date,document_number,line_number ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) saldo,
-        justification justificacion
+        opening_balance + SUM(entrada-salida) OVER (PARTITION BY product_code ORDER BY movement_date,document_number,line_number ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) saldo
       FROM movements
       ORDER BY product_type,product_name,movement_date,document_number,line_number`, params);
     res.json({

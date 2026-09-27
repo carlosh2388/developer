@@ -32,8 +32,10 @@ const unitLabels = {
 const kardexColumns = [
   ["correlativo", "#"],
   ["fecha", "FECHA"], ["documento", "DOCUMENTO"], ["tipo_producto", "PRODUCTO"], ["product_code", "CODIGO"],
-  ["product_name", "DETALLE"], ["unit_code", "UNIDAD"], ["tipo_movimiento", "MOVIMIENTO"],
-  ["entrada", "ENTRADA"], ["salida", "SALIDA"], ["saldo", "SALDO"], ["costo_unitario", "COSTO UNIT."], ["justificacion", "JUSTIFICACION"],
+  ["product_name", "DETALLE"], ["localidad_salida", "LOCALIDAD SALIDA"], ["bodega_salida", "BODEGA SALIDA"],
+  ["localidad_destino", "LOCALIDAD DESTINO"], ["bodega_destino", "BODEGA DESTINO"], ["clasificacion", "CLASIFICACION"],
+  ["lote", "LOTE"], ["unit_code", "UNIDAD"], ["tipo_movimiento", "MOVIMIENTO"],
+  ["entrada", "ENTRADA"], ["salida", "SALIDA"], ["saldo", "SALDO"], ["costo_unitario", "COSTO UNIT."],
 ];
 
 const today = new Date().toISOString().slice(0, 10);

@@ -128,7 +128,7 @@ const eggSizeTerms = (grade) => {
   if (text.includes("large") || text.includes("grande")) return ["grande"];
   if (text.includes("medium") || text.includes("mediano")) return ["mediano"];
   if (text.includes("small") || text.includes("pequeno")) return ["pequeno"];
-  if (text.includes("pewee")) return ["pewee"];
+  if (text.includes("pewee") || text.includes("pewe")) return ["pewe"];
   if (text.includes("dirty") || text.includes("sucio")) return withLocation(["sucio"]);
   if (text.includes("broken") || text.includes("quebrado")) return withLocation(["quebrado"]);
   if (text.includes("pale") || text.includes("palido")) return ["palido"];
