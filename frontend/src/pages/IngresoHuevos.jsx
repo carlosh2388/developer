@@ -22,6 +22,11 @@ const twoDecimalText = (value) => {
   if (value === undefined || value === null || value === "") return "";
   return Number(value || 0).toFixed(2);
 };
+const ingresoEggGradeLabel = (code) => ({
+  COM_PALE_RED_NEST: "Pálido Rojo (Nido)",
+  COM_SMALL_NEST: "Pequeño (Nido)",
+  INC_SMALL_NEST: "Pequeño (Nido)",
+}[code] || eggGradeLabel(code));
 
 function IngresoHuevos() {
   const { opciones, personal = [] } = useOperationalCatalogs(["lotes", "personal"]);
@@ -95,7 +100,7 @@ function IngresoHuevos() {
         recolectorNombre: item.collector_name || "", clasificador: item.classifier_id || "",
         clasificadorNombre: item.classifier_name || "", peso: twoDecimalText(item.total_weight_grams), datos: {},
       });
-      grouped.get(key).datos[eggGradeLabel(item.grade_code)] = {
+      grouped.get(key).datos[ingresoEggGradeLabel(item.grade_code)] = {
         cajaB336: item.boxes_trays_336, cajaC360: item.boxes_cartons_360, bandeja84: item.trays_84,
         carton30: item.cartons_30, unidades: item.loose_units,
       };
