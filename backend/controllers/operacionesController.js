@@ -706,9 +706,10 @@ async function crearMovimientoHuevos(req, res, next) {
         }
         const commercialMovement = grade.egg_class === "COMMERCIAL";
         const requestedCommercialColor = commercialMovement ? eggColorFromInput(d.color || d.colorHuevo || d.eggColor) : { label: "" };
-        const flockId = commercialMovement
-          ? null
-          : await resolveTenantId(client, "flocks", orgId, d.loteId || d.lote, "lote");
+        const requestedFlock = d.loteId || d.lote;
+        const flockId = requestedFlock
+          ? await resolveTenantId(client, "flocks", orgId, requestedFlock, "lote", commercialMovement)
+          : null;
         const flockCode = flockId ? (await client.query("SELECT code FROM flocks WHERE id=$1 AND organization_id=$2", [flockId, orgId])).rows[0]?.code : (d.lote || "");
         const commercialColor = requestedCommercialColor.label ? requestedCommercialColor : eggColorFromFlock(flockCode);
         if (commercialMovement && !commercialColor.label) {
