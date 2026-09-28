@@ -17,12 +17,12 @@ export default function OperationRecordsModal({ title, path, annulPath, columns,
       if (!(await confirmAction("¿Deseas anular este registro? Permanecerá visible para auditoría, pero ya no podrá editarse.", { title: "Anular registro", confirmLabel: "Sí, anular" }))) return;
       try { await api(annulPath(row), { method: "PATCH" }); await list.reload(); alert("Registro anulado correctamente."); }
       catch (error) { alert(error.message); }
-    } : undefined} sortRows={sortRows} buttonStyle={buttonStyle}/>
+    } : undefined} sortRows={sortRows || compareDocumentDesc} buttonStyle={buttonStyle}/>
 }
 
 export const compareDocumentDesc = (left, right) => {
-  const leftDoc = String(left.document_number || "");
-  const rightDoc = String(right.document_number || "");
+  const leftDoc = String(left.displayNumber || left.document_number || left.movement_number || left.record_number || left.shipment_number || left.id || "");
+  const rightDoc = String(right.displayNumber || right.document_number || right.movement_number || right.record_number || right.shipment_number || right.id || "");
   const byDocument = rightDoc.localeCompare(leftDoc, "es", { numeric: true, sensitivity: "base" });
   if (byDocument) return byDocument;
   return String(right.created_at || right.id || "").localeCompare(String(left.created_at || left.id || ""), "es", { numeric: true, sensitivity: "base" });

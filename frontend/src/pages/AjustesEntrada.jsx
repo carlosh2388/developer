@@ -3,6 +3,7 @@ import { loadInventoryDocument, quantityInput, saveInventory } from "../services
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
 import { useCatalogList } from "../hooks/useCatalogList";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
+import { compareDocumentDesc } from "../components/OperationRecordsModal";
 import OperationPanel from "../components/OperationPanel";
 import CancelEditButton from "../components/CancelEditButton";
 import EggAdjustmentForm from "../components/EggAdjustmentForm";
@@ -53,6 +54,7 @@ function AjustesEntradaRecords({ onEditInventory, onEditEgg }) {
     inactiveStatuses={["VOID"]}
     nonEditableStatuses={["VOID"]}
     deactivateLabel="Anular"
+    sortRows={compareDocumentDesc}
     onEdit={(row) => row.source === "egg" ? onEditEgg(row) : onEditInventory(row)}
     onDeactivate={async (row) => {
       if (!window.confirm("Deseas anular este registro?")) return;
