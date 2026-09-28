@@ -122,7 +122,10 @@ function EgresoHuevos() {
     setMostrarNuevoPiloto] = useState(false);
 
   const [pilotosNuevos, setPilotosNuevos] = useState([]);
-  const pilotos = [...opciones("personal", "id", "fullName").map((x) => x.label), ...pilotosNuevos];
+  const pilotos = [
+    ...opciones("personal", "id", "fullName").map((x) => ({ value: String(x.value), label: x.label })),
+    ...pilotosNuevos,
+  ];
 
   // =====================================================
   // LOTES DISPONIBLES
@@ -283,7 +286,7 @@ const crearFilaComercial = () => ({
       setBodegaDestino(destination ? `BODEGA:${destination}` : "");
       setLocalidadDestino(bodegas.find((item) => item.code === destination)?.locationId || "");
     }
-    setPlaca(data.vehicle_plate || ""); setPiloto(data.driver_name || ""); setLotes([...grouped.values()]);
+    setPlaca(data.vehicle_plate || ""); setPiloto(data.driver_id ? String(data.driver_id) : ""); setLotes([...grouped.values()]);
   } catch (error) { alert(error.message); } };
 
   useEffect(() => { cargarSiguienteEnvio(); }, []);
@@ -781,13 +784,13 @@ const calcularSubTotal = (
       !nuevoPiloto.trim()
     ) return;
 
-    try { await post("/personal", { codigo: `PIL-${Date.now().toString().slice(-6)}`, nombreCompleto: nuevoPiloto, roles: ["DRIVER"] }); }
+    try {
+      const saved = await post("/personal", { codigo: `PIL-${Date.now().toString().slice(-6)}`, nombreCompleto: nuevoPiloto, roles: ["DRIVER"] });
+      const nuevo = { value: String(saved?.id || nuevoPiloto), label: saved?.fullName || saved?.nombreCompleto || nuevoPiloto };
+      setPilotosNuevos((current) => [...current, nuevo]);
+      setPiloto(nuevo.value);
+    }
     catch (error) { alert(error.message); return; }
-    setPilotosNuevos((current) => [...current, nuevoPiloto]);
-
-    setPiloto(
-      nuevoPiloto
-    );
 
     setNuevoPiloto("");
 
@@ -850,7 +853,7 @@ const calcularSubTotal = (
           ? clientesDestino.find((item) => String(item.id) === String(clienteDestino))?.commercialName
           : (destinoBodega || undefined),
         placa: placa || undefined,
-        piloto: piloto || undefined, detalles }, editingId);
+        pilotoId: piloto || undefined, detalles }, editingId);
       alert(editingId ? "Egreso actualizado correctamente" : `Egreso ${egreso} registrado correctamente`);
       const now = new Date();
       setFecha(now.toISOString().split("T")[0]); setHora(now.toTimeString().slice(0, 5));
@@ -1642,13 +1645,13 @@ const calcularSubTotal = (
               </option>
 
               {pilotos.map(
-                (p, i) => (
+                (p) => (
 
                   <option
-                    key={i}
-                    value={p}
+                    key={p.value}
+                    value={p.value}
                   >
-                    {p}
+                    {p.label}
                   </option>
 
                 )
