@@ -830,7 +830,16 @@ async function listarExistenciasHuevos(req, res, next) {
         WHERE l.organization_id=$1 AND l.product_id=$2
           AND ($3::uuid IS NULL OR COALESCE(d.source_warehouse_id,d.destination_warehouse_id)=$3 OR (d.source_warehouse_id IS NULL AND d.destination_warehouse_id IS NULL))`,
         [orgId, product.id, warehouseId]);
-      return { ...row, available_units: Number(stock.rows[0]?.available_units || 0) };
+      const availableUnits = Number(stock.rows[0]?.available_units || 0);
+      return {
+        ...row,
+        available_units: availableUnits,
+        available_boxes_trays_336: availableUnits,
+        available_boxes_cartons_360: availableUnits,
+        available_trays_84: availableUnits,
+        available_cartons_30: availableUnits,
+        available_loose_units: availableUnits,
+      };
     }));
     res.json(productRows);
   } catch (error) { next(error); }
