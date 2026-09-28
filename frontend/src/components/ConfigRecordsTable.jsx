@@ -40,7 +40,12 @@ const compareLoteDesc = (left, right) => {
   return rightValue.localeCompare(leftValue, "es", { numeric: true, sensitivity: "base" });
 };
 
-const isBrownNickRow = (row) => /^BL/i.test(loteValue(row).trim());
+const isBrownNickRow = (row) => {
+  const lot = loteValue(row).trim();
+  if (/^BL/i.test(lot)) return true;
+  return [row.egg_colors, row.color, row.product_descriptions, row.product_name, row.productName]
+    .some((value) => normalize(value).includes("rojo"));
+};
 const brownNickRowStyle = { background: "#fdecec", boxShadow: "inset 4px 0 0 #e57373" };
 
 export default function ConfigRecordsTable({

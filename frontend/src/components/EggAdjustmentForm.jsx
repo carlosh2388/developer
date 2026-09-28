@@ -241,12 +241,12 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
       {movementType === "ADJUSTMENT_OUT" && effectiveClass === "COMERCIAL" && <label>Color<select style={inputStyle} value={color} onChange={(e) => { setColor(e.target.value); setStock({}); setRows([emptyRow()]); }}>
         <option value="">Seleccione</option><option value="Blanco">Blanco</option><option value="Rojo">Rojo</option>
       </select></label>}
-      {needsFlock && <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", minWidth: 0 }}>
-        <label style={{ flex: 1, minWidth: 0 }}># Lote<select style={inputStyle} value={flock} onChange={(e) => setFlock(e.target.value)}>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", minWidth: 0 }}>
+        {needsFlock && <label style={{ flex: 1, minWidth: 0 }}># Lote<select style={inputStyle} value={flock} onChange={(e) => setFlock(e.target.value)}>
           <option value="">Seleccione</option>{visibleFlocks.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-        </select></label>
+        </select></label>}
         <button type="button" aria-label="Agregar fila" onClick={addRow} style={{ padding: "8px 12px", minWidth: "38px", flexShrink: 0, border: "1px solid #0d6efd", borderRadius: "4px", background: "#0d6efd", color: "#fff", cursor: "pointer", fontWeight: 700 }}>+</button>
-      </div>}
+      </div>
     </div>
     <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}><colgroup><col style={{ width: "240px" }}/><col/><col style={{ width: "110px" }}/><col/><col/><col style={{ width: "80px" }}/></colgroup><thead><tr style={{ background: "#f1f5f9" }}>
       <th>Tamaño</th><th>Presentación</th><th>Existencia</th><th>Cantidad</th><th>Razón o Justificación</th><th>Acción</th>
