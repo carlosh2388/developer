@@ -811,6 +811,20 @@ const calcularSubTotal = (
       if (lotes.some((item) => !item.clasificacion)) throw new Error("Selecciona la clasificación.");
       if (lotes.some((item) => item.clasificacion === "Incubable" && !item.lote)) throw new Error("Selecciona el lote para la clasificación Incubable.");
       if (lotes.some((item) => item.clasificacion === "Comercial" && !item.color)) throw new Error("Selecciona el color para la clasificación Comercial.");
+      for (let loteIndex = 0; loteIndex < lotes.length; loteIndex += 1) {
+        const item = lotes[loteIndex];
+        const source = item.clasificacion === "Comercial" ? item.comercial : item.incubadora;
+        for (const [calidad, datos] of Object.entries(source || {})) {
+          const total = item.clasificacion === "Comercial" ? totalFilaComercial(datos) : totalFilaIncubadora(datos);
+          const existencia = Number(datos.existencias || 0);
+          if (total > existencia) {
+            const producto = item.clasificacion === "Comercial"
+              ? `${item.color || "Sin color"} ${calidad}`
+              : `${item.lote || "Sin lote"} - ${calidad}`;
+            throw new Error(`Inventario insuficiente en la fila ${loteIndex + 1}, producto ${producto}. Solicitado: ${total}. Existencia disponible: ${existencia}.`);
+          }
+        }
+      }
       const detalles = lotes.flatMap((item) => {
         const source = item.clasificacion === "Comercial" ? item.comercial : item.incubadora;
         return Object.entries(source || {}).map(([calidad, datos]) => ({
@@ -845,9 +859,7 @@ const calcularSubTotal = (
       setPiloto(""); setNuevoPiloto(""); setMostrarNuevoPiloto(false);
       setLotes([crearLote()]); setEditingId(null);
       await cargarSiguienteEnvio();
-    } catch (error) {
-      alert(error.code === "INSUFFICIENT_EGG_STOCK" ? "Inventario insuficiente para operar egresos." : error.message);
-    }
+    } catch (error) { alert(error.message); }
   };
 
   // =====================================================

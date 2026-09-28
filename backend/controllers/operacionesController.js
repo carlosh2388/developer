@@ -745,7 +745,13 @@ async function crearMovimientoHuevos(req, res, next) {
                   AND ($6::uuid IS NULL OR l.product_id=$6)`,
               [orgId, flockId, gradeId, req.params.id || null, sourceWarehouseId, commercialMovement ? eggProduct.id : null]);
           existingUnits = Number(balance.rows[0].available_units || 0);
-          if (requestedUnits > existingUnits) throw new HttpError(409, "Inventario insuficiente para operar egresos.", "INSUFFICIENT_EGG_STOCK");
+          if (requestedUnits > existingUnits) {
+            const reference = commercialMovement ? `color ${commercialColor.label || "sin color"}` : `lote ${flockCode || "sin lote"}`;
+            throw new HttpError(409,
+              `Inventario insuficiente en detalle ${index + 1}: producto ${eggProduct.description || eggProduct.name}, ` +
+              `clasificacion ${grade.label}, ${reference}. Solicitado: ${requestedUnits}. Existencia disponible: ${existingUnits}.`,
+              "INSUFFICIENT_EGG_STOCK");
+          }
         }
         const line = await client.query(
           `INSERT INTO egg_movement_lines(organization_id,movement_id,flock_id,quality_grade_id,product_id,collector_id,classifier_id,existing_units,boxes_trays_336,boxes_cartons_360,trays_84,cartons_30,loose_units,total_weight_grams,line_number)
