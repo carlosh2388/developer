@@ -17,6 +17,12 @@ const warehouseClass = (warehouse) => {
   if (name.includes("HUEVO INCUBABLE")) return "INCUBABLE";
   return "";
 };
+const eggColorFromFlock = (value) => {
+  const text = normalize(value);
+  if (text.startsWith("BL")) return "Rojo";
+  if (text.startsWith("SL")) return "Blanco";
+  return "";
+};
 
 const presentations = {
   cajasBandejas336: { label: "Caja de Bandejas 336", factor: 336, stockKey: "available_boxes_trays_336" },
@@ -137,15 +143,16 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
   };
 
   useEffect(() => {
-    if (!warehouse || !effectiveClass || (needsFlock && !flock) || (movementType === "ADJUSTMENT_OUT" && effectiveClass === "COMERCIAL" && !color)) { setStock({}); return; }
+    const queryColor = effectiveClass === "COMERCIAL" ? (color || eggColorFromFlock(flock)) : "";
+    if (!warehouse || !effectiveClass || (needsFlock && !flock) || (effectiveClass === "COMERCIAL" && !queryColor)) { setStock({}); return; }
     const query = new URLSearchParams({ clasificacion: apiEggClass(effectiveClass), bodega: warehouse });
     if (needsFlock) query.set("lote", flock);
-    if (movementType === "ADJUSTMENT_OUT" && effectiveClass === "COMERCIAL") query.set("color", color);
+    if (effectiveClass === "COMERCIAL") query.set("color", queryColor);
     query.set("inventario", "productos");
     api(`/huevos/existencias?${query}`).then((items) => setStock(Object.fromEntries(
       items.map((item) => [item.grade_code, item]))))
       .catch((e) => alert(e.message));
-  }, [warehouse, effectiveClass, flock, needsFlock, color, movementType]);
+  }, [warehouse, effectiveClass, flock, needsFlock, color]);
 
   useEffect(() => {
     if (initialData) return;
@@ -202,7 +209,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
         detalles: rows.map((row) => ({
           lote: needsFlock ? flock : undefined,
           clasificacion: row.grade, existencia: Number(stock[row.grade]?.available_units || 0),
-          color: movementType === "ADJUSTMENT_OUT" && effectiveClass === "COMERCIAL" ? color : undefined,
+          color: effectiveClass === "COMERCIAL" ? (color || eggColorFromFlock(flock)) : undefined,
           cajasBandejas336: row.presentation === "cajasBandejas336" ? Number(row.quantity) : 0,
           cajasCartones360: row.presentation === "cajasCartones360" ? Number(row.quantity) : 0,
           bandejas84: row.presentation === "bandejas84" ? Number(row.quantity) : 0,
