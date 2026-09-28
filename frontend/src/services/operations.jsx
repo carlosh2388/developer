@@ -69,12 +69,26 @@ const eggGradeCodes = {
   "Con Sangre (Nido)": "COM_BLOOD_NEST", "Sucio (Piso)": "COM_DIRTY_FLOOR", "Quebrado (Piso)": "COM_BROKEN_FLOOR",
   "Bueno (Piso)": "COM_GOOD_FLOOR",
 };
+const cleanEggLabel = (value) => String(value || "")
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .replace(/ÃƒÂ±|Ã±/g, "n")
+  .replace(/ÃƒÂ¡|Ã¡/g, "a")
+  .toLowerCase();
+const normalizedEggGradeCodes = Object.fromEntries(Object.entries(eggGradeCodes).map(([label, code]) => [cleanEggLabel(label), code]));
+normalizedEggGradeCodes[cleanEggLabel("Pequeño (Nido)")] = "INC_SMALL_NEST";
+normalizedEggGradeCodes[cleanEggLabel("Pálido Rojo (Nido)")] = "COM_PALE_RED_NEST";
 
 export function eggGradeCode(label, type = "") {
   if (label === "Mixto") return type === "Comercial" ? "COM_MIXED" : "INC_MIXED";
   if (eggGradeCodes[label]) {
     if ((label === "Pequeño (Nido)" || label === "PequeÃ±o (Nido)") && type === "Comercial") return "COM_SMALL_NEST";
     return eggGradeCodes[label];
+  }
+  const normalizedCode = normalizedEggGradeCodes[cleanEggLabel(label)];
+  if (normalizedCode) {
+    if (normalizedCode === "INC_SMALL_NEST" && type === "Comercial") return "COM_SMALL_NEST";
+    return normalizedCode;
   }
   return label;
 }
@@ -84,6 +98,7 @@ labelByEggGrade.INC_SMALL_NEST = "Pequeño (Nido)";
 labelByEggGrade.COM_SMALL_NEST = "Pequeño (Nido)";
 labelByEggGrade.INC_MIXED = "Mixto";
 labelByEggGrade.COM_MIXED = "Mixto";
+labelByEggGrade.COM_PALE_RED_NEST = "Pálido Rojo (Nido)";
 export function eggGradeLabel(code) { return labelByEggGrade[code] || code; }
 
 export function eggPackageDetail(row = {}) {
