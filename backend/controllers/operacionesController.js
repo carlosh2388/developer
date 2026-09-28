@@ -133,7 +133,7 @@ const eggSizeTerms = (grade) => {
   if (text.includes("broken") || text.includes("quebrado")) return withLocation(["quebrado"]);
   if (text.includes("pale") || text.includes("palido")) return ["palido"];
   if (text.includes("blood") || text.includes("sangre")) return ["sangre"];
-  if (text.includes("good") || text.includes("bueno")) return withLocation(["bueno"]);
+  if (text.includes("good") || text.includes("bueno")) return ["bueno"];
   return withLocation(["otros"], true);
 };
 
