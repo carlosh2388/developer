@@ -776,7 +776,8 @@ async function listarExistenciasHuevos(req, res, next) {
     const orgId = organizationId(req);
     const lote = req.query.lote;
     const bodega = req.query.bodega;
-    const comercial = String(req.query.clasificacion || "").toUpperCase() === "COMERCIAL";
+    const requestedClass = String(req.query.clasificacion || "").toUpperCase();
+    const comercial = requestedClass === "COMERCIAL" || requestedClass === "COMMERCIAL";
     const color = eggColorFromInput(req.query.color).label;
     const useProductInventory = String(req.query.inventario || "").toUpperCase() === "PRODUCTOS";
     if (!lote && !comercial) required(lote, "lote");
