@@ -224,11 +224,14 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
   };
 
   const inputStyle = useMemo(() => ({ width: "100%", padding: "7px", border: "1px solid #ccc", borderRadius: "4px" }), []);
+  const headerGridColumns = movementType === "ADJUSTMENT_OUT" && effectiveClass === "COMERCIAL"
+    ? "minmax(130px, 1fr) minmax(130px, 1fr) minmax(170px, 1.2fr) minmax(120px, 0.8fr) 46px"
+    : "repeat(4, minmax(150px, 1fr))";
   return <form onSubmit={save}>
     <p style={{ padding: "10px", background: "#fff3cd", borderRadius: "5px" }}>
       Este tipo de ajustes es especial y diferente a los demás tipos, no se puede combinar
     </p>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(150px, 1fr))", gap: "10px", marginBottom: "16px" }}>
+    <div style={{ display: "grid", gridTemplateColumns: headerGridColumns, gap: "10px", marginBottom: "16px", alignItems: "end" }}>
       <label>Clasificación<select style={inputStyle} value={classification} onChange={(e) => handleClassificationChange(e.target.value)}>
         <option value="">Seleccione</option><option value="INCUBABLE">Incubable</option><option value="COMERCIAL">Comercial</option>
       </select></label>

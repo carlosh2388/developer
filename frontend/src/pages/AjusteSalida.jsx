@@ -210,10 +210,10 @@ function AjusteSalida() {
     }
   };
 
-  return (<OperationPanel maxWidth={1000}><AjusteSalidaRecords onEditInventory={cargarEdicion} onEditEgg={cargarEdicionHuevo}/>
+  return (<OperationPanel maxWidth={1150}><AjusteSalidaRecords onEditInventory={cargarEdicion} onEditEgg={cargarEdicionHuevo}/>
     <div
       style={{
-        maxWidth: "1000px",
+        maxWidth: "1150px",
         margin: "0 auto",
         padding: "20px",
         fontFamily: "Arial"
