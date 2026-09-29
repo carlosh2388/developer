@@ -162,6 +162,18 @@ async function resolveEggProduct(client, orgId, grade, flockCode, requestedColor
   return { ...match, color: color.label, description: matchHasColor ? match.name : [color.label, match.name].filter(Boolean).join(" ") };
 }
 
+async function eggProductStock(client, orgId, productId, warehouseId) {
+  const { rows } = await client.query(`SELECT COALESCE(SUM(CASE WHEN d.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.quantity ELSE -l.quantity END)
+      FILTER (WHERE d.status='POSTED'),0)::BIGINT AS available_units
+    FROM inventory_document_lines l
+    JOIN inventory_documents d ON d.id=l.document_id AND d.organization_id=l.organization_id
+    WHERE l.organization_id=$1 AND l.product_id=$2
+      AND ($3::uuid IS NULL OR d.source_warehouse_id=$3 OR d.destination_warehouse_id=$3 OR (d.source_warehouse_id IS NULL AND d.destination_warehouse_id IS NULL))`,
+    [orgId, productId, warehouseId]
+  );
+  return Number(rows[0]?.available_units || 0);
+}
+
 async function resolveDefaultEggWarehouse(client, orgId) {
   const { rows } = await client.query(
     `SELECT w.id FROM warehouses w
@@ -823,14 +835,7 @@ async function listarExistenciasHuevos(req, res, next) {
         if (error.code !== "EGG_PRODUCT_NOT_FOUND") throw error;
         return { ...row, available_units: 0 };
       }
-      const stock = await db.query(`SELECT COALESCE(SUM(CASE WHEN d.movement_type IN ('INPUT','ADJUSTMENT_IN') THEN l.quantity ELSE -l.quantity END)
-          FILTER (WHERE d.status='POSTED'),0)::BIGINT AS available_units
-        FROM inventory_document_lines l
-        JOIN inventory_documents d ON d.id=l.document_id AND d.organization_id=l.organization_id
-        WHERE l.organization_id=$1 AND l.product_id=$2
-          AND ($3::uuid IS NULL OR COALESCE(d.source_warehouse_id,d.destination_warehouse_id)=$3 OR (d.source_warehouse_id IS NULL AND d.destination_warehouse_id IS NULL))`,
-        [orgId, product.id, warehouseId]);
-      const availableUnits = Number(stock.rows[0]?.available_units || 0);
+      const availableUnits = await eggProductStock(db, orgId, product.id, warehouseId);
       return {
         ...row,
         available_units: availableUnits,
