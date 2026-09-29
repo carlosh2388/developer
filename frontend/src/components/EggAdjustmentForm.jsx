@@ -101,7 +101,8 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
   const selectedWarehouse = bodegas.find((item) => String(item.code) === String(warehouse) || String(item.id) === String(warehouse));
   const effectiveClass = warehouseClass(selectedWarehouse) || classification;
   const classGrades = grades.filter((item) => normalizeEggClass(item.egg_class) === effectiveClass);
-  const needsFlock = effectiveClass === "INCUBABLE" || movementType === "ADJUSTMENT_IN";
+  const isCommercial = effectiveClass === "COMERCIAL";
+  const needsFlock = effectiveClass === "INCUBABLE";
   const flockOptions = opciones("lotes");
   const visibleFlocks = flock && !flockOptions.some((item) => String(item.value) === String(flock))
     ? [...flockOptions, { value: flock, label: flock }]
@@ -143,16 +144,16 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
   };
 
   useEffect(() => {
-    const queryColor = effectiveClass === "COMERCIAL" ? (color || eggColorFromFlock(flock)) : "";
-    if (!warehouse || !effectiveClass || (needsFlock && !flock) || (effectiveClass === "COMERCIAL" && !queryColor)) { setStock({}); return; }
+    const queryColor = isCommercial ? color : "";
+    if (!warehouse || !effectiveClass || (needsFlock && !flock) || (isCommercial && !queryColor)) { setStock({}); return; }
     const query = new URLSearchParams({ clasificacion: apiEggClass(effectiveClass), bodega: warehouse });
     if (needsFlock) query.set("lote", flock);
-    if (effectiveClass === "COMERCIAL") query.set("color", queryColor);
+    if (isCommercial) query.set("color", queryColor);
     query.set("inventario", "productos");
     api(`/huevos/existencias?${query}`).then((items) => setStock(Object.fromEntries(
       items.map((item) => [item.grade_code, item]))))
       .catch((e) => alert(e.message));
-  }, [warehouse, effectiveClass, flock, needsFlock, color]);
+  }, [warehouse, effectiveClass, flock, needsFlock, color, isCommercial]);
 
   useEffect(() => {
     if (initialData) return;
@@ -193,7 +194,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
     event.preventDefault();
     if (!location || !warehouse || !effectiveClass) return alert("Selecciona clasificación, localidad y bodega.");
     if (needsFlock && !flock) return alert("Selecciona el lote.");
-    if (movementType === "ADJUSTMENT_OUT" && effectiveClass === "COMERCIAL" && !color) return alert("Selecciona el color.");
+    if (isCommercial && !color) return alert("Selecciona el color.");
     if (rows.some((row) => !isRowComplete(row))) {
       return alert("Completa tamaño, presentación, cantidad entera positiva y razón o justificación.");
     }
@@ -209,7 +210,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
         detalles: rows.map((row) => ({
           lote: needsFlock ? flock : undefined,
           clasificacion: row.grade, existencia: Number(stock[row.grade]?.available_units || 0),
-          color: effectiveClass === "COMERCIAL" ? (color || eggColorFromFlock(flock)) : undefined,
+          color: isCommercial ? color : undefined,
           cajasBandejas336: row.presentation === "cajasBandejas336" ? Number(row.quantity) : 0,
           cajasCartones360: row.presentation === "cajasCartones360" ? Number(row.quantity) : 0,
           bandejas84: row.presentation === "bandejas84" ? Number(row.quantity) : 0,
@@ -224,7 +225,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
   };
 
   const inputStyle = useMemo(() => ({ width: "100%", padding: "7px", border: "1px solid #ccc", borderRadius: "4px" }), []);
-  const headerGridColumns = movementType === "ADJUSTMENT_OUT" && effectiveClass === "COMERCIAL"
+  const headerGridColumns = isCommercial
     ? "minmax(130px, 1fr) minmax(130px, 1fr) minmax(170px, 1.2fr) minmax(120px, 0.8fr) 46px"
     : "repeat(4, minmax(150px, 1fr))";
   return <form onSubmit={save}>
@@ -241,7 +242,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
       <label>Bodega<select style={inputStyle} value={warehouse} disabled={!location || !classification} onChange={(e) => handleWarehouseChange(e.target.value)}>
         <option value="">Seleccione</option>{warehouses.filter((item) => warehouseClass(item) === classification).map((item) => <option key={item.id} value={item.code}>{item.name}</option>)}
       </select></label>
-      {movementType === "ADJUSTMENT_OUT" && effectiveClass === "COMERCIAL" && <label>Color<select style={inputStyle} value={color} onChange={(e) => { setColor(e.target.value); setStock({}); setRows([emptyRow()]); }}>
+      {isCommercial && <label>Color<select style={inputStyle} value={color} onChange={(e) => { setColor(e.target.value); setStock({}); setRows([emptyRow()]); }}>
         <option value="">Seleccione</option><option value="Blanco">Blanco</option><option value="Rojo">Rojo</option>
       </select></label>}
       <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", minWidth: 0 }}>
@@ -254,7 +255,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
     <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}><colgroup><col style={{ width: "240px" }}/><col/><col style={{ width: "110px" }}/><col/><col/><col style={{ width: "80px" }}/></colgroup><thead><tr style={{ background: "#f1f5f9" }}>
       <th>Tamaño</th><th>Presentación</th><th>Existencia</th><th>Cantidad</th><th>Razón o Justificación</th><th>Acción</th>
     </tr></thead><tbody>{rows.map((row) => {
-      const allowed = effectiveClass === "COMERCIAL" ? commercialPresentation(row.grade) : Object.keys(presentations);
+      const allowed = isCommercial ? commercialPresentation(row.grade) : Object.keys(presentations);
       return <tr key={row.id}>
         <td><select style={{ ...inputStyle, minWidth: "220px" }} value={row.grade} onChange={(e) => updateRow(row.id, "grade", e.target.value)}><option value="">Seleccione</option>{classGrades.map((item) => <option key={item.id} value={item.code}>{gradeDisplayLabel(item)}</option>)}</select></td>
         <td><select style={inputStyle} value={row.presentation} disabled={!row.grade} onChange={(e) => updateRow(row.id, "presentation", e.target.value)}><option value="">Seleccione</option>{allowed.map((key) => <option key={key} value={key}>{presentations[key].label} (Existencia: {Number(stock[row.grade]?.[presentations[key].stockKey] || 0)})</option>)}</select></td>
