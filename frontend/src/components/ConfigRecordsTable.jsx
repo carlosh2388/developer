@@ -22,19 +22,23 @@ const displayText = (column, row, rowIndex = 0) => {
 };
 
 const loteValue = (row) => text(row.code || row.flock_code || row.flockCode || row.flock_codes || row.flockCodes || row.lote);
-const loteParts = (value) => {
+const sequenceParts = (value) => {
   const match = text(value).trim().toUpperCase().match(/^([A-Z]+)[-\s]*0*([0-9]+)/);
   return match ? { prefix: match[1], number: Number(match[2]) } : { prefix: text(value).toUpperCase(), number: -1 };
 };
 
-const compareLoteDesc = (left, right) => {
-  const leftValue = loteValue(left);
-  const rightValue = loteValue(right);
+const sequenceValue = (row) => text(row.displayNumber || row.document_number || row.movement_number
+  || row.record_number || row.shipment_number || row.code || row.flock_code || row.flockCode
+  || row.flock_codes || row.flockCodes || row.lote || row.id);
+
+const compareSequenceDesc = (left, right) => {
+  const leftValue = sequenceValue(left);
+  const rightValue = sequenceValue(right);
   if (!leftValue && !rightValue) return 0;
   if (!leftValue) return 1;
   if (!rightValue) return -1;
-  const leftParts = loteParts(leftValue);
-  const rightParts = loteParts(rightValue);
+  const leftParts = sequenceParts(leftValue);
+  const rightParts = sequenceParts(rightValue);
   if (leftParts.prefix !== rightParts.prefix) return rightParts.prefix.localeCompare(leftParts.prefix, "es", { numeric: true });
   if (leftParts.number !== rightParts.number) return rightParts.number - leftParts.number;
   return rightValue.localeCompare(leftValue, "es", { numeric: true, sensitivity: "base" });
@@ -63,7 +67,7 @@ export default function ConfigRecordsTable({
   inactiveStatuses = ["INACTIVE"],
   nonEditableStatuses = [],
   buttonStyle,
-  sortRows = compareLoteDesc,
+  sortRows = compareSequenceDesc,
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
