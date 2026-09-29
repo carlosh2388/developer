@@ -5,6 +5,8 @@ import OperationRecordsModal, { inventoryColumns } from "../components/Operation
 import OperationPanel from "../components/OperationPanel";
 import CancelEditButton from "../components/CancelEditButton";
 
+const tiposSinLote = new Set(["Insumos", "Material de Empaque", "Materiales"]);
+
 function EgresoInsumos() {
   const { productosPorTipo, opciones } = useOperationalCatalogs(["productos", "lotes"]);
 
@@ -61,7 +63,7 @@ function EgresoInsumos() {
   const handleChange = (id, campo, value) => {
     setFilas(prev =>
       prev.map(f =>
-        f.id === id ? { ...f, [campo]: value } : f
+        f.id === id ? { ...f, [campo]: value, ...(campo === "tipo" && tiposSinLote.has(value) ? { lotes: [] } : {}) } : f
       )
     );
   };
@@ -143,7 +145,8 @@ function EgresoInsumos() {
 
   const guardar = async (e) => {
     e.preventDefault();
-    const invalidas = filas.filter((fila) => !fila.lotes.length
+    const filasConLote = filas.filter((fila) => !tiposSinLote.has(fila.tipo));
+    const invalidas = filasConLote.filter((fila) => !fila.lotes.length
       || fila.lotes.some((item) => !item.lote || !/^\d+(?:\.\d{1,2})?$/.test(String(item.cantidad)) || Number(item.cantidad) <= 0)
       || Math.abs(fila.lotes.reduce((total, item) => total + Number(item.cantidad || 0), 0) - Number(fila.cantidad)) > 0.0001);
     if (invalidas.length) {
@@ -274,7 +277,9 @@ function EgresoInsumos() {
 
           <tbody>
 
-            {filas.map((fila) => (
+            {filas.map((fila) => {
+              const noRequiereLote = tiposSinLote.has(fila.tipo);
+              return (
 
               <tr key={fila.id}>
 
@@ -313,7 +318,9 @@ function EgresoInsumos() {
                 </td>
 
                 {/* LOTES DINÁMICOS */}
-                <td className={filasSinLote.includes(fila.id) ? "allocation-validation-error" : ""}>
+                <td className={!noRequiereLote && filasSinLote.includes(fila.id) ? "allocation-validation-error" : ""}>
+
+                  {noRequiereLote ? <strong>N/A</strong> : <>
 
                   <button
                     type="button"
@@ -366,6 +373,8 @@ function EgresoInsumos() {
 
                   {filasSinLote.includes(fila.id) && <small className="field-error-message">Selecciona un lote y distribuye la cantidad completa de esta fila.</small>}
 
+                  </>}
+
                 </td>
 
                 {/* ELIMINAR */}
@@ -388,7 +397,7 @@ function EgresoInsumos() {
 
               </tr>
 
-            ))}
+            )})}
 
           </tbody>
 

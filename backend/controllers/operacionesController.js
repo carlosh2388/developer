@@ -282,7 +282,7 @@ function birdWeightStats(samples) {
 function validateOutputAllocations(body, details) {
   if (body.tipoMovimiento !== "OUTPUT" || !["FOOD", "OTHER", "SUPPLIES"].includes(body.modulo)) return;
   const primaryDetails = details.filter((detail) => !Number.isInteger(detail.detallePadreIndice)
-    && !(body.modulo === "OTHER" && ["PRIMARY", "MATERIAL"].includes(detail.rol)));
+    && !(["OTHER", "SUPPLIES"].includes(body.modulo) && ["PRIMARY", "MATERIAL"].includes(detail.rol)));
   const invalid = primaryDetails.some((detail) =>
     !Array.isArray(detail.distribuciones) || (body.modulo === "FOOD" ? detail.distribuciones.length !== 1 : !detail.distribuciones.length)
     || detail.distribuciones.some((allocation) => !(allocation.loteId || allocation.lote))
