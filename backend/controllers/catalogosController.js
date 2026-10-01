@@ -280,8 +280,11 @@ async function nextFlockCode(queryable, orgId, lineId) {
      FROM flocks WHERE organization_id=$1 AND upper(code) LIKE $2 || '%'`,
     [orgId, prefix]
   );
-  const nextNumber = Number(result.rows[0].last_number || 0) + 1;
-  return { line, code: `${prefix}${String(nextNumber).padStart(2, "0")}`, nextNumber };
+  const initialNumbers = { SL: 30, BL: 33 };
+  const initialNumber = initialNumbers[prefix] || 1;
+  const nextNumber = Math.max(Number(result.rows[0].last_number || 0) + 1, initialNumber);
+  const width = initialNumbers[prefix] ? 3 : 2;
+  return { line, code: `${prefix}${String(nextNumber).padStart(width, "0")}`, nextNumber };
 }
 
 async function listarSiguientesLotes(req, res, next) {
