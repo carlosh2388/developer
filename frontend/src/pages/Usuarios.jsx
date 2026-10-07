@@ -88,11 +88,11 @@ export default function Usuarios() {
   async function toggle(user) {
     const status = user.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     if (!(await confirmAction(status === "INACTIVE"
-      ? `Â¿Dar de baja a ${user.full_name}? Sus sesiones se cerrarÃ¡n.`
-      : `Â¿Reactivar el acceso de ${user.full_name}?`, {
+      ? `¿Dar de baja a ${user.full_name}? Sus sesiones se cerrarán.`
+      : `¿Reactivar el acceso de ${user.full_name}?`, {
       title: status === "INACTIVE" ? "Dar de baja usuario" : "Reactivar usuario",
       type: status === "INACTIVE" ? "danger" : "warning",
-      confirmLabel: status === "INACTIVE" ? "SÃ­, dar de baja" : "SÃ­, reactivar",
+      confirmLabel: status === "INACTIVE" ? "Sí, dar de baja" : "Sí, reactivar",
     }))) return;
     try {
       const result = await api(`/usuarios/${user.id}/status`, {
@@ -108,11 +108,11 @@ export default function Usuarios() {
   async function resetPassword(event) {
     event.preventDefault();
     if (passwordForm.password.length < 8) {
-      setMessage({ type: "error", text: "La contraseÃ±a debe tener al menos 8 caracteres." });
+      setMessage({ type: "error", text: "La contraseña debe tener al menos 8 caracteres." });
       return;
     }
     if (passwordForm.password !== passwordForm.confirmation) {
-      setMessage({ type: "error", text: "La confirmaciÃ³n de contraseÃ±a no coincide." });
+      setMessage({ type: "error", text: "La confirmación de contraseña no coincide." });
       return;
     }
     try {
@@ -138,8 +138,8 @@ export default function Usuarios() {
     <div className="page-shell">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">CONFIGURACIÃ“N</p>
-          <h1>AdministraciÃ³n de usuarios</h1>
+          <p className="eyebrow">CONFIGURACIÓN</p>
+          <h1>Administración de usuarios</h1>
           <p>Gestiona accesos, roles y estados de las cuentas.</p>
         </div>
       </div>
@@ -148,7 +148,7 @@ export default function Usuarios() {
       )}
       {quota && <div className="panel quota-summary">
         <strong>{quota.active_users} de {quota.max_users} usuarios activos</strong>
-        <span>La cantidad mÃ¡xima estÃ¡ definida por la licencia del cliente.</span>
+        <span>La cantidad máxima está definida por la licencia del cliente.</span>
       </div>}
       <div className="admin-grid">
         <form className="panel" onSubmit={save}>
@@ -180,11 +180,11 @@ export default function Usuarios() {
               onChange={(e) => setForm({ ...form, username: e.target.value })}
               required
             />
-            <small>Letras, nÃºmeros, punto, guion o guion bajo.</small>
+            <small>Letras, números, punto, guion o guion bajo.</small>
           </label>
           {!editing && (
             <label>
-              ContraseÃ±a temporal
+              Contraseña temporal
               <input
                 type="password"
                 minLength="8"
@@ -192,7 +192,7 @@ export default function Usuarios() {
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 required
               />
-              <small>MÃ­nimo 8 caracteres.</small>
+              <small>Mínimo 8 caracteres.</small>
             </label>
           )}
           <label>
@@ -233,54 +233,29 @@ export default function Usuarios() {
           </div>
           <input value={userSearch} onChange={(e) => setUserSearch(e.target.value)} placeholder="Buscar usuario, rol o estado" style={{ width: "100%", padding: 9, marginBottom: 12, boxSizing: "border-box" }}/>
           {loading ? (
-            <p>Cargando usuariosâ€¦</p>
+            <p>Cargando usuarios...</p>
           ) : (
             <div className="table-scroll">
               <table>
                 <thead>
                   <tr>
-                    <th>Acciones</th>
                     <th>Usuario</th>
                     <th>Rol</th>
                     <th>Empleado</th>
                     <th>Estado</th>
-                    <th>Ãšltimo acceso</th>
+                    <th>Último acceso</th>
+                    <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredUsers.map((u) => (
                     <tr key={u.id}>
                       <td>
-                        <div className="row-actions">
-                          <button type="button" onClick={() => edit(u)}>
-                            Editar
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-secondary"
-                            onClick={() => {
-                              setPasswordUser(u);
-                              setPasswordForm({ password: "", confirmation: "" });
-                            }}
-                          >
-                            ContraseÃ±a
-                          </button>
-                          {u.session_active && <button type="button" className="btn-secondary" onClick={() => closeSession(u)}>Cerrar sesiÃ³n</button>}
-                          <button
-                            type="button"
-                            className={`user-status-action ${u.status === "ACTIVE" ? "deactivate" : "activate"}`}
-                            onClick={() => toggle(u)}
-                          >
-                            {u.status === "ACTIVE" ? "Dar de baja" : "Activar"}
-                          </button>
-                        </div>
-                      </td>
-                      <td>
                         <strong>{u.full_name}</strong>
                         <small>@{u.username}</small>
                       </td>
                       <td>{u.role_name}</td>
-                      <td>{u.personnel_name || "Sin asociaciÃ³n"}</td>
+                      <td>{u.personnel_name || "Sin asociación"}</td>
                       <td>
                         <span className={`badge ${u.status.toLowerCase()}`}>
                           {u.status === "ACTIVE"
@@ -295,6 +270,31 @@ export default function Usuarios() {
                           ? new Date(u.last_login_at).toLocaleString()
                           : "Sin acceso"}
                       </td>
+                      <td>
+                        <div className="row-actions">
+                          <button type="button" onClick={() => edit(u)}>
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => {
+                              setPasswordUser(u);
+                              setPasswordForm({ password: "", confirmation: "" });
+                            }}
+                          >
+                            Contraseña
+                          </button>
+                          {u.session_active && <button type="button" className="btn-secondary" onClick={() => closeSession(u)}>Cerrar sesión</button>}
+                          <button
+                            type="button"
+                            className={`user-status-action ${u.status === "ACTIVE" ? "deactivate" : "activate"}`}
+                            onClick={() => toggle(u)}
+                          >
+                            {u.status === "ACTIVE" ? "Dar de baja" : "Activar"}
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -307,14 +307,14 @@ export default function Usuarios() {
         <div className="password-modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setPasswordUser(null)}>
           <form className="password-modal" onSubmit={resetPassword}>
             <div className="password-modal-header">
-              <div><p className="eyebrow">SEGURIDAD</p><h2>Cambiar contraseÃ±a</h2></div>
-              <button type="button" className="modal-close" onClick={() => setPasswordUser(null)}>Ã—</button>
+              <div><p className="eyebrow">SEGURIDAD</p><h2>Cambiar contraseña</h2></div>
+              <button type="button" className="modal-close" onClick={() => setPasswordUser(null)}>×</button>
             </div>
             <div className="selected-user"><strong>{passwordUser.full_name}</strong><span>@{passwordUser.username}</span></div>
-            <label>Nueva contraseÃ±a<input type="password" minLength="8" autoComplete="new-password" value={passwordForm.password} onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value })} required /><small>MÃ­nimo 8 caracteres.</small></label>
-            <label>Confirmar contraseÃ±a<input type="password" minLength="8" autoComplete="new-password" value={passwordForm.confirmation} onChange={(e) => setPasswordForm({ ...passwordForm, confirmation: e.target.value })} required /></label>
-            <div className="form-actions"><button type="button" className="btn-secondary" onClick={() => setPasswordUser(null)}>Cancelar</button><button>Actualizar contraseÃ±a</button></div>
-            <p className="modal-note">Las sesiones anteriores del usuario se cerrarÃ¡n automÃ¡ticamente.</p>
+            <label>Nueva contraseña<input type="password" minLength="8" autoComplete="new-password" value={passwordForm.password} onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value })} required /><small>Mínimo 8 caracteres.</small></label>
+            <label>Confirmar contraseña<input type="password" minLength="8" autoComplete="new-password" value={passwordForm.confirmation} onChange={(e) => setPasswordForm({ ...passwordForm, confirmation: e.target.value })} required /></label>
+            <div className="form-actions"><button type="button" className="btn-secondary" onClick={() => setPasswordUser(null)}>Cancelar</button><button>Actualizar contraseña</button></div>
+            <p className="modal-note">Las sesiones anteriores del usuario se cerrarán automáticamente.</p>
           </form>
         </div>
       )}

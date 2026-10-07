@@ -62,18 +62,18 @@ export async function saveInventory({ id, fecha, proveedor, rows, movementType, 
 }
 
 const eggGradeCodes = {
-  "Grande (Nido)": "INC_LARGE_NEST", "Mediano (Nido)": "INC_MEDIUM_NEST", "Pequeño (Nido)": "INC_SMALL_NEST",
-  "PequeÃ±o (Nido)": "INC_SMALL_NEST", "Otros* (Nido)": "INC_OTHER_NEST", "Otros* (Piso)": "INC_OTHER_FLOOR",
+  "Grande (Nido)": "INC_LARGE_NEST", "Mediano (Nido)": "INC_MEDIUM_NEST",
+  "Pequeño (Nido)": "INC_SMALL_NEST", "Otros* (Nido)": "INC_OTHER_NEST", "Otros* (Piso)": "INC_OTHER_FLOOR",
   "Extra-Grande-Mediano (Nido)": "COM_XL_M_NEST", "Pewee (Nido)": "COM_PEEWEE_NEST", "Sucio (Nido)": "COM_DIRTY_NEST",
-  "Quebrado (Nido)": "COM_BROKEN_NEST", "Pálido Rojo (Nido)": "COM_PALE_RED_NEST", "PÃ¡lido Rojo (Nido)": "COM_PALE_RED_NEST",
+  "Quebrado (Nido)": "COM_BROKEN_NEST", "Pálido Rojo (Nido)": "COM_PALE_RED_NEST",
   "Con Sangre (Nido)": "COM_BLOOD_NEST", "Sucio (Piso)": "COM_DIRTY_FLOOR", "Quebrado (Piso)": "COM_BROKEN_FLOOR",
   "Bueno (Piso)": "COM_GOOD_FLOOR",
 };
 const cleanEggLabel = (value) => String(value || "")
   .normalize("NFD")
   .replace(/[\u0300-\u036f]/g, "")
-  .replace(/ÃƒÂ±|Ã±/g, "n")
-  .replace(/ÃƒÂ¡|Ã¡/g, "a")
+  .replace(/\u00c3\u0192\u00c2\u00b1|\u00c3\u00b1/g, "n")
+  .replace(/\u00c3\u0192\u00c2\u00a1|\u00c3\u00a1/g, "a")
   .toLowerCase();
 const normalizedEggGradeCodes = Object.fromEntries(Object.entries(eggGradeCodes).map(([label, code]) => [cleanEggLabel(label), code]));
 normalizedEggGradeCodes[cleanEggLabel("Pequeño (Nido)")] = "INC_SMALL_NEST";
@@ -82,7 +82,7 @@ normalizedEggGradeCodes[cleanEggLabel("Pálido Rojo (Nido)")] = "COM_PALE_RED_NE
 export function eggGradeCode(label, type = "") {
   if (label === "Mixto") return type === "Comercial" ? "COM_MIXED" : "INC_MIXED";
   if (eggGradeCodes[label]) {
-    if ((label === "Pequeño (Nido)" || label === "PequeÃ±o (Nido)") && type === "Comercial") return "COM_SMALL_NEST";
+    if (cleanEggLabel(label) === cleanEggLabel("Pequeño (Nido)") && type === "Comercial") return "COM_SMALL_NEST";
     return eggGradeCodes[label];
   }
   const normalizedCode = normalizedEggGradeCodes[cleanEggLabel(label)];
