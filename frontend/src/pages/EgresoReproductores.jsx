@@ -117,15 +117,18 @@ function EgresoReproductores() {
   // GUARDAR
   // =========================
 
+  const RequiredMark = () => <span style={{ color: "#d32f2f", marginLeft: "4px" }} aria-label="obligatorio">*</span>;
+  const RequiredLabel = ({ children }) => <label>{children}<RequiredMark /></label>;
+
   const guardar = async () => {
-    const reasons = { "Error de Sexado": "SEXING_ERROR", Mortandad: "MORTALITY", "Selección": "SELECTION", "SelecciÃ³n": "SELECTION", Venta: "SALE" };
     try {
+      if (!fecha) throw new Error("Completa la fecha del egreso.");
       const invalida = filas.find((fila) => !fila.lote || !fila.tipo
         || !/^\d+$/.test(String(fila.hembras || "0")) || !/^\d+$/.test(String(fila.machos || "0"))
         || Number(fila.hembras || 0) + Number(fila.machos || 0) <= 0);
-      if (invalida) throw new Error("Completa lote y tipo; Hembras y Machos deben ser enteros sin negativos y el subtotal debe ser mayor que cero.");
+      if (invalida) throw new Error("Completa los campos obligatorios. Hembras y Machos deben ser enteros sin negativos y el Sub-Total debe ser mayor que cero.");
       await saveOperation("/reproductores/egresos", { fecha,
-        detalles: filas.map((fila) => ({ lote: fila.lote, motivo: reasons[fila.tipo] || fila.tipo,
+        detalles: filas.map((fila) => ({ lote: fila.lote, motivo: fila.tipo,
           hembras: Number(fila.hembras || 0), machos: Number(fila.machos || 0), observacion: fila.observacionEnvio })) }, editingId);
       alert(editingId ? "Egreso actualizado correctamente" : "Egreso registrado correctamente");
       setFilas([{ hembras: "", machos: "", subtotal: 0, lote: "", tipo: "", observacionEnvio: "" }]);
@@ -178,7 +181,7 @@ function EgresoReproductores() {
 
       <div style={rowStyle}>
         <div style={{ flex: 1 }}>
-          <label>Fecha</label>
+          <RequiredLabel>Fecha</RequiredLabel>
 
           <input
             type="date"
@@ -186,6 +189,7 @@ function EgresoReproductores() {
             onChange={(e) =>
               setFecha(e.target.value)
             }
+            required
             style={inputStyle}
           />
         </div>
@@ -230,13 +234,15 @@ function EgresoReproductores() {
           {/* HEMBRAS */}
 
           <div style={{ flex: 0.375 }}>
-            <label>Hembras</label>
+            <RequiredLabel>Hembras</RequiredLabel>
 
             <input
               type="number"
               min="0"
               step="1"
               value={fila.hembras}
+              required
+              aria-required="true"
               onKeyDown={(e) => {
                 if (["-", "+", ".", ",", "e", "E"].includes(e.key)) e.preventDefault();
               }}
@@ -254,13 +260,15 @@ function EgresoReproductores() {
           {/* MACHOS */}
 
           <div style={{ flex: 0.375 }}>
-            <label>Machos</label>
+            <RequiredLabel>Machos</RequiredLabel>
 
             <input
               type="number"
               min="0"
               step="1"
               value={fila.machos}
+              required
+              aria-required="true"
               onKeyDown={(e) => {
                 if (["-", "+", ".", ",", "e", "E"].includes(e.key)) e.preventDefault();
               }}
@@ -278,7 +286,7 @@ function EgresoReproductores() {
           {/* SUBTOTAL */}
 
           <div style={{ flex: 0.5 }}>
-            <label>Sub-Total</label>
+            <RequiredLabel>Sub-Total</RequiredLabel>
 
             <input
               value={fila.subtotal}
@@ -290,7 +298,7 @@ function EgresoReproductores() {
           {/* LOTE */}
 
           <div style={{ flex: 1 }}>
-            <label># Lote</label>
+            <RequiredLabel># Lote</RequiredLabel>
 
             <select
               value={fila.lote}
@@ -301,6 +309,8 @@ function EgresoReproductores() {
                   e.target.value
                 )
               }
+              required
+              aria-required="true"
               style={inputStyle}
             >
               <option value="">
@@ -314,7 +324,7 @@ function EgresoReproductores() {
           {/* TIPO POR LÍNEA */}
 
           <div style={{ flex: 1 }}>
-            <label>Tipo</label>
+            <RequiredLabel>Tipo</RequiredLabel>
 
             <select
               value={fila.tipo}
@@ -325,6 +335,8 @@ function EgresoReproductores() {
                   e.target.value
                 )
               }
+              required
+              aria-required="true"
               style={inputStyle}
             >
               <option value="">

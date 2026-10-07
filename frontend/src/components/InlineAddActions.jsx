@@ -11,10 +11,10 @@ function InlineAddActions({ onSave, onCancel }) {
 
   return (
     <div className="inline-add-actions" style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-      <button type="button" onClick={onSave} style={{ ...baseStyle, backgroundColor: "#1976d2" }}>
+      <button type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); onSave?.(event); }} style={{ ...baseStyle, backgroundColor: "#1976d2" }}>
         Guardar
       </button>
-      <button type="button" onClick={onCancel} style={{ ...baseStyle, backgroundColor: "#c62828" }}>
+      <button type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); onCancel?.(event); }} style={{ ...baseStyle, backgroundColor: "#c62828" }}>
         Cancelar
       </button>
     </div>

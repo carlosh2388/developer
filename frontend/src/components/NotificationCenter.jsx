@@ -50,15 +50,6 @@ function validateBeforeSave(container) {
   fields.filter((field) => field.required && !String(field.value || "").trim())
     .forEach((field) => missing.set(field, "Este campo es obligatorio."));
 
-  container.querySelectorAll("label").forEach((label) => {
-    const nested = label.querySelector("input:not([type=hidden]),select,textarea");
-    const sibling = label.nextElementSibling?.matches?.("input:not([type=hidden]),select,textarea") ? label.nextElementSibling : null;
-    const field = nested || sibling;
-    if (!field || field.disabled || field.readOnly || field.offsetParent === null || field.closest(".records-dialog")) return;
-    if (!field.required && /\bopcional\b/i.test(label.textContent || "")) return;
-    if (!String(field.value || "").trim()) missing.set(field, "Completa este campo antes de guardar.");
-  });
-
   container.querySelectorAll("tbody tr,.other-income-row").forEach((row) => {
     const direct = [...row.querySelectorAll(":scope > td > input:not([readonly]),:scope > td > select,:scope > input:not([readonly]),:scope > select")]
       .filter((field) => !field.disabled && field.offsetParent !== null);

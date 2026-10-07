@@ -560,7 +560,8 @@ function Productos() {
         { key: "code", label: "Código" }, { key: "productType", label: "Tipo", render: (value) =>
           (referencias.PRODUCT_TYPE || []).find((item) => item.valueCode === value)?.label || ({ AD: "Aditivo", AL: "Alimento", HC: "Huevo comercial", HI: "Huevo incubable", IN: "Insumo", ME: "Material de Empaque", MD: "Medicamento", VA: "Vacuna" }[value] || value)
         }, { key: "name", label: "Producto" },
-        { key: "unitCode", label: "Unidad" }, { key: "currentStock", label: "Existencia actual", render: (value) => Number(value || 0).toLocaleString("es-GT", { maximumFractionDigits: 0 }) },
+        { key: "unitCode", label: "Unidad", render: (value, row) => row.unitLabel || (referencias.UNIT || []).find((item) => item.valueCode === value)?.label || value },
+        { key: "currentStock", label: "Existencia actual", render: (value) => Number(value || 0).toLocaleString("es-GT", { maximumFractionDigits: 0 }) },
         { key: "standardCost", label: "Costo" }, { key: "salePrice", label: "Precio", render: (value) => Number(value || 0).toFixed(2) }, { key: "status", label: "Estado" },
       ]} onEdit={(row) => {
         setEditingId(row.id); setTipoInventario(row.productType); setIdProducto(row.code); setNombre(row.name);

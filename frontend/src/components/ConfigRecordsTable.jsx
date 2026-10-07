@@ -115,6 +115,32 @@ export default function ConfigRecordsTable({
 
   const control = { padding: 8, border: "1px solid #ccd5d0", borderRadius: 5, minWidth: 150 };
   const actionsVisible = onEdit || onDeactivate || onActivate;
+  const actionsHeaderStyle = {
+    textAlign: "left",
+    padding: 8,
+    borderBottom: "1px solid #ccc",
+    position: "sticky",
+    left: 0,
+    zIndex: 3,
+    background: "#fff",
+    whiteSpace: "nowrap",
+  };
+  const actionsFilterStyle = {
+    padding: 4,
+    position: "sticky",
+    left: 0,
+    zIndex: 3,
+    background: "#fff",
+  };
+  const actionsCellStyle = {
+    padding: 8,
+    borderBottom: "1px solid #eee",
+    position: "sticky",
+    left: 0,
+    zIndex: 2,
+    background: "#fff",
+    whiteSpace: "nowrap",
+  };
 
   return <>
     <button type="button" onClick={() => setOpen(true)} style={{ position: "absolute", top: 20, right: 20, padding: "9px 16px", border: 0, borderRadius: 6, background: "#1976d2", color: "white", cursor: "pointer", fontWeight: 600, ...buttonStyle }}>Buscar registros</button>
@@ -135,21 +161,21 @@ export default function ConfigRecordsTable({
         {loading ? <p>Cargando registros...</p> : <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr>{columns.map((column) => <th key={column.key} style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #ccc" }}>{column.label}</th>)}{actionsVisible && <th>Acciones</th>}</tr>
-              <tr>{columns.map((column) => <th key={column.key} style={{ padding: 4 }}><input value={filters[column.key] || ""} onChange={(event) => setFilters((current) => ({ ...current, [column.key]: event.target.value }))} placeholder={`Filtrar ${column.label}`} style={{ ...control, width: "100%", minWidth: 110, boxSizing: "border-box" }}/></th>)}{actionsVisible && <th/>}</tr>
+              <tr>{actionsVisible && <th style={actionsHeaderStyle}>Acciones</th>}{columns.map((column) => <th key={column.key} style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #ccc" }}>{column.label}</th>)}</tr>
+              <tr>{actionsVisible && <th style={actionsFilterStyle}/>} {columns.map((column) => <th key={column.key} style={{ padding: 4 }}><input value={filters[column.key] || ""} onChange={(event) => setFilters((current) => ({ ...current, [column.key]: event.target.value }))} placeholder={`Filtrar ${column.label}`} style={{ ...control, width: "100%", minWidth: 110, boxSizing: "border-box" }}/></th>)}</tr>
             </thead>
             <tbody>{visibleRows.map((row, rowIndex) => {
               const realIndex = (page - 1) * pageSize + rowIndex;
               const inactive = inactiveStatuses.includes(row.status);
               const locked = nonEditableStatuses.includes(row.status);
               return <tr key={row.id || realIndex} style={isBrownNickRow(row) ? brownNickRowStyle : undefined}>
-                {columns.map((column) => <td key={column.key} style={{ padding: 8, borderBottom: "1px solid #eee" }}>{displayText(column, row, realIndex)}</td>)}
-                {actionsVisible && <td style={{ whiteSpace: "nowrap" }}>
+                {actionsVisible && <td style={{ ...actionsCellStyle, ...(isBrownNickRow(row) ? { background: "#fdecec" } : {}) }}>
                   {onEdit && !locked && <button type="button" onClick={() => { onEdit(row); setOpen(false); }} style={{ padding: "6px 10px", border: 0, borderRadius: 5, background: "#1976d2", color: "#fff", cursor: "pointer", fontWeight: 600 }}>Editar</button>}{" "}
                   {onDeactivate && !inactive && <button type="button" onClick={() => onDeactivate(row)} style={{ padding: "6px 10px", border: 0, borderRadius: 5, background: "#c62828", color: "#fff", cursor: "pointer", fontWeight: 700 }}>{deactivateLabel}</button>}
                   {onActivate && inactive && !locked && <button type="button" onClick={() => onActivate(row)} style={{ padding: "6px 10px", border: 0, borderRadius: 5, background: "#1b8f4d", color: "#fff", cursor: "pointer", fontWeight: 700 }}>{activateLabel}</button>}
                   {locked && <span className="record-locked-status" title="El registro se conserva para auditoria y no puede modificarse">Sin acciones</span>}
                 </td>}
+                {columns.map((column) => <td key={column.key} style={{ padding: 8, borderBottom: "1px solid #eee" }}>{displayText(column, row, realIndex)}</td>)}
               </tr>;
             })}</tbody>
           </table>
