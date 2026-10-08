@@ -9,13 +9,15 @@ import CancelEditButton from "../components/CancelEditButton";
 function EgresoReproductores() {
   const { opciones } = useOperationalCatalogs(["lotes"]);
   const referencias = useReferenceValues(["BIRD_EXIT_REASON"]);
+  const razonesEgreso = referencias.BIRD_EXIT_REASON || [];
+  const reasonValue = (item) => item.valueCode ?? item.value_code ?? item.code ?? item.label ?? "";
   // =========================
   // STATES
   // =========================
 
   const [fecha, setFecha] = useState("");
   const [editingId, setEditingId] = useState(null);
-  const cargarEdicion = async (row) => { try { const data = await api(`/reproductores/egresos/${row.id}`); setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setFilas(data.detalles.map((item) => ({ hembras: String(item.female_count), machos: String(item.male_count), subtotal: Number(item.female_count) + Number(item.male_count), lote: item.flock_code, tipo: item.reason_code, observacionEnvio: item.observation || data.shipment_number || "" }))); } catch (error) { alert(error.message); } };
+  const cargarEdicion = async (row) => { try { const data = await api(`/reproductores/egresos/${row.id}`); setEditingId(row.id); setFecha(String(data.movement_date).slice(0, 10)); setFilas(data.detalles.map((item) => ({ hembras: String(item.female_count), machos: String(item.male_count), subtotal: Number(item.female_count) + Number(item.male_count), lote: item.flock_code || item.flock_id || "", tipo: item.reason_code || "", observacionEnvio: item.observation || data.shipment_number || "" }))); } catch (error) { alert(error.message); } };
 
   const [filas, setFilas] = useState([
     {
@@ -343,7 +345,10 @@ function EgresoReproductores() {
                 Seleccione
               </option>
 
-              {(referencias.BIRD_EXIT_REASON || []).map((item) => <option key={item.valueCode} value={item.valueCode}>{item.label}</option>)}
+              {razonesEgreso.map((item) => {
+                const value = reasonValue(item);
+                return <option key={value} value={value}>{item.label || value}</option>;
+              })}
             </select>
           </div>
 

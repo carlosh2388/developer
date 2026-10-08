@@ -58,6 +58,31 @@ async function resolveActiveFlockId(client, orgId, value) {
   return rows[0].id;
 }
 
+function resolveBirdExitReason(value) {
+  required(value, "motivo");
+  const text = String(value || "").trim();
+  const normalized = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  const reasonCode = {
+    TE01: "MORTALITY",
+    MORTANDAD: "MORTALITY",
+    MORTALIDAD: "MORTALITY",
+    MORTALITY: "MORTALITY",
+    TE02: "SEXING_ERROR",
+    "ERROR DE SEXADO": "SEXING_ERROR",
+    "ERROR SEXADO": "SEXING_ERROR",
+    SEXING_ERROR: "SEXING_ERROR",
+    TE03: "SELECTION",
+    "DESCARTE POR SELECCION": "SELECTION",
+    SELECCION: "SELECTION",
+    SELECTION: "SELECTION",
+    TE04: "SALE",
+    VENTA: "SALE",
+    SALE: "SALE",
+  }[normalized];
+  if (!reasonCode) throw new HttpError(400, "El campo motivo no es vÃ¡lido.", "VALIDATION_ERROR");
+  return reasonCode;
+}
+
 async function insertInventoryAllocation(client, orgId, lineId, allocation, target) {
   const quantity = positiveQuantity(allocation.cantidad, "cantidad distribuida", allocation._allowsDecimals);
   if (target === "flock") {
@@ -901,10 +926,11 @@ async function crearEgresoAves(req, res, next) {
         if (!Number.isInteger(females) || !Number.isInteger(males) || females < 0 || males < 0 || females + males <= 0) {
           throw new HttpError(400, `Cantidades inválidas en el detalle ${index + 1}.`, "VALIDATION_ERROR");
         }
+        const reasonCode = resolveBirdExitReason(d.motivo);
         const line = await client.query(
           `INSERT INTO bird_exit_lines(organization_id,document_id,flock_id,reason_code,female_count,male_count,observation,line_number)
            VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-          [orgId, header.rows[0].id, flockId, required(d.motivo, "motivo"), females, males, d.observacion || null, index + 1]
+          [orgId, header.rows[0].id, flockId, reasonCode, females, males, d.observacion || null, index + 1]
         );
         lines.push(line.rows[0]);
       }
