@@ -735,6 +735,7 @@ async function crearMovimientoHuevos(req, res, next) {
           );
       }
       const lines = [];
+      const requestedEggUnits = new Map();
       for (let index = 0; index < detalles.length; index += 1) {
         const d = detalles[index];
         const grade = await resolveGrade(client, d.clasificacionId || d.clasificacion || d.calidad);
@@ -778,11 +779,13 @@ async function crearMovimientoHuevos(req, res, next) {
               AND ($3::uuid IS NULL OR COALESCE(d.source_warehouse_id,d.destination_warehouse_id)=$3 OR (d.source_warehouse_id IS NULL AND d.destination_warehouse_id IS NULL))`,
             [orgId, eggProduct.id, sourceWarehouseId, header.rows[0].inventory_document_id || null]);
           existingUnits = Number(balance.rows[0].available_units || 0);
-          if (requestedUnits > existingUnits) {
+          const totalRequestedUnits = (requestedEggUnits.get(eggProduct.id) || 0) + requestedUnits;
+          requestedEggUnits.set(eggProduct.id, totalRequestedUnits);
+          if (totalRequestedUnits > existingUnits) {
             const reference = commercialMovement ? `color ${commercialColor.label || "sin color"}` : `lote ${flockCode || "sin lote"} color ${commercialColor.label || "sin color"}`;
             throw new HttpError(409,
               `Inventario insuficiente en detalle ${index + 1}: producto ${eggProduct.description || eggProduct.name}, ` +
-              `clasificacion ${grade.label}, ${reference}. Solicitado: ${requestedUnits}. Existencia disponible: ${existingUnits}.`,
+              `clasificacion ${grade.label}, ${reference}. Solicitado: ${totalRequestedUnits}. Existencia disponible: ${existingUnits}.`,
               "INSUFFICIENT_EGG_STOCK");
           }
         }

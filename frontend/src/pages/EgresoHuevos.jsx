@@ -34,6 +34,7 @@ function EgresoHuevos() {
   const [egreso, setEgreso] = useState("");
   const [inventarioDisponible, setInventarioDisponible] = useState(null);
   const alertaInventarioMostrada = useRef(false);
+  const movimientoOriginal = useRef(null);
 
   const cargarSiguienteEnvio = () => api("/huevos/envios/siguiente")
     .then((data) => setEgreso(data.shipmentNumber))
@@ -72,9 +73,9 @@ function EgresoHuevos() {
     .sort((left, right) => String(left.name || "").localeCompare(String(right.name || ""), "es", { sensitivity: "base", numeric: true }));
   const destinoEsCliente = localidadDestino === CLIENT_DESTINATION;
   const bodegasSalida = bodegas.filter((item) => item.status !== "INACTIVE"
-    && esBodegaHuevos(item) && (!localidadSalida || String(item.locationId) === String(localidadSalida)));
+    && esBodegaHuevos(item) && localidadSalida && String(item.locationId) === String(localidadSalida));
   const bodegasDestino = bodegas.filter((item) => item.status !== "INACTIVE"
-    && esBodegaHuevos(item) && !destinoEsCliente && (!localidadDestino || String(item.locationId) === String(localidadDestino)));
+    && esBodegaHuevos(item) && !destinoEsCliente && localidadDestino && String(item.locationId) === String(localidadDestino));
   const bodegaSalidaSeleccionada = bodegas.find((item) => item.code === bodegaSalida || item.id === bodegaSalida);
   const clasificacionForzada = eggWarehouseClassification(bodegaSalidaSeleccionada);
   const destinoIncubadora = localidades.find((item) => item.status !== "INACTIVE" && esLocalidad(item, "Incubadora"));
@@ -251,6 +252,7 @@ const crearFilaComercial = () => ({
   const [editingId, setEditingId] = useState(null);
   const cargarEdicion = async (row) => { try {
     const data = await api(`/huevos/movimientos/${row.id}`);
+    movimientoOriginal.current = data;
     const grouped = new Map();
     data.detalles.forEach((item) => {
       const classification = item.grade_code.startsWith("INC_") ? "Incubable" : "Comercial";
@@ -396,7 +398,15 @@ const crearFilaComercial = () => ({
         Object.keys(actualizado).forEach((calidad) => {
           const codigo = eggGradeCode(calidad, clasificacion);
           const saldo = saldos.find((registro) => registro.grade_code === codigo);
-          actualizado[calidad] = { ...actualizado[calidad], existencias: Number(saldo?.available_units || 0) };
+          const original = movimientoOriginal.current;
+          const unidadesOriginales = editingId && original?.source_warehouse_code === bodegaSalida
+            ? original.detalles.filter((line) => line.grade_code === codigo
+              && (clasificacion === "Comercial" ? line.color === colorConsulta : line.flock_code === codigoLote))
+              .reduce((sum, line) => sum + Number(line.boxes_trays_336 || 0) * 336
+                + Number(line.boxes_cartons_360 || 0) * 360 + Number(line.trays_84 || 0) * 84
+                + Number(line.cartons_30 || 0) * 30 + Number(line.loose_units || 0), 0)
+            : 0;
+          actualizado[calidad] = { ...actualizado[calidad], existencias: Number(saldo?.available_units || 0) + unidadesOriginales };
         });
         return { ...item, [campo]: actualizado };
       }));
@@ -459,9 +469,9 @@ const crearFilaComercial = () => ({
         lote: clasificacionForzada === "Comercial" ? "" : item.lote,
         color: clasificacionForzada === "Comercial" ? item.color : "",
       }));
-      return clasificacionForzada === "Comercial" ? actualizados.slice(0, 1) : actualizados;
+      return actualizados;
     });
-    (clasificacionForzada === "Comercial" ? lotes.slice(0, 1) : lotes).forEach((item) => cargarExistencias(
+    lotes.forEach((item) => cargarExistencias(
       item.id,
       clasificacionForzada === "Comercial" ? "" : item.lote,
       clasificacionForzada
@@ -805,7 +815,7 @@ const calcularSubTotal = (
 
   const guardar = async () => {
     try {
-      if (inventarioDisponible === false) {
+      if (inventarioDisponible === false && !editingId) {
         alert("Inventario insuficiente para operar egresos.");
         return;
       }
@@ -814,11 +824,14 @@ const calcularSubTotal = (
       if (lotes.some((item) => !item.clasificacion)) throw new Error("Selecciona la clasificación.");
       if (lotes.some((item) => item.clasificacion === "Incubable" && !item.lote)) throw new Error("Selecciona el lote para la clasificación Incubable.");
       if (lotes.some((item) => item.clasificacion === "Comercial" && !item.color)) throw new Error("Selecciona el color para la clasificación Comercial.");
+      const solicitados = new Map();
       for (let loteIndex = 0; loteIndex < lotes.length; loteIndex += 1) {
         const item = lotes[loteIndex];
         const source = item.clasificacion === "Comercial" ? item.comercial : item.incubadora;
         for (const [calidad, datos] of Object.entries(source || {})) {
-          const total = item.clasificacion === "Comercial" ? totalFilaComercial(datos) : totalFilaIncubadora(datos);
+          const key = JSON.stringify([item.clasificacion, item.clasificacion === "Comercial" ? item.color : item.lote, calidad]);
+          const total = (solicitados.get(key) || 0) + (item.clasificacion === "Comercial" ? totalFilaComercial(datos) : totalFilaIncubadora(datos));
+          solicitados.set(key, total);
           const existencia = Number(datos.existencias || 0);
           if (total > existencia) {
             const producto = item.clasificacion === "Comercial"
@@ -1489,7 +1502,7 @@ const calcularSubTotal = (
 
         <div>
           <label>Bodega Salida</label>
-          <select value={bodegaSalida} onChange={(e) => cambiarBodegaSalida(e.target.value)}>
+          <select aria-label="Bodega Salida" disabled={!localidadSalida} value={bodegaSalida} onChange={(e) => cambiarBodegaSalida(e.target.value)}>
             <option value="">Seleccione</option>
             {bodegasSalida.map((item) => <option key={item.id} value={item.code}>{item.name}</option>)}
           </select>
@@ -1515,7 +1528,7 @@ const calcularSubTotal = (
 
         <div>
           <label>Bodega Destino</label>
-          <select value={bodegaDestino} onChange={(e) => setBodegaDestino(e.target.value)}>
+          <select aria-label="Bodega Destino" disabled={!localidadDestino} value={bodegaDestino} onChange={(e) => setBodegaDestino(e.target.value)}>
             <option value="">Seleccione</option>
             {destinoEsCliente
               ? clientesDestino.map((item) => <option key={`cliente-${item.id}`} value={`CLIENTE:${item.id}`}>Cliente - {item.commercialName}</option>)
@@ -1726,15 +1739,16 @@ const calcularSubTotal = (
             Clasificación de huevos
           </h2>
 
-          {clasificacionForzada !== "Comercial" && <button
+          <button
             type="button"
+            aria-label="Agregar línea de huevos"
             onClick={
               agregarLote
             }
             style={smallButton}
           >
             +
-          </button>}
+          </button>
 
         </div>
 
