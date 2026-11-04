@@ -46,3 +46,5 @@ export const inventoryColumns = [
   { key: "movement_type", label: "Movimiento", render: (value) => ({ INPUT: "Ingreso", OUTPUT: "Egreso", ADJUSTMENT_IN: "Ajuste entrada", ADJUSTMENT_OUT: "Ajuste salida" }[value] || value) },
   { key: "status", label: "Estado", render: (value) => ({ POSTED: "Registrado", VOID: "Anulado", DRAFT: "Borrador" }[value] || value) },
 ];
+
+OperationRecordsModal.allowReadOnly = true;

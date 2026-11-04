@@ -1,3 +1,4 @@
+import { PermissionForm } from "./AccessControl";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
 import { clientId, saveOperation } from "../services/operations";
@@ -228,7 +229,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
   const headerGridColumns = isCommercial
     ? "minmax(130px, 1fr) minmax(130px, 1fr) minmax(170px, 1.2fr) minmax(120px, 0.8fr) 46px"
     : "repeat(4, minmax(150px, 1fr))";
-  return <form onSubmit={save}>
+  return <PermissionForm onSubmit={save}>
     <p style={{ padding: "10px", background: "#fff3cd", borderRadius: "5px" }}>
       Este tipo de ajustes es especial y diferente a los demás tipos, no se puede combinar
     </p>
@@ -249,7 +250,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
         {needsFlock && <label style={{ flex: 1, minWidth: 0 }}># Lote<select style={inputStyle} value={flock} onChange={(e) => setFlock(e.target.value)}>
           <option value="">Seleccione</option>{visibleFlocks.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
         </select></label>}
-        <button type="button" aria-label="Agregar fila" onClick={addRow} style={{ padding: "8px 12px", minWidth: "38px", flexShrink: 0, border: "1px solid #0d6efd", borderRadius: "4px", background: "#0d6efd", color: "#fff", cursor: "pointer", fontWeight: 700 }}>+</button>
+        <button type="button" aria-label="Agregar fila" onClick={addRow} style={{ padding: "8px 12px", minWidth: "38px", flexShrink: 0, border: "1px solid #1A37C4", borderRadius: "4px", background: "#1A37C4", color: "#fff", cursor: "pointer", fontWeight: 700 }}>+</button>
       </div>
     </div>
     <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}><colgroup><col style={{ width: "240px" }}/><col/><col style={{ width: "110px" }}/><col/><col/><col style={{ width: "80px" }}/></colgroup><thead><tr style={{ background: "#f1f5f9" }}>
@@ -265,7 +266,7 @@ export default function EggAdjustmentForm({ date, movementType, editingId, initi
         <td><button type="button" onClick={() => removeRow(row.id)} style={{ padding: "5px 10px", background: "#d9534f", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}>X</button></td>
       </tr>;
     })}</tbody></table>
-    <div style={{ display: "flex", gap: "10px", marginTop: "15px" }}><button type="submit" style={{ flex: 1, padding: "10px", background: "#1976d2", color: "white", border: 0, borderRadius: "5px" }}>Guardar</button>
-      <button type="button" onClick={resetForm} style={{ padding: "10px 24px", background: "#198754", color: "white", border: 0, borderRadius: "5px" }}>+ Nuevo</button></div>
-  </form>;
+    <div style={{ display: "flex", gap: "10px", marginTop: "15px" }}><button type="submit" style={{ flex: 1, padding: "10px", background: "#0B24A3", color: "white", border: 0, borderRadius: "5px" }}>Guardar</button>
+      <button type="button" onClick={resetForm} style={{ padding: "10px 24px", background: "#EEC245", color: "#081A78", border: 0, borderRadius: "5px" }}>+ Nuevo</button></div>
+  </PermissionForm>;
 }

@@ -1,3 +1,4 @@
+import { canOpenView } from "./AccessControl";
 import { useMemo, useState } from "react";
 
 const iconPaths = {
@@ -28,6 +29,15 @@ const iconPaths = {
   admin: "M12 3 4 6v5c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6zM9 11h6m-3-3v6",
 };
 
+function licenseOrganization() {
+  try { return JSON.parse(localStorage.getItem("avinext_license_info") || "{}").organization || ""; }
+  catch (_error) { return ""; }
+}
+
+function GlyphIcon({ d, size = 16 }) {
+  return <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d}/></svg>;
+}
+
 function MenuIcon({ name }) {
   return <svg className="menu-svg-icon" viewBox="0 0 24 24" aria-hidden="true"><path d={iconPaths[name] || iconPaths.dashboard}/></svg>;
 }
@@ -57,21 +67,22 @@ export default function Sidebar({ setVista, vista, user, onLogout, onChangePassw
   const [expanded, setExpanded] = useState(() => activeSection ? { [activeSection]: true } : {});
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const organization = useMemo(licenseOrganization, []);
   function navigate(key) { setVista(key); setMobileOpen(false); }
   function toggleSection(id) { if (collapsed) setCollapsed(false); setExpanded((current) => ({ ...current, [id]: !current[id] })); }
 
   return <>
-    <button className="mobile-menu-trigger" onClick={() => setMobileOpen(true)} aria-label="Abrir menú">☰</button>
+    <button className="mobile-menu-trigger" onClick={() => setMobileOpen(true)} aria-label="Abrir menú"><GlyphIcon d="M4 6h16M4 12h16M4 18h16" size={22}/></button>
     {mobileOpen && <button className="sidebar-overlay" onClick={() => setMobileOpen(false)} aria-label="Cerrar menú"/>}
     <aside className={`sidebar ${collapsed ? "collapsed" : ""} ${mobileOpen ? "mobile-open" : ""}`}>
-      <div className="sidebar-brand"><span className="brand-mark small">A</span><div className="brand-copy"><strong>AVINEXT</strong><small>Gestión avícola</small></div><button className="sidebar-toggle" onClick={() => setCollapsed(!collapsed)} title={collapsed ? "Expandir menú" : "Ocultar menú"}>{collapsed ? "›" : "‹"}</button><button className="mobile-close" onClick={() => setMobileOpen(false)} aria-label="Cerrar menú">×</button></div>
+      <div className="sidebar-brand"><span className="brand-mark small"><img src="/igag-isotipo.png" alt="Logo de la granja"/></span><div className="brand-copy"><strong>AVINEXT</strong><small>{organization || "Gestión avícola"}</small></div><button className="sidebar-toggle" onClick={() => setCollapsed(!collapsed)} title={collapsed ? "Expandir menú" : "Ocultar menú"} aria-label={collapsed ? "Expandir menú" : "Ocultar menú"}><GlyphIcon d={collapsed ? "m9 6 6 6-6 6" : "m15 6-6 6 6 6"} size={18}/></button><button className="mobile-close" onClick={() => setMobileOpen(false)} aria-label="Cerrar menú">×</button></div>
       <nav className="menu">
         <button className={`nav-link home-link ${vista === "inicio" ? "selected" : ""}`} onClick={() => navigate("inicio")}><span className="nav-icon"><MenuIcon name="dashboard"/></span><span className="nav-label">Panel de Control</span></button>
-        {sections.map((section) => <div className={`nav-section ${expanded[section.id] ? "open" : ""}`} key={section.id}>
-          <button className="section-toggle" onClick={() => toggleSection(section.id)} aria-expanded={Boolean(expanded[section.id])}><span className="nav-icon"><MenuIcon name={section.icon}/></span><span className="nav-label">{section.title}</span><span className="chevron">⌄</span></button>
+        {sections.map((section) => ({ ...section, items: section.items.filter(([, key]) => canOpenView(user, key)) })).filter((section) => section.items.length).map((section) => <div className={`nav-section ${expanded[section.id] ? "open" : ""}`} key={section.id}>
+          <button className="section-toggle" onClick={() => toggleSection(section.id)} aria-expanded={Boolean(expanded[section.id])}><span className="nav-icon"><MenuIcon name={section.icon}/></span><span className="nav-label">{section.title}</span><span className="chevron"><GlyphIcon d="m6 9 6 6 6-6" size={14}/></span></button>
           <div className="section-items">{section.items.map(([label, key, icon]) => <button key={key} className={`nav-link ${vista === key ? "selected" : ""}`} onClick={() => navigate(key)}><span className="item-icon"><MenuIcon name={icon}/></span><span>{label}</span></button>)}</div>
         </div>)}
-        {canManageUsers && <div className={`nav-section ${expanded.admin ? "open" : ""}`}><button className="section-toggle" onClick={() => toggleSection("admin")} aria-expanded={Boolean(expanded.admin)}><span className="nav-icon"><MenuIcon name="admin"/></span><span className="nav-label">Administración</span><span className="chevron">⌄</span></button><div className="section-items"><button className={`nav-link ${vista === "usuarios" ? "selected" : ""}`} onClick={() => navigate("usuarios")}><span className="item-icon"><MenuIcon name="clients"/></span><span>Usuarios y roles</span></button></div></div>}
+        {canManageUsers && <div className={`nav-section ${expanded.admin ? "open" : ""}`}><button className="section-toggle" onClick={() => toggleSection("admin")} aria-expanded={Boolean(expanded.admin)}><span className="nav-icon"><MenuIcon name="admin"/></span><span className="nav-label">Administración</span><span className="chevron"><GlyphIcon d="m6 9 6 6 6-6" size={14}/></span></button><div className="section-items"><button className={`nav-link ${vista === "usuarios" ? "selected" : ""}`} onClick={() => navigate("usuarios")}><span className="item-icon"><MenuIcon name="clients"/></span><span>Usuarios y roles</span></button></div></div>}
       </nav>
       <div className="sidebar-user"><div className="avatar">{user.name?.charAt(0)}</div><div className="user-copy"><strong>{user.name}</strong><small>{user.role}</small></div><div className="sidebar-account-actions"><button title="Cambiar contraseña" onClick={onChangePassword}>Clave</button><button title="Cerrar sesión" onClick={onLogout}>Salir</button></div></div>
     </aside>

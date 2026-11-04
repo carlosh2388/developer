@@ -1,3 +1,4 @@
+import { PermissionForm } from "../components/AccessControl";
 import { useState } from "react";
 import { loadInventoryDocument, quantityInput, saveInventory } from "../services/operations";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
@@ -109,7 +110,7 @@ function OtrosIngresos() {
     cursor: "pointer",
     border: "none",
     borderRadius: "5px",
-    background: "#1976d2",
+    background: "#0B24A3",
     color: "#fff"
   };
 
@@ -212,7 +213,7 @@ function OtrosIngresos() {
       </div>
 
       {/* TABLA */}
-      <form onSubmit={guardar}>
+      <PermissionForm onSubmit={guardar}>
 
         <table
           style={{
@@ -309,7 +310,7 @@ function OtrosIngresos() {
             type="submit"
             style={{
               padding: "10px 20px",
-              background: "#1976d2",
+              background: "#0B24A3",
               color: "#fff",
               border: "none",
               borderRadius: "5px",
@@ -321,7 +322,7 @@ function OtrosIngresos() {
           <CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setFilas([]); setProveedor(""); setFecha(new Date().toISOString().split("T")[0]); }}/>
         </div>
 
-      </form>
+      </PermissionForm>
 
     </div>
   </OperationPanel>);

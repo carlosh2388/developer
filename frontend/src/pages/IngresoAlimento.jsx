@@ -1,3 +1,4 @@
+import { PermissionForm } from "../components/AccessControl";
 import { useState } from "react";
 import { quantityInput, saveInventory } from "../services/operations";
 import { api } from "../services/api";
@@ -274,7 +275,7 @@ const agregarMedicamentoFila = (
 
   const btnAdd = {
     padding: "10px 15px",
-    background: "#1976d2",
+    background: "#0B24A3",
     color: "#fff",
     border: "none",
     borderRadius: "5px",
@@ -317,7 +318,7 @@ const agregarMedicamentoFila = (
     padding: 0,
     border: 0,
     borderRadius: 6,
-    background: "#1976d2",
+    background: "#0B24A3",
     color: "#fff",
     cursor: "pointer",
     fontWeight: 700,
@@ -426,7 +427,7 @@ const agregarMedicamentoFila = (
         </button>
       </div>
 
-      <form
+      <PermissionForm
         onSubmit={guardar}
       >
         <div style={{ overflowX: "auto", paddingBottom: 8 }}>
@@ -868,7 +869,7 @@ const agregarMedicamentoFila = (
               padding:
                 "10px 20px",
               background:
-                "#1976d2",
+                "#0B24A3",
               color:
                 "#fff",
               border:
@@ -886,7 +887,7 @@ const agregarMedicamentoFila = (
           }}/>
         </div>
 
-      </form>
+      </PermissionForm>
 
     </div>
   </OperationPanel>);

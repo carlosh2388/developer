@@ -1,3 +1,4 @@
+import { PermissionForm } from "../components/AccessControl";
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
@@ -101,7 +102,7 @@ function Proveedores() {
 
   const buttonStyle = {
     padding: "10px 20px",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#0B24A3",
     color: "#fff",
     border: "none",
     borderRadius: "5px",
@@ -113,7 +114,7 @@ function Proveedores() {
   // =========================
 
   return (
-    <form
+    <PermissionForm
       onSubmit={handleSubmit}
       style={{
         maxWidth: "900px",
@@ -287,7 +288,7 @@ function Proveedores() {
         try { await api(`/proveedores/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "ACTIVE" }) }); await list.reload(); alert("Proveedor activado correctamente."); }
         catch (error) { alert(error.message); }
       }}/>
-    </form>
+    </PermissionForm>
   );
 }
 

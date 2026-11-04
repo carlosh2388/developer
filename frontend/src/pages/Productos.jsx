@@ -1,3 +1,4 @@
+import { PermissionForm } from "../components/AccessControl";
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import { useReferenceValues } from "../hooks/useOperationalCatalogs";
@@ -182,7 +183,7 @@ function Productos() {
   }));
 
   return (
-    <form
+    <PermissionForm
       onSubmit={handleSubmit}
       style={{
         maxWidth: "900px",
@@ -286,7 +287,7 @@ function Productos() {
 
           {mostrarNuevaUnidad && <div className="inline-add-row" style={{
             display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end",
-            marginBottom: 15, padding: 14, border: "1px solid #d7e0da", borderRadius: 8
+            marginBottom: 15, padding: 14, border: "1px solid #D7D8E0", borderRadius: 8
           }}>
             <div style={{ flex: "0 0 110px" }}>
               <label>Código</label>
@@ -547,7 +548,7 @@ function Productos() {
           type="submit"
           style={{
             padding: "10px 20px",
-            backgroundColor: "#1976d2",
+            backgroundColor: "#0B24A3",
             color: "#fff",
             border: "none",
             borderRadius: "5px",
@@ -576,7 +577,7 @@ function Productos() {
         try { await api(`/productos/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); alert("Producto dado de baja correctamente."); }
         catch (error) { alert(error.message); }
       }}/>
-    </form>
+    </PermissionForm>
   );
 }
 

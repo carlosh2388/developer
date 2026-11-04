@@ -31,6 +31,8 @@ import Empleados from "./pages/Empleados";
 import { notify } from "./services/notifications";
 import InventoryAlertBell from "./components/InventoryAlertBell";
 
+import { AccessProvider, canOpenView, viewAccess } from "./components/AccessControl";
+
 const views = {
   lotes: <Lotes />,
   bodegas: <Bodegas />,
@@ -197,7 +199,8 @@ export default function App() {
         }}
       />
     );
-  const content =
+  const access = { ...viewAccess(user, vista), canAdjust: ["ADMINISTRATOR", "PRODUCTION_MANAGER"].includes(user.role) };
+  const content = !canOpenView(user, vista) ? <div className="panel"><h2>Acceso restringido</h2><p>Tu perfil no tiene acceso a este formulario.</p></div> :
     vista === "inicio" ? (
       <Inicio user={user} />
     ) : vista === "usuarios" ? (
@@ -220,7 +223,7 @@ export default function App() {
         onLogout={logout}
         onChangePassword={() => setShowChangePassword(true)}
       />
-      <main className="main-content">{content}</main>
+      <main className="main-content"><AccessProvider value={access}>{!access.canWrite && vista !== "inicio" && !vista.startsWith("reporte") && canOpenView(user, vista) && <p className="alert">Solo lectura: puedes consultar los registros sin modificarlos.</p>}{content}</AccessProvider></main>
       <InventoryAlertBell />
       {showChangePassword && (
         <ChangePasswordModal

@@ -1,3 +1,4 @@
+import { PermissionForm } from "../components/AccessControl";
 import { useState } from "react";
 import { loadInventoryDocument, quantityInput, saveInventory } from "../services/operations";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
@@ -23,8 +24,7 @@ function AjusteSalidaRecords({ onEditInventory, onEditEgg }) {
       total: row.total_quantity,
     }));
   const eggRows = eggs.rows
-    .filter((row) => row.movement_type === "OUTPUT" && row.source_warehouse_id
-      && !row.destination_type && !row.destination_name && !row.customer_id && !row.vehicle_id && !row.driver_id && !row.shipment_number)
+    .filter((row) => row.is_adjustment && ["OUTPUT", "ADJUSTMENT_OUT"].includes(row.movement_type))
     .map((row) => ({
       ...row,
       source: "egg",
@@ -173,7 +173,7 @@ function AjusteSalida() {
     cursor: "pointer",
     border: "none",
     borderRadius: "5px",
-    background: "#1976d2",
+    background: "#0B24A3",
     color: "#fff"
   };
 
@@ -267,7 +267,7 @@ function AjusteSalida() {
           Alimento
         </button>
 
-        <button type="button" style={{ ...btn, background: eggMode ? "#0d6efd" : "#1976d2" }} onClick={() => { setEggMode(true); setFilas([]); setEditingId(null); setEggEditingId(null); setEggInitialData(null); }}>
+        <button type="button" style={{ ...btn, background: eggMode ? "#1A37C4" : "#0B24A3" }} onClick={() => { setEggMode(true); setFilas([]); setEditingId(null); setEggEditingId(null); setEggInitialData(null); }}>
           Huevo
         </button>
 
@@ -321,7 +321,7 @@ function AjusteSalida() {
       {eggMode ? <>
         <EggAdjustmentForm date={fecha} movementType="ADJUSTMENT_OUT" editingId={eggEditingId} initialData={eggInitialData} onSaved={() => { setEggEditingId(null); setEggInitialData(null); }} />
         <button type="button" onClick={() => { setEggMode(false); setEggEditingId(null); setEggInitialData(null); }} style={{ marginTop: "10px", padding: "10px 18px", background: "#d9534f", color: "#fff", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: 700 }}>Cancelar ajuste de huevo</button>
-      </> : <form onSubmit={guardar}>
+      </> : <PermissionForm onSubmit={guardar}>
         <table
           style={{
             width: "100%",
@@ -438,7 +438,7 @@ function AjusteSalida() {
             type="submit"
             style={{
               padding: "10px 20px",
-              background: "#1976d2",
+              background: "#0B24A3",
               color: "#fff",
               border: "none",
               borderRadius: "5px",
@@ -448,7 +448,7 @@ function AjusteSalida() {
             Guardar
           </button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setFilas([]); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
         </div>
-      </form>}
+      </PermissionForm>}
     </div>
   </OperationPanel>);
 }

@@ -1,3 +1,4 @@
+import { PermissionForm } from "../components/AccessControl";
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
@@ -114,7 +115,7 @@ function Bodegas() {
     height: "42px",
     border: "none",
     borderRadius: "5px",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#0B24A3",
     color: "#fff",
     cursor: "pointer",
     fontSize: "20px",
@@ -127,7 +128,7 @@ function Bodegas() {
   // =========================
 
   return (
-    <form
+    <PermissionForm
       onSubmit={handleSubmit}
       style={{
         maxWidth: "900px",
@@ -293,7 +294,7 @@ function Bodegas() {
         style={{
           padding: "10px 20px",
           backgroundColor:
-            "#1976d2",
+            "#0B24A3",
           color: "#fff",
           border: "none",
           borderRadius: "5px",
@@ -310,7 +311,7 @@ function Bodegas() {
         try { await api(`/bodegas/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); alert("Bodega dada de baja correctamente."); }
         catch (error) { alert(error.message); }
       }}/>
-    </form>
+    </PermissionForm>
   );
 }
 

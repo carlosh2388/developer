@@ -35,8 +35,8 @@ function ControlPesoAves() {
     setEtapa(data.stage_code || ""); setSemana(data.week_number);
     const femaleSamples = data.muestras.filter((item) => item.sex === "F").sort((a, b) => a.sample_number - b.sample_number);
     const maleSamples = data.muestras.filter((item) => item.sex === "M").sort((a, b) => a.sample_number - b.sample_number);
-    const samplesPerSex = Math.max(femaleSamples.length, maleSamples.length, Math.ceil(Number(data.sample_size || 0) / 2));
-    setTamanoMuestra(samplesPerSex * 2);
+    setSexo(femaleSamples.length && maleSamples.length ? "MIXED" : maleSamples.length ? "M" : "F");
+    setTamanoMuestra(Number(data.sample_size) || data.muestras.length);
     const female = {}, male = {};
     femaleSamples.forEach((item, index) => { female[`m${index + 1}`] = Number(item.weight_grams || 0).toFixed(2); });
     maleSamples.forEach((item, index) => { male[`m${index + 1}`] = Number(item.weight_grams || 0).toFixed(2); });
@@ -44,6 +44,7 @@ function ControlPesoAves() {
   } catch (error) { alert(error.message); } };
 
   const [tamanoMuestra, setTamanoMuestra] = useState("");
+  const [sexo, setSexo] = useState("F");
 
   const [uniformidad, setUniformidad] = useState(0);
   const [promedioGeneral, setPromedioGeneral] = useState(0);
@@ -120,7 +121,7 @@ const [uniformidadMachos, setUniformidadMachos] =
   // =========================
 
   const buildSamples = (total, setFn) => {
-    const half = Number(total) > 0 && Number(total) % 2 === 0 ? Number(total) / 2 : 0;
+    const half = Number.isInteger(Number(total)) && Number(total) > 0 ? Number(total) : 0;
     setFn((current) => {
       const obj = {};
       for (let i = 1; i <= half; i++) obj[`m${i}`] = current[`m${i}`] ?? "";
@@ -129,9 +130,9 @@ const [uniformidadMachos, setUniformidadMachos] =
   };
 
   useEffect(() => {
-    buildSamples(tamanoMuestra, setHembras);
-    buildSamples(tamanoMuestra, setMachos);
-  }, [tamanoMuestra]);
+    buildSamples(sexo === "F" ? tamanoMuestra : sexo === "MIXED" ? Number(tamanoMuestra) / 2 : 0, setHembras);
+    buildSamples(sexo === "M" ? tamanoMuestra : sexo === "MIXED" ? Number(tamanoMuestra) / 2 : 0, setMachos);
+  }, [tamanoMuestra, sexo]);
 
   // =========================
   // PROMEDIOS
@@ -211,10 +212,10 @@ useEffect(() => {
 
   useEffect(() => {
     const g =
-      (parseFloat(promHembras) + parseFloat(promMachos)) / 2 || 0;
+      sexo === "F" ? promHembras : sexo === "M" ? promMachos : (promHembras + promMachos) / 2 || 0;
 
     setPromedioGeneral(g);
-  }, [promHembras, promMachos]);
+  }, [promHembras, promMachos, sexo]);
 
   // =========================
   // UNIFORMIDAD (±10%)
@@ -311,21 +312,22 @@ useEffect(() => {
   const guardar = async () => {
     try {
       const total = Number(tamanoMuestra);
-      if (!Number.isInteger(total) || total < 2 || total % 2 !== 0) {
-        alert("El tamaño de la muestra debe ser un número par mayor que cero.");
+      if (!Number.isInteger(total) || total < 1) {
+        alert("El tamaño de la muestra debe ser un entero mayor que cero.");
         return;
       }
       if (!etapa) {
         alert("Selecciona la etapa correspondiente antes de guardar.");
         return;
       }
-      const expectedPerSex = total / 2;
+      const expectedFemale = sexo === "F" ? total : sexo === "MIXED" ? total / 2 : 0;
+      const expectedMale = sexo === "M" ? total : sexo === "MIXED" ? total / 2 : 0;
       const femaleWeights = Object.values(hembras);
       const maleWeights = Object.values(machos);
-      const incomplete = femaleWeights.length !== expectedPerSex || maleWeights.length !== expectedPerSex
+      const incomplete = femaleWeights.length !== expectedFemale || maleWeights.length !== expectedMale
         || [...femaleWeights, ...maleWeights].some((value) => String(value).trim() === "" || !Number.isFinite(Number(value)) || Number(value) <= 0 || !/^\d+(?:\.\d{1,2})?$/.test(String(value)));
       if (incomplete) {
-        alert("Debes ingresar el peso de todas las muestras de hembras y machos antes de guardar.");
+        alert("Debes ingresar el peso de todas las muestras del sexo seleccionado antes de guardar.");
         return;
       }
       const muestras = [...femaleWeights.map((pesoGramos) => ({ sexo: "F", pesoGramos: Number(pesoGramos) })),
@@ -334,7 +336,7 @@ useEffect(() => {
         promedioMachos: promMachos, promedioGeneral, uniformidadHembras, uniformidadMachos, uniformidadGeneral: uniformidad,
         tamanoMuestra: total, muestras }, editingId);
       alert(editingId ? "Control actualizado correctamente" : "Control de peso guardado correctamente");
-      setEditingId(null);
+      setEditingId(null); setSexo("F");
       setFecha(new Date().toISOString().split("T")[0]);
       setLote("");
       setEtapa("");
@@ -411,20 +413,27 @@ useEffect(() => {
         </div>
 
         <div style={{ flex: 1 }}>
-          <label>Tamaño de la Muestra (# Par)</label>
+          <label htmlFor="bird-weight-sex">Sexo</label>
+          <select id="bird-weight-sex" value={sexo} disabled={Boolean(editingId)} onChange={(e) => setSexo(e.target.value)}>
+            <option value="F">Hembras</option><option value="M">Machos</option>
+            {sexo === "MIXED" && <option value="MIXED">Hembras y machos (registro anterior)</option>}
+          </select>
+        </div>
+        <div style={{ flex: 1 }}>
+          <label>Tamaño de la Muestra</label>
           <input
             type="number"
             value={tamanoMuestra}
-            min="2"
-            step="2"
+            min="1"
+            step="1"
             inputMode="numeric"
             disabled={Boolean(editingId)}
             onKeyDown={(e) => { if (["-", "+", ".", ",", "e", "E"].includes(e.key)) e.preventDefault(); }}
             onChange={(e) => setTamanoMuestra(e.target.value.replace(/[^0-9]/g, ""))}
             onBlur={() => {
               const value = Number(tamanoMuestra);
-              if (tamanoMuestra !== "" && (!Number.isInteger(value) || value < 2 || value % 2 !== 0)) {
-                alert("El tamaño de la muestra debe ser un número par mayor que cero.");
+              if (tamanoMuestra !== "" && (!Number.isInteger(value) || value < 1)) {
+                alert("El tamaño de la muestra debe ser un entero mayor que cero.");
                 setTamanoMuestra("");
               }
             }}
@@ -433,6 +442,7 @@ useEffect(() => {
 
       </div>
 
+      {(sexo === "F" || sexo === "MIXED") && <>
       {/* ========================= HEMBRAS ========================= */}
       
       <div
@@ -466,6 +476,8 @@ useEffect(() => {
       </div>
       
       {expandH && renderInputs(hembras, handleH)}
+      </>}
+      {(sexo === "M" || sexo === "MIXED") && <>
 
       {/* ========================= MACHOS ========================= */}
       
@@ -500,9 +512,10 @@ useEffect(() => {
       </div>
       
       {expandM && renderInputs(machos, handleM)}
+      </>}
 
       {/* ================= GUARDAR ================= */}
-      <div className="edit-actions"><button type="button" onClick={guardar}>{editingId ? "Guardar cambios" : "Guardar Registro"}</button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setLote(""); setEtapa(""); setTamanoMuestra(""); setHembras({}); setMachos({}); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
+      <div className="edit-actions"><button type="button" onClick={guardar}>{editingId ? "Guardar cambios" : "Guardar Registro"}</button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setSexo("F"); setLote(""); setEtapa(""); setTamanoMuestra(""); setHembras({}); setMachos({}); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
     </div>
   </OperationPanel>);
 }

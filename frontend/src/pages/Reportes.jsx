@@ -80,7 +80,7 @@ function tableHtml({ title, subtitle, rows, columns, display, printable = false 
   return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>
     body{font:10px Arial;color:#111}.report-logo{display:block;width:330px;max-height:115px;object-fit:contain;margin:0 auto 8px}
     h1,h2,p{text-align:center;margin:4px}table{border-collapse:collapse;width:100%;margin-top:14px}
-    th,td{border:1px solid #333;padding:4px;text-align:center}th{background:#d9ead3;font-weight:bold}
+    th,td{border:1px solid #333;padding:4px;text-align:center}th{background:#E3E8FA;font-weight:bold}
     ${printable ? "@page{size:A3 landscape;margin:8mm}" : ""}</style></head><body>
     <img class="report-logo" src="${escapeHtml(logoUrl)}" alt="IGAG">
     <h1>INDUSTRIA GENETICA AVICOLA DE GUATEMALA, S.A.</h1><h2>${escapeHtml(title)}</h2>

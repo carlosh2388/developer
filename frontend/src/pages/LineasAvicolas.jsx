@@ -1,3 +1,4 @@
+import { PermissionForm } from "../components/AccessControl";
 import { useState } from "react";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
 import { assertUniqueCode, useCatalogList } from "../hooks/useCatalogList";
@@ -30,8 +31,8 @@ export default function LineasAvicolas() {
     finally { setSaving(false); }
   }
 
-  const input = { width: "100%", padding: 9, border: "1px solid #ccd5d0", borderRadius: 5, boxSizing: "border-box" };
-  return <form onSubmit={guardar} style={{ position: "relative", maxWidth: 900, margin: "0 auto", padding: 20, fontFamily: "Arial" }}>
+  const input = { width: "100%", padding: 9, border: "1px solid #CDD0DD", borderRadius: 5, boxSizing: "border-box" };
+  return <PermissionForm onSubmit={guardar} style={{ position: "relative", maxWidth: 900, margin: "0 auto", padding: 20, fontFamily: "Arial" }}>
     <h2>Registro de Líneas Avícolas</h2>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 1fr", gap: 12, marginBottom: 18 }}>
       <label>Código
@@ -46,7 +47,7 @@ export default function LineasAvicolas() {
         </select>
       </label>
     </div>
-    <div className="edit-actions"><button disabled={saving} style={{ width: "100%", padding: 10, border: 0, borderRadius: 5, background: "#1976d2", color: "#fff", cursor: "pointer", fontWeight: 600 }}>
+    <div className="edit-actions"><button disabled={saving} style={{ width: "100%", padding: 10, border: 0, borderRadius: 5, background: "#0B24A3", color: "#fff", cursor: "pointer", fontWeight: 600 }}>
       {saving ? "Guardando…" : editingId ? "Guardar cambios" : "Guardar"}
     </button><CancelEditButton editing={editingId} onCancel={cancelarEdicion}/></div>
     <ConfigRecordsTable title="Líneas avícolas registradas" rows={list.rows} loading={list.loading} error={list.error} columns={[
@@ -56,5 +57,5 @@ export default function LineasAvicolas() {
       try { await api(`/lineas-avicolas/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); alert("Línea avícola dada de baja correctamente."); }
       catch (error) { alert(error.message); }
     }}/>
-  </form>;
+  </PermissionForm>;
 }

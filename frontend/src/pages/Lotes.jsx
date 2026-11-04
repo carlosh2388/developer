@@ -1,3 +1,4 @@
+import { PermissionForm } from "../components/AccessControl";
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import { useReferenceValues } from "../hooks/useOperationalCatalogs";
@@ -222,7 +223,7 @@ function Lotes() {
       padding: "10px",
       border: "none",
       borderRadius: "5px",
-      backgroundColor: "#1976d2",
+      backgroundColor: "#0B24A3",
       color: "#fff",
       cursor: "pointer",
       fontSize: "14px"
@@ -233,7 +234,7 @@ function Lotes() {
       height: "42px",
       border: "none",
       borderRadius: "5px",
-      backgroundColor: "#1976d2",
+      backgroundColor: "#0B24A3",
       color: "#fff",
       cursor: "pointer",
       fontSize: "20px",
@@ -247,7 +248,7 @@ function Lotes() {
   // =========================
 
   return (
-    <form onSubmit={handleSubmit} style={styles.form}>
+    <PermissionForm onSubmit={handleSubmit} style={styles.form}>
       <h2>Registro de Lotes</h2>
 
       {/* LÍNEA - LOTE - FECHA - ESTADO */}
@@ -532,7 +533,7 @@ function Lotes() {
         try { await api(`/lotes/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); alert("Lote dado de baja correctamente."); }
         catch (error) { alert(error.message); }
       }}/>
-    </form>
+    </PermissionForm>
   );
 }
 

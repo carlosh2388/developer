@@ -1,3 +1,4 @@
+import { PermissionForm } from "../components/AccessControl";
 import { useState } from "react";
 import { loadInventoryDocument, quantityInput, saveInventory } from "../services/operations";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
@@ -175,7 +176,7 @@ function EgresoInsumos() {
   const btn = {
     padding: "10px",
     flex: 1,
-    background: "#1976d2",
+    background: "#0B24A3",
     color: "#fff",
     border: "none",
     borderRadius: "5px",
@@ -184,7 +185,7 @@ function EgresoInsumos() {
 
   const btnSmall = {
     padding: "5px 10px",
-    background: "#1976d2",
+    background: "#0B24A3",
     color: "#fff",
     border: "none",
     borderRadius: "4px",
@@ -256,7 +257,7 @@ function EgresoInsumos() {
       </div>
 
       {/* TABLA */}
-      <form onSubmit={guardar}>
+      <PermissionForm onSubmit={guardar}>
 
         <table
           style={{
@@ -409,7 +410,7 @@ function EgresoInsumos() {
             type="submit"
             style={{
               padding: "10px 20px",
-              background: "#1976d2",
+              background: "#0B24A3",
               color: "#fff",
               border: "none",
               borderRadius: "5px",
@@ -420,7 +421,7 @@ function EgresoInsumos() {
           </button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setFilas([]); setFilasSinLote([]); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
         </div>
 
-      </form>
+      </PermissionForm>
 
     </div>
   </OperationPanel>);

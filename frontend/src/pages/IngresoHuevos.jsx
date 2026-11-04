@@ -333,8 +333,8 @@ const calcularSubTotal = (grupo, filtro) => {
                   borderRadius: "6px",
                   border: "none",
                   cursor: "pointer",
-                  background: grupo.abierto ? "#f0ad4e" : "#5bc0de",
-                  color: "white",
+                  background: grupo.abierto ? "#EEC245" : "#0B24A3",
+                  color: grupo.abierto ? "#081A78" : "white",
                   fontWeight: "bold",
                   fontSize: "16px"
                 }}

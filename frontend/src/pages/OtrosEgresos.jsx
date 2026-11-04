@@ -186,7 +186,7 @@ function OtrosEgresos() {
   const btn = {
     padding: "10px",
     flex: 1,
-    background: "#1976d2",
+    background: "#0B24A3",
     color: "#fff",
     border: "none",
     borderRadius: "5px",
@@ -195,7 +195,7 @@ function OtrosEgresos() {
 
   const btnSmall = {
     padding: "5px 10px",
-    background: "#1976d2",
+    background: "#0B24A3",
     color: "#fff",
     border: "none",
     borderRadius: "4px",
@@ -498,7 +498,7 @@ function OtrosEgresos() {
             type="submit"
             style={{
               padding: "10px 20px",
-              background: "#1976d2",
+              background: "#0B24A3",
               color: "#fff",
               border: "none",
               borderRadius: "5px",

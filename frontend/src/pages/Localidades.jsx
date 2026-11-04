@@ -1,3 +1,4 @@
+import { PermissionForm } from "../components/AccessControl";
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import ConfigRecordsTable from "../components/ConfigRecordsTable";
@@ -88,7 +89,7 @@ function Localidades() {
   // =========================
 
   return (
-    <form
+    <PermissionForm
       onSubmit={handleSubmit}
       style={{
         maxWidth: "900px",
@@ -201,7 +202,7 @@ function Localidades() {
         type="submit"
         style={{
           padding: "10px 20px",
-          backgroundColor: "#1976d2",
+          backgroundColor: "#0B24A3",
           color: "#fff",
           border: "none",
           borderRadius: "5px",
@@ -218,7 +219,7 @@ function Localidades() {
         try { await api(`/localidades/${row.id}`, { method: "PUT", body: JSON.stringify({ estado: "INACTIVE" }) }); await list.reload(); alert("Localidad dada de baja correctamente."); }
         catch (error) { alert(error.message); }
       }}/>
-    </form>
+    </PermissionForm>
   );
 }
 

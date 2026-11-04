@@ -1,3 +1,4 @@
+import { useAccess } from "./AccessControl";
 import { useEffect, useMemo, useState } from "react";
 
 const text = (value) => value == null ? "" : String(value);
@@ -59,9 +60,9 @@ export default function ConfigRecordsTable({
   loading,
   error,
   dateField,
-  onEdit,
-  onDeactivate,
-  onActivate,
+  onEdit: requestedEdit,
+  onDeactivate: requestedDeactivate,
+  onActivate: requestedActivate,
   deactivateLabel = "Dar de baja",
   activateLabel = "Activar",
   inactiveStatuses = ["INACTIVE"],
@@ -69,6 +70,10 @@ export default function ConfigRecordsTable({
   buttonStyle,
   sortRows = compareSequenceDesc,
 }) {
+  const { canEdit, canAdjust = true } = useAccess();
+  const onEdit = canEdit ? requestedEdit : undefined;
+  const onDeactivate = canEdit ? requestedDeactivate : undefined;
+  const onActivate = canEdit ? requestedActivate : undefined;
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
@@ -113,7 +118,7 @@ export default function ConfigRecordsTable({
     };
   }, [open]);
 
-  const control = { padding: 8, border: "1px solid #ccd5d0", borderRadius: 5, minWidth: 150 };
+  const control = { padding: 8, border: "1px solid #CDD0DD", borderRadius: 5, minWidth: 150 };
   const actionsVisible = onEdit || onDeactivate || onActivate;
   const actionsHeaderStyle = {
     textAlign: "left",
@@ -143,7 +148,7 @@ export default function ConfigRecordsTable({
   };
 
   return <>
-    <button type="button" onClick={() => setOpen(true)} style={{ position: "absolute", top: 20, right: 20, padding: "9px 16px", border: 0, borderRadius: 6, background: "#1976d2", color: "white", cursor: "pointer", fontWeight: 600, ...buttonStyle }}>Buscar registros</button>
+    <button type="button" className="records-button" onClick={() => setOpen(true)} style={{ position: "absolute", top: 20, right: 20, padding: "9px 16px", border: 0, borderRadius: 6, background: "#0B24A3", color: "white", cursor: "pointer", fontWeight: 600, ...buttonStyle }}>Buscar registros</button>
     {open && <div role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }} style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <section className="records-dialog" role="dialog" aria-modal="true" aria-label={title} onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }} style={{ position: "relative", width: "min(1400px, 96vw)", maxHeight: "90vh", overflow: "auto", background: "#fff", borderRadius: 12, padding: 22, boxShadow: "0 20px 60px rgba(0,0,0,.3)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 15, paddingRight: 48 }}><h3>{title} ({filtered.length} de {rows.length})</h3></div>
@@ -162,16 +167,17 @@ export default function ConfigRecordsTable({
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>{actionsVisible && <th style={actionsHeaderStyle}>Acciones</th>}{columns.map((column) => <th key={column.key} style={{ textAlign: "left", padding: 8, borderBottom: "1px solid #ccc" }}>{column.label}</th>)}</tr>
-              <tr>{actionsVisible && <th style={actionsFilterStyle}/>} {columns.map((column) => <th key={column.key} style={{ padding: 4 }}><input value={filters[column.key] || ""} onChange={(event) => setFilters((current) => ({ ...current, [column.key]: event.target.value }))} placeholder={`Filtrar ${column.label}`} style={{ ...control, width: "100%", minWidth: 110, boxSizing: "border-box" }}/></th>)}</tr>
+              <tr>{actionsVisible && <th style={actionsFilterStyle}/>}{columns.map((column) => <th key={column.key} style={{ padding: 4 }}><input value={filters[column.key] || ""} onChange={(event) => setFilters((current) => ({ ...current, [column.key]: event.target.value }))} placeholder={`Filtrar ${column.label}`} style={{ ...control, width: "100%", minWidth: 110, boxSizing: "border-box" }}/></th>)}</tr>
             </thead>
             <tbody>{visibleRows.map((row, rowIndex) => {
               const realIndex = (page - 1) * pageSize + rowIndex;
               const inactive = inactiveStatuses.includes(row.status);
-              const locked = nonEditableStatuses.includes(row.status);
+              const adjustmentLocked = !canAdjust && (row.is_adjustment || ["ADJUSTMENT_IN", "ADJUSTMENT_OUT"].includes(row.movement_type));
+              const locked = adjustmentLocked || nonEditableStatuses.includes(row.status);
               return <tr key={row.id || realIndex} style={isBrownNickRow(row) ? brownNickRowStyle : undefined}>
                 {actionsVisible && <td style={{ ...actionsCellStyle, ...(isBrownNickRow(row) ? { background: "#fdecec" } : {}) }}>
-                  {onEdit && !locked && <button type="button" onClick={() => { onEdit(row); setOpen(false); }} style={{ padding: "6px 10px", border: 0, borderRadius: 5, background: "#1976d2", color: "#fff", cursor: "pointer", fontWeight: 600 }}>Editar</button>}{" "}
-                  {onDeactivate && !inactive && <button type="button" onClick={() => onDeactivate(row)} style={{ padding: "6px 10px", border: 0, borderRadius: 5, background: "#c62828", color: "#fff", cursor: "pointer", fontWeight: 700 }}>{deactivateLabel}</button>}
+                  {onEdit && !locked && <button type="button" onClick={() => { onEdit(row); setOpen(false); }} style={{ padding: "6px 10px", border: 0, borderRadius: 5, background: "#0B24A3", color: "#fff", cursor: "pointer", fontWeight: 600 }}>Editar</button>}{" "}
+                  {onDeactivate && !adjustmentLocked && !inactive && <button type="button" onClick={() => onDeactivate(row)} style={{ padding: "6px 10px", border: 0, borderRadius: 5, background: "#c62828", color: "#fff", cursor: "pointer", fontWeight: 700 }}>{deactivateLabel}</button>}
                   {onActivate && inactive && !locked && <button type="button" onClick={() => onActivate(row)} style={{ padding: "6px 10px", border: 0, borderRadius: 5, background: "#1b8f4d", color: "#fff", cursor: "pointer", fontWeight: 700 }}>{activateLabel}</button>}
                   {locked && <span className="record-locked-status" title="El registro se conserva para auditoria y no puede modificarse">Sin acciones</span>}
                 </td>}
@@ -185,7 +191,7 @@ export default function ConfigRecordsTable({
             <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
               <button type="button" onClick={() => setPage(1)} disabled={page === 1}>Primera</button>
               <button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page === 1}>Anterior</button>
-              {pageNumbers.map((value) => <button key={value} type="button" onClick={() => setPage(value)} disabled={value === page} style={value === page ? { fontWeight: 700, background: "#1976d2", color: "#fff" } : undefined}>{value}</button>)}
+              {pageNumbers.map((value) => <button key={value} type="button" onClick={() => setPage(value)} disabled={value === page} style={value === page ? { fontWeight: 700, background: "#0B24A3", color: "#fff" } : undefined}>{value}</button>)}
               <button type="button" onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={page === totalPages}>Siguiente</button>
               <button type="button" onClick={() => setPage(totalPages)} disabled={page === totalPages}>Ultima</button>
             </div>
@@ -195,3 +201,5 @@ export default function ConfigRecordsTable({
     </div>}
   </>;
 }
+
+ConfigRecordsTable.allowReadOnly = true;

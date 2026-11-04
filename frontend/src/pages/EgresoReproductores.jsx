@@ -205,7 +205,7 @@ function EgresoReproductores() {
               height: "40px",
               border: "none",
               borderRadius: "5px",
-              backgroundColor: "#1976d2",
+              backgroundColor: "#0B24A3",
               color: "#fff",
               cursor: "pointer",
               fontSize: "20px"
@@ -394,7 +394,7 @@ function EgresoReproductores() {
         onClick={guardar}
         style={{
           padding: "10px 20px",
-          backgroundColor: "#1976d2",
+          backgroundColor: "#0B24A3",
           color: "#fff",
           border: "none",
           borderRadius: "5px",

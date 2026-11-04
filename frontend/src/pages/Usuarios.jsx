@@ -7,7 +7,7 @@ const emptyForm = {
   fullName: "",
   username: "",
   password: "",
-  roleCode: "OPERATOR",
+  roleCode: "FARM_MANAGER",
   status: "ACTIVE",
   personnelId: "",
 };
@@ -163,8 +163,8 @@ export default function Usuarios() {
             />
           </label>
           <label>
-            Empleado asociado {!editing && <span>(obligatorio)</span>}
-            <select required={!editing} value={form.personnelId} onChange={(e) => { const personnelId = e.target.value; const employee = personnel.find((item) => item.id === personnelId); setForm({ ...form, personnelId, ...(employee ? { fullName: employee.fullName } : {}) }); }}>
+            Empleado asociado {!editing && form.roleCode !== "READ_ONLY" && <span>(obligatorio)</span>}
+            <select required={!editing && form.roleCode !== "READ_ONLY"} value={form.personnelId} onChange={(e) => { const personnelId = e.target.value; const employee = personnel.find((item) => item.id === personnelId); setForm({ ...form, personnelId, ...(employee ? { fullName: employee.fullName } : {}) }); }}>
               <option value="">Sin empleado asociado</option>
               {personnel.filter((employee) => employee.status === "ACTIVE" && (!users.some((user) => user.personnel_id === employee.id) || employee.id === form.personnelId)).map((employee) => <option key={employee.id} value={employee.id}>{employee.code} - {employee.fullName}</option>)}
             </select>
@@ -208,6 +208,9 @@ export default function Usuarios() {
               ))}
             </select>
           </label>
+          <p>{roles.find((role) => role.code === form.roleCode)?.description}</p>
+          <p>Cada usuario puede mantener hasta dos sesiones simultáneas. El cupo de cuentas lo define el administrador de licencias.</p>
+          {form.roleCode === "READ_ONLY" && <p>Cuenta de solo lectura. No requiere empleado asociado.</p>}
           {editing && (
             <label>
               Estado

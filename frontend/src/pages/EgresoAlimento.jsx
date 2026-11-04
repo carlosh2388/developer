@@ -1,3 +1,4 @@
+import { PermissionForm } from "../components/AccessControl";
 import { useState } from "react";
 import { clientId, loadInventoryDocument, quantityInput, saveInventory } from "../services/operations";
 import { useOperationalCatalogs } from "../hooks/useOperationalCatalogs";
@@ -367,7 +368,7 @@ function EgresoAlimento() {
 
   const btnAdd = {
     padding: "10px 15px",
-    background: "#1976d2",
+    background: "#0B24A3",
     color: "#fff",
     border: "none",
     borderRadius: "5px",
@@ -422,7 +423,7 @@ function EgresoAlimento() {
     padding: 0,
     border: 0,
     borderRadius: 6,
-    background: "#1976d2",
+    background: "#0B24A3",
     color: "#fff",
     cursor: "pointer",
     fontWeight: 700,
@@ -524,7 +525,7 @@ function EgresoAlimento() {
         </button></div>
       </div>
 
-      <form onSubmit={guardar}>
+      <PermissionForm onSubmit={guardar}>
         {grupos.map(grupo => (
           <div
             key={grupo.id}
@@ -953,7 +954,7 @@ function EgresoAlimento() {
         >
           {editingId ? "Guardar cambios" : "Guardar"}
         </button><CancelEditButton editing={editingId} onCancel={() => { setEditingId(null); setGrupos([]); setLoteSeleccionado(""); setFecha(new Date().toISOString().split("T")[0]); }}/></div>
-      </form>
+      </PermissionForm>
     </div>
   </OperationPanel>);
 }

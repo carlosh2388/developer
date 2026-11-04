@@ -8,6 +8,14 @@ const number = (value) => new Intl.NumberFormat("es-GT", { maximumFractionDigits
 const shortDate = (value) => new Intl.DateTimeFormat("es-GT", { day: "2-digit", month: "short" }).format(new Date(`${String(value).slice(0, 10)}T12:00:00`));
 const ranges = [{ value: "24h", label: "24 horas" }, { value: "7d", label: "7 días" }, { value: "15d", label: "15 días" }, { value: "30d", label: "1 mes" }];
 
+const icons = {
+  stock: "M3 10 12 4l9 6v10H3zM7 20v-6h10v6",
+  down: "M12 5v14m-6-6 6 6 6-6",
+  up: "M12 19V5m-6 6 6-6 6 6",
+  product: "m4 8 8-4 8 4-8 4zM4 8v9l8 4 8-4V8M12 12v9",
+};
+const Icon = ({ d, size = 22 }) => <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d}/></svg>;
+
 function BarTooltip({ type, total, products }) {
   return <div className={`trend-tooltip ${type}`}><strong>{type === "input" ? "Entradas" : "Salidas"}: {number(total)}</strong>
     <div>{products?.length ? products.map((product) => <span key={product.code}><i>{product.name}</i><b>{number(product.quantity)}</b></span>) : <small>Sin movimientos</small>}</div>
@@ -51,10 +59,10 @@ export default function Inicio({ user }) {
     {error && <div className="dashboard-error"><strong>No fue posible cargar el resumen.</strong><span>{error}</span><button type="button" onClick={() => load(range)}>Reintentar</button></div>}
     {loading && !data ? <div className="dashboard-loading"><span/><p>Preparando indicadores…</p></div> : data && <>
       <section className="dashboard-kpis" aria-label="Indicadores principales">
-        <article className="dashboard-kpi kpi-stock"><div className="kpi-icon">▦</div><div><span>Existencia actual</span><strong>{number(summary.current_stock)}</strong><small>Cantidad total disponible</small></div></article>
-        <article className="dashboard-kpi kpi-in"><div className="kpi-icon">↘</div><div><span>Entradas del mes</span><strong>{number(summary.month_inputs)}</strong><small>Ingresos y ajustes de entrada</small></div></article>
-        <article className="dashboard-kpi kpi-out"><div className="kpi-icon">↗</div><div><span>Salidas del mes</span><strong>{number(summary.month_outputs)}</strong><small>Egresos y ajustes de salida</small></div></article>
-        <article className="dashboard-kpi kpi-products"><div className="kpi-icon">▣</div><div><span>Productos activos</span><strong>{number(summary.active_products)}</strong><small>Catálogo disponible</small></div></article>
+        <article className="dashboard-kpi kpi-stock"><div className="kpi-icon"><Icon d={icons.stock}/></div><div><span>Existencia actual</span><strong>{number(summary.current_stock)}</strong><small>Cantidad total disponible</small></div></article>
+        <article className="dashboard-kpi kpi-in"><div className="kpi-icon"><Icon d={icons.down}/></div><div><span>Entradas del mes</span><strong>{number(summary.month_inputs)}</strong><small>Ingresos y ajustes de entrada</small></div></article>
+        <article className="dashboard-kpi kpi-out"><div className="kpi-icon"><Icon d={icons.up}/></div><div><span>Salidas del mes</span><strong>{number(summary.month_outputs)}</strong><small>Egresos y ajustes de salida</small></div></article>
+        <article className="dashboard-kpi kpi-products"><div className="kpi-icon"><Icon d={icons.product}/></div><div><span>Productos activos</span><strong>{number(summary.active_products)}</strong><small>Catálogo disponible</small></div></article>
       </section>
       <section className="dashboard-grid">
         <article className="dashboard-card dashboard-trend"><div className="dashboard-card-title"><div><h2>Movimiento de inventario</h2><p>{ranges.find((item) => item.value === range)?.label}</p></div><div className="chart-legend"><span className="legend-in">Entradas</span><span className="legend-out">Salidas</span></div></div>
@@ -71,7 +79,7 @@ export default function Inicio({ user }) {
           <div className="stock-watch">{data.lowStock.length ? data.lowStock.map((item) => <div className="stock-item" key={item.code}><span className={Number(item.quantity) <= 0 ? "stock-dot critical" : "stock-dot"}/><div><strong>{item.name}</strong><small>{item.code}</small></div><b>{number(item.quantity)} <small>{item.unit || ""}</small></b></div>) : <p className="dashboard-empty">No hay existencias para mostrar.</p>}</div>
         </article>
         <article className="dashboard-card"><div className="dashboard-card-title"><div><h2>Movimientos recientes</h2><p>Últimos documentos registrados</p></div></div>
-          <div className="recent-list">{data.recent.length ? data.recent.map((item) => { const incoming = ["INPUT", "ADJUSTMENT_IN"].includes(item.movement_type); return <div className="recent-item" key={item.id}><span className={incoming ? "movement-badge incoming" : "movement-badge outgoing"}>{incoming ? "↓" : "↑"}</span><div><strong>{movementLabel[item.movement_type] || item.movement_type}</strong><small title={item.products}>{item.products}</small></div><div><b>{number(item.quantity)}</b><small>{shortDate(item.movement_date)}</small></div></div>; }) : <p className="dashboard-empty">Todavía no hay movimientos.</p>}</div>
+          <div className="recent-list">{data.recent.length ? data.recent.map((item) => { const incoming = ["INPUT", "ADJUSTMENT_IN"].includes(item.movement_type); return <div className="recent-item" key={item.id}><span className={incoming ? "movement-badge incoming" : "movement-badge outgoing"}><Icon d={incoming ? icons.down : icons.up} size={16}/></span><div><strong>{movementLabel[item.movement_type] || item.movement_type}</strong><small title={item.products}>{item.products}</small></div><div><b>{number(item.quantity)}</b><small>{shortDate(item.movement_date)}</small></div></div>; }) : <p className="dashboard-empty">Todavía no hay movimientos.</p>}</div>
         </article>
       </section>
     </>}

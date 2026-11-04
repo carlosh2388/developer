@@ -25,7 +25,7 @@ export default function Login({ onLogin, onLicenseBlocked, onResetActivation }) 
   return (
     <div className="auth-page">
       <section className="auth-brand">
-        <div className="brand-mark">A</div>
+        <div className="brand-mark"><img src="/igag-isotipo.png" alt="Logo de la granja"/></div>
         <p className="eyebrow">GESTIÓN AVÍCOLA INTELIGENTE</p>
         <h1>Control que impulsa el crecimiento de tu producción.</h1>
         <p>Administra inventarios, producción y trazabilidad desde una plataforma segura y centralizada.</p>
@@ -33,6 +33,7 @@ export default function Login({ onLogin, onLicenseBlocked, onResetActivation }) 
       </section>
       <section className="auth-panel">
         <form className="login-card" onSubmit={submit}>
+          <img className="login-logo" src="/igag-logo-completo.png" alt="Logo de Industria Genética Avícola de Guatemala"/>
           <div className="mobile-brand">AVINEXT</div>
           <p className="eyebrow">ACCESO A LA PLATAFORMA</p>
           <h2>Bienvenido</h2>
