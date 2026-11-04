@@ -38,6 +38,7 @@
     "db:migrate:mixed-egg-grades": "node scripts/runMigration.js 021_mixed_egg_grades.sql",
     "db:migrate:vaccine-product-details": "node scripts/runMigration.js 022_vaccine_product_details.sql",
     "db:migrate:flock-rearing-entry": "node scripts/runMigration.js 006_flock_rearing_entry.sql",
+    "db:migrate:roles": "node scripts/runMigration.js 023_client_roles_and_shared_sessions.sql",
     "test": "node --test"
   },
   "keywords": [],

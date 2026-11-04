@@ -1,5 +1,15 @@
+const { assertAdjustmentAccess } = require("../services/roleAccessService");
 const db = require("../config/database");
 const HttpError = require("../utils/httpError");
+
+async function assertInventoryAdjustmentAccess(client, req, document) {
+  assertAdjustmentAccess(req.user, document.movement_type);
+  const linked = await client.query(
+    "SELECT is_adjustment FROM egg_movements WHERE inventory_document_id=$1 AND organization_id=$2",
+    [document.id, req.user.organizationId]
+  );
+  assertAdjustmentAccess(req.user, ...linked.rows.map((row) => row.is_adjustment));
+}
 
 function organizationId(req) {
   if (!req.user.organizationId) throw new HttpError(403, "Esta operación requiere un usuario de cliente.", "CLIENT_ORGANIZATION_REQUIRED");
@@ -386,6 +396,8 @@ async function listarInventario(req, res, next) {
   try {
     const { rows } = await db.query(
       `SELECT d.*,s.code supplier_code,s.name supplier_name,
+              EXISTS(SELECT 1 FROM egg_movements em WHERE em.inventory_document_id=d.id
+                     AND em.organization_id=d.organization_id AND em.is_adjustment) AS is_adjustment,
               COUNT(l.id)::INTEGER line_count,COALESCE(SUM(l.quantity),0) total_quantity,
               COALESCE(SUM(l.quantity * l.unit_cost),0) total_amount,
               COALESCE((SELECT STRING_AGG(DISTINCT f.code, ', ' ORDER BY f.code)
@@ -433,6 +445,7 @@ async function obtenerInventario(req, res, next) {
 async function actualizarInventario(req, res, next) {
   try {
     const orgId = organizationId(req); const body = req.body || {};
+    assertAdjustmentAccess(req.user, body.tipoMovimiento);
     const detalles = Array.isArray(body.detalles) ? body.detalles : [];
     if (!detalles.length) throw new HttpError(400, "Agrega al menos un detalle.", "VALIDATION_ERROR");
     validateOutputAllocations(body, detalles);
@@ -440,6 +453,7 @@ async function actualizarInventario(req, res, next) {
     const result = await transaction(async (client) => {
       const current = await client.query("SELECT * FROM inventory_documents WHERE id=$1 AND organization_id=$2 FOR UPDATE", [req.params.id, orgId]);
       if (!current.rows[0]) throw new HttpError(404, "El documento no existe.", "NOT_FOUND");
+      await assertInventoryAdjustmentAccess(client, req, current.rows[0]);
       if (current.rows[0].status === "VOID") throw new HttpError(409, "Un documento anulado no puede editarse.", "VOID_DOCUMENT");
       const movementType = required(body.tipoMovimiento,"tipoMovimiento");
       const preparedDetails = await prepareInventoryDetails(client, orgId, detalles);
@@ -485,6 +499,7 @@ async function crearInventario(req, res, next) {
   try {
     const orgId = organizationId(req);
     const body = req.body || {};
+    assertAdjustmentAccess(req.user, body.tipoMovimiento);
     const detalles = Array.isArray(body.detalles) ? body.detalles : [];
     if (!detalles.length) throw new HttpError(400, "Agrega al menos un detalle.", "VALIDATION_ERROR");
     validateOutputAllocations(body, detalles);
@@ -537,6 +552,7 @@ async function anularInventario(req, res, next) {
     const result = await transaction(async (client) => {
       const current = await client.query("SELECT * FROM inventory_documents WHERE id=$1 AND organization_id=$2 FOR UPDATE", [req.params.id, orgId]);
       if (!current.rows[0] || current.rows[0].status === "VOID") throw new HttpError(404, "El documento no existe o ya fue anulado.", "NOT_FOUND");
+      await assertInventoryAdjustmentAccess(client, req, current.rows[0]);
       await validateProjectedInventory(client, orgId, [], current.rows[0].movement_type, req.params.id);
       const { rows } = await client.query(
         `UPDATE inventory_documents SET status='VOID',voided_by=$1,voided_at=NOW()
@@ -561,6 +577,10 @@ async function anularOperacion(req, res, next) {
     if (!config) throw new HttpError(404, "El tipo de operación no existe.", "NOT_FOUND");
     const orgId = organizationId(req);
     const result = await transaction(async (client) => {
+      if (req.params.tipo === "huevos") {
+        const current = await client.query("SELECT is_adjustment FROM egg_movements WHERE id=$1 AND organization_id=$2 FOR UPDATE", [req.params.id, orgId]);
+        assertAdjustmentAccess(req.user, current.rows[0]?.is_adjustment);
+      }
       const { rows } = await client.query(
       `UPDATE ${config.table} SET status='VOID',voided_by=$1,voided_at=NOW()
        WHERE id=$2 AND organization_id=$3 AND status=$4 RETURNING *`,
@@ -667,6 +687,7 @@ async function crearMovimientoHuevos(req, res, next) {
   try {
     const orgId = organizationId(req);
     const body = req.body || {};
+    assertAdjustmentAccess(req.user, body.tipoMovimiento);
     const detalles = Array.isArray(body.detalles) ? body.detalles : [];
     if (!detalles.length) throw new HttpError(400, "Agrega al menos un detalle de huevos.", "VALIDATION_ERROR");
     const requestedMovementType = required(body.tipoMovimiento, "tipoMovimiento");
@@ -702,8 +723,9 @@ async function crearMovimientoHuevos(req, res, next) {
       const driverId = await resolveTenantId(client, "personnel", orgId, body.pilotoId || body.piloto, "piloto", true);
       let header;
       if (req.params.id) {
-        const current=await client.query("SELECT status,inventory_document_id FROM egg_movements WHERE id=$1 AND organization_id=$2 FOR UPDATE",[req.params.id,orgId]);
+        const current=await client.query("SELECT status,inventory_document_id,is_adjustment FROM egg_movements WHERE id=$1 AND organization_id=$2 FOR UPDATE",[req.params.id,orgId]);
         if(!current.rows[0]) throw new HttpError(404,"El movimiento no existe.","NOT_FOUND"); if(current.rows[0].status==="VOID") throw new HttpError(409,"Un movimiento anulado no puede editarse.","VOID_DOCUMENT");
+        assertAdjustmentAccess(req.user, current.rows[0].is_adjustment);
         header=await client.query(`UPDATE egg_movements SET movement_type=$1,movement_date=$2,movement_time=$3,production_date=$4,source_warehouse_id=$5,destination_warehouse_id=$6,destination_type=$7,destination_name=$8,customer_id=$9,vehicle_id=$10,driver_id=$11,notes=$12,updated_by=$13,updated_at=NOW() WHERE id=$14 AND organization_id=$15 RETURNING *`,
           [movementType,required(body.fecha,"fecha"),body.hora||null,body.fechaProduccion||null,sourceWarehouseId,destinationWarehouseId,body.tipoDestino||null,body.nombreDestino||null,customerId,vehicleId,driverId,body.observaciones||null,req.user.id,req.params.id,orgId]);
         await client.query("DELETE FROM egg_movement_lines WHERE movement_id=$1 AND organization_id=$2",[req.params.id,orgId]);
@@ -734,6 +756,8 @@ async function crearMovimientoHuevos(req, res, next) {
             [...commonValues, req.user.id]
           );
       }
+      await client.query("UPDATE egg_movements SET is_adjustment=$1 WHERE id=$2 AND organization_id=$3", [adjustmentMovement, header.rows[0].id, orgId]);
+      header.rows[0].is_adjustment = adjustmentMovement;
       const lines = [];
       const requestedEggUnits = new Map();
       for (let index = 0; index < detalles.length; index += 1) {
@@ -972,15 +996,15 @@ async function obtenerPesoAves(req, res, next) {
 async function crearPesoAves(req, res, next) {
   try {
     const orgId = organizationId(req); const body = req.body || {}; const muestras = body.muestras || [];
-    if (!muestras.length) throw new HttpError(400, "Agrega las muestras de peso.", "VALIDATION_ERROR");
+    if (!Array.isArray(muestras) || !muestras.length || muestras.some((sample) => !sample || !["F", "M"].includes(sample.sexo))) throw new HttpError(400, "Agrega muestras de peso con sexo válido.", "VALIDATION_ERROR");
     const sampleSize = Number(body.tamanoMuestra || muestras.length);
     const femaleSamples = muestras.filter((sample) => sample.sexo === "F");
     const maleSamples = muestras.filter((sample) => sample.sexo === "M");
-    if (!Number.isInteger(sampleSize) || sampleSize < 2 || sampleSize % 2 !== 0 || muestras.length !== sampleSize) {
-      throw new HttpError(400, "El tamaño de la muestra debe ser par y todas las filas deben estar completas.", "VALIDATION_ERROR");
+    if (!Number.isInteger(sampleSize) || sampleSize < 1 || muestras.length !== sampleSize) {
+      throw new HttpError(400, "El tamaño de la muestra debe ser un entero positivo y todas las filas deben estar completas.", "VALIDATION_ERROR");
     }
-    if (femaleSamples.length !== sampleSize / 2 || maleSamples.length !== sampleSize / 2) {
-      throw new HttpError(400, "Debe registrar la misma cantidad de muestras para hembras y machos.", "VALIDATION_ERROR");
+    if (femaleSamples.length && maleSamples.length && !req.params.id) {
+      throw new HttpError(400, "Selecciona un solo sexo por control: hembras o machos.", "VALIDATION_ERROR");
     }
     if (muestras.some((sample) => !Number.isFinite(Number(sample.pesoGramos)) || Number(sample.pesoGramos) <= 0 || Math.abs(Number(sample.pesoGramos) * 100 - Math.round(Number(sample.pesoGramos) * 100)) > 0.000001)) {
       throw new HttpError(400, "Todas las muestras deben tener un peso mayor que cero.", "VALIDATION_ERROR");
@@ -1001,6 +1025,10 @@ async function crearPesoAves(req, res, next) {
         if (current.rows[0].status === "VOID") throw new HttpError(409, "Un control anulado no puede editarse.", "VOID_DOCUMENT");
         if (Number(current.rows[0].sample_size) !== sampleSize) {
           throw new HttpError(400, "Al editar no se puede modificar el tamaÃ±o de la muestra.", "VALIDATION_ERROR");
+      }
+      const previousSexes = await client.query("SELECT DISTINCT sex FROM bird_weight_samples WHERE control_id=$1 AND organization_id=$2", [req.params.id, orgId]);
+      if (femaleSamples.length && maleSamples.length && previousSexes.rows.length < 2) {
+        throw new HttpError(400, "Selecciona un solo sexo por control: hembras o machos.", "VALIDATION_ERROR");
       }
       const stats = birdWeightStats(samplesToSave);
       header = await client.query(`UPDATE bird_weight_controls SET flock_id=$1,stage_id=$2,control_date=$3,week_number=$4,sample_size=$5,

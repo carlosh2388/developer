@@ -6,6 +6,8 @@ const HttpError = require("../utils/httpError");
 const { validateCertificate } = require("../services/licenseService");
 const { USER_SCOPES, normalizeScope } = require("../services/userAccessService");
 
+const { sessionLimit } = require("../services/roleAccessService");
+
 function issueSessionToken(userId, tokenVersion, sessionId) {
   return jwt.sign(
     { sub: userId, ver: tokenVersion, sid: sessionId || null },
@@ -56,8 +58,9 @@ async function login(req, res, next) {
     const sessionId = userScope === USER_SCOPES.CLIENT ? crypto.randomUUID() : null;
     if (sessionId) {
       await client.query("DELETE FROM active_user_sessions WHERE expires_at<=NOW()");
-      const active = await client.query("SELECT 1 FROM active_user_sessions WHERE user_id=$1", [user.id]);
-      if (active.rows[0]) throw new HttpError(409, "Su sesión ya se encuentra abierta. Cierre la sesión anterior o solicite al administrador que la libere.", "SESSION_ALREADY_ACTIVE");
+      const active = await client.query("SELECT COUNT(*)::int AS count FROM active_user_sessions WHERE user_id=$1", [user.id]);
+      if (active.rows[0].count >= sessionLimit()) throw new HttpError(409,
+        "Este usuario ya tiene dos sesiones abiertas. Cierre una sesión o solicite al administrador que las libere.", "SESSION_ALREADY_ACTIVE");
     }
 
     const token = issueSessionToken(user.id, user.token_version, sessionId);
@@ -113,7 +116,7 @@ async function refresh(req, res, next) {
 async function logout(req, res, next) {
   try {
     if (req.tokenPayload.sid) await db.query("DELETE FROM active_user_sessions WHERE user_id=$1 AND token_id=$2", [req.user.id, req.tokenPayload.sid]);
-    await db.query("UPDATE users SET token_version=token_version+1 WHERE id=$1", [req.user.id]);
+    if (!req.tokenPayload.sid) await db.query("UPDATE users SET token_version=token_version+1 WHERE id=$1", [req.user.id]);
     res.status(204).end();
   } catch (error) { next(error); }
 }
